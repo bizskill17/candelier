@@ -134,7 +134,7 @@ export default function ProductionPage({ status }) {
             {loading && <tr><td colSpan={ready && canEdit ? 8 : 7} className={`${td} text-center text-gray-500`}>Loading items…</td></tr>}
             {error && !loading && <tr><td colSpan={ready && canEdit ? 8 : 7} className={`${td} py-10 text-center`}><p role="alert" className="text-red-600">{error}</p><button onClick={refresh} className="mt-2 text-brand-600 underline">Try again</button></td></tr>}
             {!loading && !error && !rows.length && <tr><td colSpan={ready && canEdit ? 8 : 7} className={`${td} !py-12 text-center text-gray-500`}>{filtered ? 'No items match these filters.' : ready ? 'No completed items awaiting dispatch.' : 'No issued items in production.'}</td></tr>}
-            {rows.map((it) => <tr key={it.id} className="hover:bg-gray-50">
+            {rows.map((it) => <tr key={it.id} className={pending[it.id] ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'}>
               <td className={`${td} whitespace-nowrap font-mono text-xs`}><Link to={`/orders/${it.order_id}`} className="text-brand-600 hover:underline">{it.order_no}</Link><span className="mt-1 block text-gray-500">Item #{it.line_no}</span></td>
               <td className={`${td} min-w-[150px] font-medium`}>{it.customer_name}</td>
               <td className={`${td} min-w-[130px]`}>{it.project_name || dash}</td>
