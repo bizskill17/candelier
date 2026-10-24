@@ -1,6 +1,5 @@
 import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw } from 'lucide-react';
 import { ordersApi } from '../../api/client';
 import DateInput from '../../components/DateInput';
@@ -9,7 +8,6 @@ import { fmtDate } from '../../lib/util';
 
 // Every dispatched order item.
 export default function DispatchList() {
-  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -55,7 +53,7 @@ export default function DispatchList() {
               {!loading && loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
               {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || from || to ? 'No dispatches match.' : 'Nothing dispatched yet. Dispatch an item from its order.'}</td></tr>}
               {pagination.rows.map((d) => (
-                <tr key={d.id} onClick={() => navigate(`/orders/${d.order_id}`)} className="cursor-pointer hover:bg-gray-50">
+                <tr key={d.id} className="hover:bg-gray-50">
                   <td className={`${tdCls} font-mono text-xs font-medium text-gray-900`}>{d.dispatch_no}</td>
                   <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{fmtDate(d.dispatch_date)}</td>
                   <td className={`${tdCls} whitespace-nowrap font-mono text-xs`}>{d.order_no} <span className="text-gray-500">#{d.line_no}</span></td>
