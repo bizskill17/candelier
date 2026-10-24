@@ -144,3 +144,15 @@ jobs:
                   ftp.storbinary("STOR config.php", payload)
 
               print("Website deployment completed; existing configuration retained.")
+
+      - name: Verify live API
+        shell: python
+        run: |
+          import json
+          import urllib.request
+          url = "https://candelier.bizskilledu.com/api/index.php?r=health"
+          with urllib.request.urlopen(url, timeout=120) as response:
+              health = json.load(response)
+          if not health.get("ok"):
+              raise SystemExit("Live API health check failed")
+          print("Live API is healthy; database update completed.")
