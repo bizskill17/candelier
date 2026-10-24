@@ -1,3 +1,4 @@
+import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Pencil, Search, Upload, Download, Trash2 } from 'lucide-react';
 import { materialsApi } from '../../api/client';
@@ -45,6 +46,7 @@ export default function MaterialsPage() {
   };
   const q = search.trim().toLowerCase();
   const list = (rows || []).filter((m) => `${m.name} ${m.category_name} ${m.unit}`.toLowerCase().includes(q));
+  const pagination = usePagination(list, q);
   return <div className="mx-auto max-w-6xl space-y-4">
     <div className="flex flex-wrap gap-2">
       <label className="flex min-w-52 flex-1 items-center gap-2 rounded-lg border bg-white px-3 py-2"><Search size={16} /><input aria-label="Search materials" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search material or category…" className="w-full text-sm outline-none" /></label>
@@ -54,8 +56,8 @@ export default function MaterialsPage() {
       {error && <tr><td colSpan={5} className={`${tdCls} text-red-600`}>{error} <button onClick={load}>Retry</button></td></tr>}
       {!rows && !error && <tr><td colSpan={5} className={tdCls}>Loading…</td></tr>}
       {rows && !list.length && <tr><td colSpan={5} className={`${tdCls} py-10 text-center text-gray-500`}>No materials found.</td></tr>}
-      {list.map((m) => <tr key={m.id}><td className={tdCls}>{m.category_name}</td><td className={`${tdCls} font-medium`}>{m.name}</td><td className={tdCls}>{m.unit}</td><td className={tdCls}><Toggle checked={m.is_active} onChange={() => toggle(m)} disabled={!canEdit} label={m.is_active ? 'Active' : 'Inactive'} /></td><td className={tdCls}><button onClick={() => setEditing(m)} className="inline-flex items-center gap-1 text-brand-600"><Pencil size={14} /> {canEdit ? 'Edit' : 'Open'}</button></td></tr>)}
-    </tbody></table></div></div>
+      {pagination.rows.map((m) => <tr key={m.id}><td className={tdCls}>{m.category_name}</td><td className={`${tdCls} font-medium`}>{m.name}</td><td className={tdCls}>{m.unit}</td><td className={tdCls}><Toggle checked={m.is_active} onChange={() => toggle(m)} disabled={!canEdit} label={m.is_active ? 'Active' : 'Inactive'} /></td><td className={tdCls}><button onClick={() => setEditing(m)} className="inline-flex items-center gap-1 text-brand-600"><Pencil size={14} /> {canEdit ? 'Edit' : 'Open'}</button></td></tr>)}
+    </tbody></table></div><Pagination {...pagination} /></div>
     {editing && <MaterialForm material={editing} readOnly={!canEdit} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
     {upload && <Modal open wide title="Import Materials" onClose={() => !busy && setUpload(null)} footer={<><button disabled={busy} onClick={() => setUpload(null)} className="px-3 py-2">Cancel</button><button disabled={busy} onClick={importRows} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy ? 'Importing…' : `Import ${upload.rows.length} materials`}</button></>}>
       <p className="mb-3 text-sm text-gray-600">Create the categories first. Unit must be one of: {UNITS.join(', ')}. Up to 500 rows per upload.</p>

@@ -25,7 +25,7 @@ export default function DocsPage({ type }) {
   return <DocList type={type} />;
 }
 
-const PER_PAGE = 25;
+const PER_PAGE = 20;
 
 function DocList({ type }) {
   const cfg = docConfig[type];
@@ -130,7 +130,7 @@ function DocList({ type }) {
             </tbody>
           </table>
         </div>
-        {total > 0 && (
+        {total > PER_PAGE && (
           <div className="flex items-center justify-between border-t border-blue-200 px-4 py-2.5 text-sm text-gray-600">
             <span className="tabular-nums">{(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}</span>
             <div className="flex items-center gap-1">

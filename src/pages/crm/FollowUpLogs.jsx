@@ -7,7 +7,7 @@ import DateInput from '../../components/DateInput';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate, fmtTime, Badge } from '../../lib/util';
 
-const PER_PAGE = 50;
+const PER_PAGE = 20;
 const ROW_BG = { Success: 'bg-green-100', Fail: 'bg-red-100' };
 const STATUS_COLOR = { 'Follow Up Again': 'amber', Success: 'green', Fail: 'red' };
 
@@ -109,7 +109,7 @@ export default function FollowUpLogs() {
             </tbody>
           </table>
         </div>
-        {total > 0 && (
+        {total > PER_PAGE && (
           <div className="flex items-center justify-between border-t border-blue-200 px-4 py-2.5 text-sm text-gray-600">
             <span className="tabular-nums">{(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}</span>
             <div className="flex items-center gap-1">

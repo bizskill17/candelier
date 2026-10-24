@@ -96,7 +96,7 @@ function doc_list(array $d): array
     if (valid_date($_GET['from'] ?? '')) { $where[] = "h.{$d['date']} >= :f"; $params['f'] = $_GET['from']; }
     if (valid_date($_GET['to'] ?? '')) { $where[] = "h.{$d['date']} <= :t"; $params['t'] = $_GET['to']; }
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
-    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 25)));
+    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
     $base = doc_select($d) . $whereSql;

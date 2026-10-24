@@ -1,3 +1,4 @@
+import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Printer, RefreshCw } from 'lucide-react';
@@ -23,6 +24,7 @@ export default function LowStock() {
     try { const r = await inventoryApi.lowStock({ material_id: materialId, supplier_id: supplierId }); setRows(r.data); } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
   }, [materialId, supplierId]);
   useEffect(() => { load(); }, [load]);
+  const pagination = usePagination(rows, JSON.stringify([materialId, supplierId]));
   const cols = 8;
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -52,7 +54,7 @@ export default function LowStock() {
               {loading && rows.length === 0 && [1, 2].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {!loading && loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
               {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>Nothing is below its reorder level. Set reorder levels in Inventory.</td></tr>}
-              {rows.map((r) => (
+              {pagination.rows.map((r) => (
                 <tr key={r.id}>
                   <td className={tdCls}><b className="text-gray-900">{r.material_name}</b>{r.spec_text && <span className="text-gray-700"> · {r.spec_text}</span>}</td>
                   <td className={tdCls}>{r.unit}</td>
@@ -67,6 +69,7 @@ export default function LowStock() {
             </tbody>
           </table>
         </div>
+        <Pagination {...pagination} />
       </div>
       {rows.length > 0 && <div className="print:hidden flex justify-end"><button onClick={() => navigate('/material-in/new')} className="text-sm font-medium text-brand-600 hover:underline">Record Material In →</button></div>}
     </div>

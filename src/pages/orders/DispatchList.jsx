@@ -1,3 +1,4 @@
+import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function DispatchList() {
     try { const r = await ordersApi.dispatches({ q, from, to }); setRows(r.data); } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
   }, [q, from, to]);
   useEffect(() => { load(); }, [load]);
+  const pagination = usePagination(rows, JSON.stringify([q, from, to]));
   const cols = 8;
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -52,7 +54,7 @@ export default function DispatchList() {
               {loading && rows.length === 0 && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {!loading && loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
               {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || from || to ? 'No dispatches match.' : 'Nothing dispatched yet. Dispatch an item from its order.'}</td></tr>}
-              {rows.map((d) => (
+              {pagination.rows.map((d) => (
                 <tr key={d.id} onClick={() => navigate(`/orders/${d.order_id}`)} className="cursor-pointer hover:bg-gray-50">
                   <td className={`${tdCls} font-mono text-xs font-medium text-gray-900`}>{d.dispatch_no}</td>
                   <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{fmtDate(d.dispatch_date)}</td>
@@ -67,6 +69,7 @@ export default function DispatchList() {
             </tbody>
           </table>
         </div>
+        <Pagination {...pagination} />
       </div>
     </div>
   );

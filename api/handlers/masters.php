@@ -106,7 +106,7 @@ function master_list(array $e): array
     }
     $dir = strtolower($_GET['dir'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 
-    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 25)));
+    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
 

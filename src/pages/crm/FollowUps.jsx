@@ -1,3 +1,4 @@
+import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, PhoneCall, Pencil } from 'lucide-react';
@@ -28,6 +29,7 @@ export default function FollowUps() {
   useEffect(() => { load(); }, [load]);
 
   const rows = data?.data || [];
+  const pagination = usePagination(rows, JSON.stringify([tab, q]));
   const cols = 15;
   const th = `${thCls} whitespace-nowrap !px-3 !py-2.5`;
   const td = `${tdCls} !px-3 !py-2`;
@@ -75,7 +77,7 @@ export default function FollowUps() {
               {!data && !loadError && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
               {data && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q ? 'No leads match.' : tab === 'all' ? 'No open leads.' : tab === 'overdue' ? 'Nothing overdue.' : tab === 'today' ? 'No follow-ups due today.' : 'No upcoming follow-ups.'}</td></tr>}
-              {rows.map((l) => (
+              {pagination.rows.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
                   <td className={`${td} whitespace-nowrap tabular-nums ${l.due && l.next_followup_date < data.today ? 'font-medium text-red-600' : ''}`}>
                     {l.due ? <>
@@ -108,6 +110,7 @@ export default function FollowUps() {
             </tbody>
           </table>
         </div>
+        <Pagination {...pagination} />
       </div>
       {followUp && <FollowUpDialog lead={followUp} onClose={() => setFollowUp(null)} onDone={() => { setFollowUp(null); load(); }} />}
     </div>

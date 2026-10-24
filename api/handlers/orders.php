@@ -77,7 +77,7 @@ function order_list(): array
         for ($k = 1; $k <= 6; $k++) $params["q$k"] = "%$q%";
     }
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
-    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 25)));
+    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
     $total = (int) db_value('SELECT COUNT(*) FROM (' . ORDER_SELECT . "$whereSql) x", $params);
@@ -379,7 +379,7 @@ function pending_boq(): array
                     OR EXISTS (SELECT 1 FROM order_item_values v WHERE v.order_item_id = i.id AND v.value LIKE :q6))';
         for ($k = 1; $k <= 6; $k++) $params["q$k"] = "%$q%";
     }
-    $rows = db_all(ITEM_SELECT . " WHERE $where ORDER BY o.delivery_date IS NULL, o.delivery_date, o.order_date, o.id, i.line_no LIMIT 500", $params);
+    $rows = db_all(ITEM_SELECT . " WHERE $where ORDER BY o.delivery_date IS NULL, o.delivery_date, o.order_date, o.id, i.line_no", $params);
     return ['data' => items_cast($rows)];
 }
 
@@ -452,7 +452,7 @@ function dispatch_list(): array
         "SELECT d.*, i.order_id, i.line_no, i.area, i.remarks AS item_remarks, o.order_no, o.project_name, c.name AS customer_name, t.name AS transporter_name
            FROM dispatches d JOIN order_items i ON i.id = d.order_item_id JOIN orders o ON o.id = i.order_id
            JOIN customers c ON c.id = o.customer_id LEFT JOIN transporters t ON t.id = d.transporter_id
-         $whereSql ORDER BY d.dispatch_date DESC, d.id DESC LIMIT 500",
+         $whereSql ORDER BY d.dispatch_date DESC, d.id DESC",
         $params
     );
     $rows = with_item_details($rows);

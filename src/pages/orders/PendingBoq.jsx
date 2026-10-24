@@ -1,3 +1,4 @@
+import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, ClipboardList, AlertTriangle } from 'lucide-react';
@@ -21,6 +22,7 @@ export default function PendingBoq() {
   }, [q]);
   useEffect(() => { load(); }, [load]);
 
+  const pagination = usePagination((rows || []), q);
   const th = `${thCls} whitespace-nowrap !px-3 !py-2.5`;
   const td = `${tdCls} !px-3 !py-2`;
   const DASH = <span className="text-gray-300">—</span>;
@@ -55,7 +57,7 @@ export default function PendingBoq() {
               {!rows && !loadError && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
               {rows && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q ? 'No items match.' : 'Every order item has a Final BOQ.'}</td></tr>}
-              {(rows || []).map((it) => {
+              {pagination.rows.map((it) => {
                 const late = it.delivery_date && it.delivery_date < today();
                 return (
                   <tr key={it.id} className="hover:bg-gray-50">
@@ -77,6 +79,7 @@ export default function PendingBoq() {
             </tbody>
           </table>
         </div>
+        <Pagination {...pagination} />
       </div>
     </div>
   );

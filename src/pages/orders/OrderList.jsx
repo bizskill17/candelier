@@ -9,7 +9,7 @@ import { fmtDate, today, OrderStatus, ItemStage, ORDER_STATUSES } from '../../li
 import DispatchDialog from './DispatchDialog';
 import { ItemText, ItemPhotos } from '../../lib/items';
 
-const PER_PAGE = 25;
+const PER_PAGE = 20;
 const subTh = 'border border-blue-200 bg-blue-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-blue-900';
 const subTd = 'border border-blue-200 px-3 py-2 align-top';
 
@@ -157,7 +157,7 @@ export default function OrderList() {
             </tbody>
           </table>
         </div>
-        {total > 0 && (
+        {total > PER_PAGE && (
           <div className="flex items-center justify-between border-t border-blue-200 px-4 py-2.5 text-sm text-gray-600">
             <span className="tabular-nums">{(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}</span>
             <div className="flex items-center gap-1">

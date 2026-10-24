@@ -63,6 +63,31 @@ const mobileBox=await panel.boundingBox();
 assert.ok(mobileBox.width<=374 && mobileBox.x>=0 && mobileBox.x+mobileBox.width<=390);
 assert.equal(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
 
+
+await page.setViewportSize({width:1440,height:1000});
+await page.route('**/api/index.php?**', async route => {
+ const url=new URL(route.request().url());
+ if(url.searchParams.get('r')!=='materials')return route.fallback();
+ await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:Array.from({length:45},(_,i)=>({id:i+100,name:'Sample '+String(i+1).padStart(2,'0'),category_name:'Crystal',category_id:1,unit:'Pcs',is_active:true}))})});
+});
+await page.goto('http://127.0.0.1:5173/materials');
+await page.getByRole('navigation',{name:'Table pagination'}).waitFor();
+assert.equal(await page.locator('tbody tr').count(),20);
+await page.getByRole('button',{name:'Next page',exact:true}).click();
+assert.equal(await page.locator('tbody tr').count(),20);
+assert.match(await page.locator('tbody tr').first().innerText(),/Sample 21/);
+await page.getByRole('button',{name:'Next page',exact:true}).click();
+assert.equal(await page.locator('tbody tr').count(),5);
+assert.equal(await page.getByRole('button',{name:'Next page',exact:true}).isDisabled(),true);
+await page.getByRole('textbox',{name:'Search materials',exact:true}).fill('Sample 01');
+await page.waitForFunction(()=>document.querySelectorAll('tbody tr').length===1);
+assert.match(await page.locator('tbody tr').first().innerText(),/Sample 01/);
+assert.equal(await page.getByRole('navigation',{name:'Table pagination'}).count(),0);
+await page.getByRole('textbox',{name:'Search materials',exact:true}).fill('');
+await page.getByRole('navigation',{name:'Table pagination'}).waitFor();
+assert.match(await page.getByRole('navigation',{name:'Table pagination'}).innerText(),/Page 1 of 3/);
+console.log('Pagination browser checks passed: 20 rows, page transitions, last page, filtering and page reset.');
+
 assert.deepEqual(errors,[]);console.log('Browser checks passed: empty BOQ row, category filtering, Draft/Final controls, new rows and category reset, mandatory material category.');
 await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -8,7 +8,7 @@ import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate, fmtTime, today, LeadTemp } from '../../lib/util';
 import FollowUpDialog from './FollowUpDialog';
 
-const PER_PAGE = 25;
+const PER_PAGE = 20;
 // Row colour shows the status: Open white, Success green, Fail red.
 const ROW_BG = { Open: 'bg-white hover:bg-gray-50', Success: 'bg-green-100 hover:bg-green-200/70', Fail: 'bg-red-100 hover:bg-red-200/70' };
 
@@ -123,7 +123,7 @@ export default function LeadList() {
             </tbody>
           </table>
         </div>
-        {total > 0 && (
+        {total > PER_PAGE && (
           <div className="flex items-center justify-between border-t border-blue-200 px-4 py-2.5 text-sm text-gray-600">
             <span className="tabular-nums">{(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, total)} of {total}</span>
             <div className="flex items-center gap-1">

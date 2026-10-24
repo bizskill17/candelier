@@ -9,7 +9,7 @@ import { useToast } from '../components/Toast';
 import MasterForm from '../components/MasterForm';
 import ConfirmDialog from '../components/ConfirmDialog';
 
-const PER_PAGE = 25;
+const PER_PAGE = 20;
 
 function useDebounced(value, ms = 300) {
   const [v, setV] = useState(value);
@@ -258,7 +258,7 @@ export default function MasterPage({ module }) {
           </table>
         </div>
 
-        {total > 0 && (
+        {total > PER_PAGE && (
           <div className="flex items-center justify-between border-t border-blue-200 px-4 py-2.5 text-sm text-gray-600">
             <span className="tabular-nums">{from}–{to} of {total}</span>
             <div className="flex items-center gap-1">

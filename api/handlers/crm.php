@@ -80,7 +80,7 @@ function lead_list(): array
         $where[] = '(' . implode(' OR ', $or) . ')';
     }
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
-    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 25)));
+    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
     $total = (int) db_value('SELECT COUNT(*) FROM (' . LEAD_SELECT . "$whereSql) x", $params);
@@ -320,7 +320,7 @@ function followups_due(): array
         foreach (['l.lead_no', 'c.name', 'l.name', 'c.phone', 'l.phone', 'l.requirement', 'l.city', 'l.contact_person', 'l.contact_mobile'] as $i => $c) { $or[] = "$c LIKE :q$i"; $params["q$i"] = "%$q%"; }
         $where .= ' AND (' . implode(' OR ', $or) . ')';
     }
-    $rows = db_all(LEAD_SELECT . " WHERE $where ORDER BY l.next_followup_date IS NULL, l.next_followup_date, l.next_followup_time IS NULL, l.next_followup_time, l.id LIMIT 500", $params);
+    $rows = db_all(LEAD_SELECT . " WHERE $where ORDER BY l.next_followup_date IS NULL, l.next_followup_date, l.next_followup_time IS NULL, l.next_followup_time, l.id", $params);
     return ['data' => array_map('lead_cast', $rows), 'counts' => $counts, 'tab' => $tab, 'today' => $today];
 }
 
@@ -342,7 +342,7 @@ function followup_logs(): array
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
     $from = 'FROM lead_followups f JOIN leads l ON l.id = f.lead_id LEFT JOIN customers c ON c.id = l.customer_id
              LEFT JOIN lead_sources s ON s.id = l.source_id LEFT JOIN states st ON st.id = l.state_id LEFT JOIN users u ON u.id = f.followup_by';
-    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 50)));
+    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
     $total = (int) db_value("SELECT COUNT(*) $from$whereSql", $params);

@@ -1,3 +1,4 @@
+import Pagination, { usePagination } from '../../components/Pagination';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, Printer, History } from 'lucide-react';
@@ -47,8 +48,9 @@ export default function InventoryPage() {
     try { const res = await inventoryApi.setReorder(r.id, v); toast(res.message); load(); } catch (e) { toast(e.fields?.reorder_level || e.message, 'error'); }
   };
 
+  const pagination = usePagination(rows, JSON.stringify([materialId, only, q]));
   const groups = [];
-  rows.forEach((r) => {
+  pagination.rows.forEach((r) => {
     const g = groups.find((x) => x.material_id === r.material_id);
     if (g) g.rows.push(r); else groups.push({ material_id: r.material_id, name: r.material_name, rows: [r] });
   });
@@ -129,6 +131,7 @@ export default function InventoryPage() {
             </tbody>
           </table>
         </div>
+        <Pagination {...pagination} />
       </div>
       {detail && <VariantDetail variant={detail} canEdit={canEdit} onClose={() => setDetail(null)} onChanged={load} />}
     </div>
