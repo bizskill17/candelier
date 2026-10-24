@@ -163,6 +163,7 @@ function DocForm({ type, id, presetItem }) {
   const [suppliers, setSuppliers] = useState(null);
   const [items, setItems] = useState(null);
   const [prefill, setPrefill] = useState(null);
+  const [users, setUsers] = useState(null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -170,6 +171,7 @@ function DocForm({ type, id, presetItem }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
+    if (type === 'material-issue') ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
     if (type === 'material-in') api.lookup('suppliers').then((r) => setSuppliers(r.data)).catch(() => setSuppliers([]));
     if (type === 'material-issue') ordersApi.openItems(presetItem || undefined).then((r) => setItems(r.data)).catch(() => setItems([]));
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -294,7 +296,14 @@ function DocForm({ type, id, presetItem }) {
                 <DateInput id="d-date" max={today()} value={header[cfg.date]} onChange={(v) => setH(cfg.date, v)} error={errors[cfg.date]} disabled={readOnly} />
               </Field>
               <Field label="Issued To" htmlFor="d-issued" error={errors.issued_to}>
-                <input id="d-issued" value={header.issued_to} onChange={(e) => setH('issued_to', e.target.value)} disabled={readOnly} className={inputCls(errors.issued_to)} placeholder="Person or section" />
+                <SearchSelect id="d-issued"
+                  options={[
+                    ...(users || []).filter((u) => u.is_active || u.name === header.issued_to).map((u) => ({ value: u.name, label: u.name })),
+                    ...(header.issued_to && users && !users.some((u) => u.name === header.issued_to) ? [{ value: header.issued_to, label: header.issued_to }] : []),
+                  ]}
+                  value={header.issued_to} onChange={(v) => setH('issued_to', v)}
+                  disabled={readOnly || !users} error={errors.issued_to}
+                  placeholder={users ? 'Select user' : 'Loading…'} />
               </Field>
             </>
           )}

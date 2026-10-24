@@ -82,7 +82,6 @@ export default function MaterialsPage() {
           </table>
         </div>
       </div>
-      <p className="text-xs text-gray-500">Specification fields are set here once. Their values are typed on the BOQ, Opening Stock, Material In, Issue and Damage, and each new combination of values becomes its own stock item.</p>
       {editing && <MaterialForm material={editing} readOnly={!canEdit} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); cat.refresh(); }} />}
     </div>
   );
