@@ -4,7 +4,7 @@ import OrderForm from './OrderForm';
 
 // /orders/new    Add Order (only the form; clears after saving)
 // /orders/all    Order Master
-// /orders/{id}   one order: header, items, BOQ, production date, dispatch
+// /orders/{id}   one order: header, items, BOQ, dispatch
 export default function OrdersPage() {
   const { pathname } = useLocation();
   const sub = pathname.replace(/^\/orders\/?/, '').split('/')[0];
@@ -14,6 +14,5 @@ export default function OrdersPage() {
     return <OrderForm key={`new-${leadId || ''}`} leadId={leadId} />;
   }
   if (/^\d+$/.test(sub)) return <OrderForm key={sub} id={Number(sub)} />;
-  const week = pathname.replace(/^\/orders\/?/, '').split('/')[1] === 'week';
-  return <OrderList key={week ? 'week' : 'all'} week={week} />;
+  return <OrderList />;
 }

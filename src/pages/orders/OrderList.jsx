@@ -4,9 +4,8 @@ import { Plus, Search, ChevronLeft, ChevronRight, ChevronDown, RefreshCw, AlertT
 import { api, ordersApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import SearchSelect from '../../components/SearchSelect';
-import DateInput from '../../components/DateInput';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
-import { fmtDate, today, addDays, OrderStatus, ItemStage, ORDER_STATUSES } from '../../lib/util';
+import { fmtDate, today, OrderStatus, ItemStage, ORDER_STATUSES } from '../../lib/util';
 import DispatchDialog from './DispatchDialog';
 import { ItemText, ItemPhotos } from '../../lib/items';
 
@@ -15,7 +14,7 @@ const subTh = 'border border-blue-200 bg-blue-50 px-3 py-2 text-left text-xs fon
 const subTd = 'border border-blue-200 px-3 py-2 align-top';
 
 // Items of one order, shown under its row.
-function OrderItems({ id, onChanged, prodFrom, prodTo }) {
+function OrderItems({ id, onChanged }) {
   const navigate = useNavigate();
   const { canEdit } = useAuth();
   const [order, setOrder] = useState(null);
@@ -33,20 +32,17 @@ function OrderItems({ id, onChanged, prodFrom, prodTo }) {
             <th className={`${subTh} w-10`}>#</th>
             <th className={subTh}>Order Item</th>
             <th className={`${subTh} w-44`}>Photos / Drawing</th>
-            <th className={`${subTh} w-32`}>Production Date</th>
             <th className={`${subTh} w-32`}>Stage</th>
             <th className={`${subTh} w-48 text-center`}>Action</th>
           </tr>
         </thead>
         <tbody>
           {order.items.map((it) => {
-            const hit = (prodFrom || prodTo) && it.production_date && (!prodFrom || it.production_date >= prodFrom) && (!prodTo || it.production_date <= prodTo);
             return (
-            <tr key={it.id} className={hit ? 'bg-amber-50' : (prodFrom || prodTo) ? 'opacity-60' : ''}>
+            <tr key={it.id} >
               <td className={`${subTd} text-gray-500`}>{it.line_no}</td>
               <td className={subTd}><ItemText item={it} /></td>
               <td className={subTd}><ItemPhotos item={it} className="h-11 w-11" /></td>
-              <td className={`${subTd} whitespace-nowrap tabular-nums`}>{it.production_date ? fmtDate(it.production_date) : <span className="text-gray-300">—</span>}</td>
               <td className={subTd}>
                 <ItemStage stage={it.stage} />
                 {it.dispatch && <div className="mt-1 text-xs text-gray-500">{it.dispatch.dispatch_no} · {fmtDate(it.dispatch.dispatch_date)}</div>}
@@ -72,7 +68,7 @@ function OrderItems({ id, onChanged, prodFrom, prodTo }) {
   );
 }
 
-export default function OrderList({ week }) {
+export default function OrderList() {
   const { canEdit } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -85,9 +81,6 @@ export default function OrderList({ week }) {
   const [customerId, setCustomerId] = useState('');
   const [customers, setCustomers] = useState([]);
   const [page, setPage] = useState(1);
-  const [prodFrom, setProdFrom] = useState(week ? today() : '');
-  const [prodTo, setProdTo] = useState(week ? addDays(today(), 6) : '');
-  const prodOn = Boolean(prodFrom || prodTo);
   const [open, setOpen] = useState({});
 
   useEffect(() => { const t = setTimeout(() => setQ(search), 300); return () => clearTimeout(t); }, [search]);
@@ -96,14 +89,13 @@ export default function OrderList({ week }) {
     setLoading(true);
     setLoadError('');
     try {
-      const r = await ordersApi.list({ q, status, customer_id: customerId, prod_from: prodFrom, prod_to: prodTo, page, per_page: PER_PAGE });
+      const r = await ordersApi.list({ q, status, customer_id: customerId, page, per_page: PER_PAGE });
       setRows(r.data);
       setTotal(r.total);
     } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
-  }, [q, status, customerId, prodFrom, prodTo, page]);
+  }, [q, status, customerId, page]);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [q, status, customerId, prodFrom, prodTo]);
-  useEffect(() => { setOpen({}); }, [prodOn]);
+  useEffect(() => { setPage(1); }, [q, status, customerId]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const cols = 8;
@@ -119,17 +111,6 @@ export default function OrderList({ week }) {
           </label>
           {canEdit && <button onClick={() => navigate('/orders/new')} aria-label="Add Order" className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add</button>}
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium text-gray-700">Production date</span>
-        <div className="w-40"><DateInput compact aria-label="Production date from" value={prodFrom} onChange={setProdFrom} /></div>
-        <span className="text-gray-500">to</span>
-        <div className="w-40"><DateInput compact aria-label="Production date to" min={prodFrom || undefined} value={prodTo} onChange={setProdTo} /></div>
-        {[['Today', 0], ['Next 7 days', 6], ['Next 15 days', 14]].map(([l, n]) => (
-          <button key={l} onClick={() => { setProdFrom(today()); setProdTo(addDays(today(), n)); }} className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">{l}</button>
-        ))}
-        {prodOn && <button onClick={() => { setProdFrom(''); setProdTo(''); }} className="rounded-lg px-2 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50">Clear</button>}
-        {prodOn && <span className="text-xs text-gray-500">Orders with an item planned in this range; matching items are highlighted.</span>}
       </div>
       <div className={tableWrap}>
         <div className="overflow-x-auto">
@@ -149,9 +130,9 @@ export default function OrderList({ week }) {
             <tbody>
               {loading && rows.length === 0 && [1, 2, 3, 4].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {!loading && loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
-              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || status || customerId || prodOn ? 'No orders match.' : 'No orders yet.'}</td></tr>}
+              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || status || customerId ? 'No orders match.' : 'No orders yet.'}</td></tr>}
               {rows.map((o) => {
-                const isOpen = open[o.id] ?? prodOn;
+                const isOpen = open[o.id] ?? false;
                 const late = o.delivery_date && o.delivery_date < today() && !['Dispatched', 'Cancelled'].includes(o.status);
                 return (
                   <Fragment key={o.id}>
@@ -169,7 +150,7 @@ export default function OrderList({ week }) {
                         <button onClick={(e) => { e.stopPropagation(); navigate(`/orders/${o.id}`); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Pencil size={13} /> {canEdit ? 'Edit' : 'Open'}</button>
                       </td>
                     </tr>
-                    {isOpen && <tr><td colSpan={cols} className="border border-blue-200 bg-blue-50/40 px-4 py-3"><OrderItems id={o.id} onChanged={load} prodFrom={prodFrom} prodTo={prodTo} /></td></tr>}
+                    {isOpen && <tr><td colSpan={cols} className="border border-blue-200 bg-blue-50/40 px-4 py-3"><OrderItems id={o.id} onChanged={load} /></td></tr>}
                   </Fragment>
                 );
               })}

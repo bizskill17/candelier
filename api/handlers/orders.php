@@ -1,16 +1,15 @@
 <?php
-// Orders, order items (each exactly one piece), production plan and dispatch.
+// Orders, order items (each exactly one piece), dispatch.
 //
-//   GET    orders?q=&status=&customer_id=&prod_from=&prod_to=&page=   prod_*: orders with an item planned in that range
+//   GET    orders?q=&status=&customer_id=&page=
 //   GET    orders/{id}
 //   POST   orders                         { customer_id, project_name, order_date, delivery_date, order_by_id, shipping_address,
-//                                            items: [{ id?, area, values: { field_id: text }, remarks, component_image, reference_image, drawing_file, drawing_name, production_date }] }
+//                                            items: [{ id?, area, values: { field_id: text }, remarks, component_image, reference_image, drawing_file, drawing_name }] }
 //   PUT    orders/{id}
 //   PATCH  orders/{id}/status             { status: Cancelled | Reopen }
 //   DELETE orders/{id}                    only when nothing was booked, issued or dispatched
 //   GET    order-items?open=1&q=          order items for dropdowns (Material Issue)
 //   GET    order-items?pending_boq=1&q=   items whose BOQ is not saved yet (open orders, not dispatched)
-//   PATCH  order-items/{id}               { production_date }
 //   PUT    order-items/{id}/dispatch      { dispatch_date, transporter_id, vehicle_no, docket_no, remarks }
 //   DELETE order-items/{id}/dispatch      undo a dispatch
 //   GET    dispatches?q=&from=&to=
@@ -40,7 +39,6 @@ function order_items_route(string $method, array $parts): void
     $id = isset($parts[0]) ? (int) $parts[0] : null;
     $sub = $parts[1] ?? null;
     if ($id === null && $method === 'GET') { json_out(order_items_lookup()); return; }
-    if ($id !== null && $sub === null && $method === 'PATCH') { json_out(order_item_set_date($id, request_body())); return; }
     if ($id !== null && $sub === 'dispatch') {
         if ($method === 'PUT')    { json_out(dispatch_save($id, request_body())); return; }
         if ($method === 'DELETE') { json_out(dispatch_delete($id)); return; }
@@ -73,14 +71,6 @@ function order_list(): array
     if ($status === 'open') $where[] = "o.status IN ('Open', 'Partly Dispatched')";
     elseif (in_array($status, ORDER_STATUSES, true)) { $where[] = 'o.status = :s'; $params['s'] = $status; }
     if (!empty($_GET['customer_id'])) { $where[] = 'o.customer_id = :cid'; $params['cid'] = (int) $_GET['customer_id']; }
-    $pf = valid_date($_GET['prod_from'] ?? '') ? $_GET['prod_from'] : null;
-    $pt = valid_date($_GET['prod_to'] ?? '') ? $_GET['prod_to'] : null;
-    if ($pf || $pt) {
-        $cond = ['i.order_id = o.id', 'i.production_date IS NOT NULL'];
-        if ($pf) { $cond[] = 'i.production_date >= :pf'; $params['pf'] = $pf; }
-        if ($pt) { $cond[] = 'i.production_date <= :pt'; $params['pt'] = $pt; }
-        $where[] = 'EXISTS (SELECT 1 FROM order_items i WHERE ' . implode(' AND ', $cond) . ')';
-    }
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
         $where[] = '(o.order_no LIKE :q1 OR c.name LIKE :q2 OR EXISTS (SELECT 1 FROM order_items i WHERE i.order_id = o.id AND (i.area LIKE :q3 OR i.remarks LIKE :q4 OR EXISTS (SELECT 1 FROM order_item_values v WHERE v.order_item_id = i.id AND v.value LIKE :q5))) OR o.project_name LIKE :q6)';
@@ -101,7 +91,6 @@ function order_list(): array
 function item_stage(array $it): string
 {
     if (!empty($it['dispatch'])) return 'Dispatched';
-    if (!empty($it['production_date'])) return 'Planned';
     return 'BOQ ' . $it['boq_status'];
 }
 
@@ -125,7 +114,7 @@ function order_items_of(int $orderId): array
             'item_title' => $i['item_title'], 'item_info' => $i['item_info'], 'remarks' => $i['remarks'],
             'component_image' => $i['component_image'], 'reference_image' => $i['reference_image'],
             'drawing_file' => $i['drawing_file'], 'drawing_name' => $i['drawing_name'],
-            'boq_status' => $i['boq_status'], 'boq_lines' => (int) $i['boq_lines'], 'production_date' => $i['production_date'],
+            'boq_status' => $i['boq_status'], 'boq_lines' => (int) $i['boq_lines'],
             'issue_count' => (int) $i['issue_count'],
             'booked_lines' => count(array_filter($bf['items'][(int) $i['id']] ?? [], fn ($f) => $f['open'] > 0)),
             'dispatch' => $i['dispatch_id'] ? [
@@ -191,7 +180,6 @@ function order_validate(?array $existing, array $in): array
         $remarks = trim((string) ($row['remarks'] ?? ''));
         $area = preg_replace('/\s+/', ' ', trim((string) ($row['area'] ?? '')));
         if (mb_strlen($area) > 100) $errors["items.$n.area"] = 'Keep this under 100 characters.';
-        $pd = trim((string) ($row['production_date'] ?? ''));
         $values = [];
         foreach (is_array($row['values'] ?? null) ? $row['values'] : [] as $fid => $v) {
             $v = preg_replace('/\s+/', ' ', trim((string) $v));
@@ -208,12 +196,10 @@ function order_validate(?array $existing, array $in): array
         if ($imgs['drawing_file'] === false) { $errors["items.$n.drawing_file"] = 'Upload this drawing again.'; $imgs['drawing_file'] = null; }
         $dn = mb_substr(trim((string) ($row['drawing_name'] ?? '')), 0, 150);
         $imgs['drawing_name'] = $imgs['drawing_file'] ? ($dn !== '' ? $dn : 'Drawing') : null;
-        if (!$iid && $area === '' && !$values && $remarks === '' && $pd === '' && !$imgs['component_image'] && !$imgs['reference_image'] && !$imgs['drawing_file']) continue;
+        if (!$iid && $area === '' && !$values && $remarks === '' && !$imgs['component_image'] && !$imgs['reference_image'] && !$imgs['drawing_file']) continue;
         if (!$values && $area === '') $errors["items.$n.values"] = 'Fill the area or the item details.';
         if (mb_strlen($remarks) > 255) $errors["items.$n.remarks"] = 'Keep this under 255 characters.';
-        if ($pd !== '' && !valid_date($pd)) $errors["items.$n.production_date"] = 'Enter a valid date.';
-        $items[] = ['id' => in_array($iid, $existingIds, true) ? $iid : null, 'area' => $area === '' ? null : $area, 'values' => $values, 'remarks' => $remarks === '' ? null : $remarks,
-                    'production_date' => $pd === '' ? null : $pd] + $imgs;
+        $items[] = ['id' => in_array($iid, $existingIds, true) ? $iid : null, 'area' => $area === '' ? null : $area, 'values' => $values, 'remarks' => $remarks === '' ? null : $remarks] + $imgs;
     }
     if (!$items) $errors['items'] = 'Add at least one order item.';
     if ($existing) {
@@ -255,14 +241,14 @@ function order_save(?int $id, array $in): array
         }
         $keep = [];
         foreach ($items as $n => $it) {
-            $row = ['l' => $n + 1, 'a' => $it['area'], 'r' => $it['remarks'], 'ci' => $it['component_image'], 'ri' => $it['reference_image'], 'df' => $it['drawing_file'], 'dn' => $it['drawing_name'], 'd' => $it['production_date'], 'u' => now()];
+            $row = ['l' => $n + 1, 'a' => $it['area'], 'r' => $it['remarks'], 'ci' => $it['component_image'], 'ri' => $it['reference_image'], 'df' => $it['drawing_file'], 'dn' => $it['drawing_name'], 'u' => now()];
             if ($it['id']) {
-                $pdo->prepare('UPDATE order_items SET line_no = :l, area = :a, remarks = :r, component_image = :ci, reference_image = :ri, drawing_file = :df, drawing_name = :dn, production_date = :d, updated_at = :u WHERE id = :id')
+                $pdo->prepare('UPDATE order_items SET line_no = :l, area = :a, remarks = :r, component_image = :ci, reference_image = :ri, drawing_file = :df, drawing_name = :dn, updated_at = :u WHERE id = :id')
                     ->execute($row + ['id' => $it['id']]);
                 $iid = $it['id'];
             } else {
-                $pdo->prepare('INSERT INTO order_items (order_id, line_no, area, remarks, component_image, reference_image, drawing_file, drawing_name, boq_status, production_date, created_at, updated_at)
-                               VALUES (:o, :l, :a, :r, :ci, :ri, :df, :dn, :b, :d, :c, :u)')
+                $pdo->prepare('INSERT INTO order_items (order_id, line_no, area, remarks, component_image, reference_image, drawing_file, drawing_name, boq_status, created_at, updated_at)
+                               VALUES (:o, :l, :a, :r, :ci, :ri, :df, :dn, :b, :c, :u)')
                     ->execute($row + ['o' => $id, 'b' => 'Pending', 'c' => now()]);
                 $iid = (int) $pdo->lastInsertId();
             }
@@ -339,7 +325,7 @@ function order_delete(int $id): array
 // ---------------------------------------------------------------------------
 // Order items
 
-const ITEM_SELECT = 'SELECT i.id, i.id AS order_item_id, i.order_id, i.line_no, i.area, i.remarks, i.component_image, i.reference_image, i.drawing_file, i.drawing_name, i.boq_status, i.production_date,
+const ITEM_SELECT = 'SELECT i.id, i.id AS order_item_id, i.order_id, i.line_no, i.area, i.remarks, i.component_image, i.reference_image, i.drawing_file, i.drawing_name, i.boq_status,
                             o.order_no, o.order_date, o.delivery_date, o.project_name, o.status AS order_status, c.name AS customer_name,
                             d.id AS dispatch_id, d.dispatch_date
                        FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id
@@ -395,15 +381,6 @@ function pending_boq(): array
     }
     $rows = db_all(ITEM_SELECT . " WHERE $where ORDER BY o.delivery_date IS NULL, o.delivery_date, o.order_date, o.id, i.line_no LIMIT 500", $params);
     return ['data' => items_cast($rows)];
-}
-
-function order_item_set_date(int $id, array $in): array
-{
-    $it = item_find($id);
-    $d = trim((string) ($in['production_date'] ?? ''));
-    if ($d !== '' && !valid_date($d)) throw new ApiError('Please fix the highlighted fields.', 422, ['production_date' => 'Enter a valid date.']);
-    db()->prepare('UPDATE order_items SET production_date = :d, updated_at = :u WHERE id = :id')->execute(['d' => $d === '' ? null : $d, 'u' => now(), 'id' => $id]);
-    return ['data' => item_find($id), 'message' => $d === '' ? "Production date cleared for {$it['label']}." : "{$it['label']} planned for production on " . date('d-m-Y', strtotime($d)) . '.'];
 }
 
 function dispatch_save(int $itemId, array $in): array

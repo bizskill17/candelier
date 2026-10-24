@@ -51,7 +51,7 @@ export function DrawingViewer({ path, name, title, onClose }) {
   );
 }
 
-// Button that opens the drawing (lists, BOQ, production plan). Prints as "Drawing: name".
+// Button that opens the drawing (lists and BOQ). Prints as "Drawing: name".
 export function DrawingLink({ path, name, title, compact }) {
   const [open, setOpen] = useState(false);
   if (!path) return null;

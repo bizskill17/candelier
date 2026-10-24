@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, ClipboardList, CalendarDays, Truck, TrendingDown, PhoneCall, AlarmClock, UserPlus, FilePlus2, PackagePlus, PackageMinus, Warehouse } from 'lucide-react';
+import { ShoppingCart, ClipboardList, Truck, TrendingDown, PhoneCall, AlarmClock, UserPlus, FilePlus2, PackagePlus, PackageMinus, Warehouse } from 'lucide-react';
 import { inventoryApi } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { menu } from '../config/menu';
@@ -16,7 +16,6 @@ export default function Dashboard() {
     { label: 'Overdue follow-ups', value: v('followups_overdue'), icon: AlarmClock, to: '/follow-ups', warn: d && d.followups_overdue > 0 },
     { label: 'Open orders', value: v('open_orders'), icon: ShoppingCart, to: '/orders/all' },
     { label: 'BOQs pending finalisation', value: v('boq_pending'), icon: ClipboardList, to: '/pending-boq' },
-    { label: 'Planned this week', value: v('planned_week'), icon: CalendarDays, to: '/orders/all/week' },
     { label: 'Items to dispatch', value: v('to_dispatch'), icon: Truck, to: '/orders/all' },
     { label: 'Low stock', value: v('low_stock'), icon: TrendingDown, to: '/low-stock', warn: d && d.low_stock > 0 },
   ];
@@ -31,7 +30,7 @@ export default function Dashboard() {
   const sections = menu.filter((g) => g.heading).map((g) => ({ ...g, items: g.items.filter((i) => isAdmin || !i.adminOnly) })).filter((g) => g.items.length);
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6">
         {stats.map(({ label, value, icon: Icon, to, warn }) => (
           <Link key={label} to={to} className={`rounded-xl border bg-white p-4 transition hover:shadow-sm ${warn ? 'border-red-200 hover:border-red-400' : 'border-gray-200 hover:border-brand-500'}`}>
             <div className="flex items-center justify-between gap-2">

@@ -19,12 +19,12 @@ import MasterForm from '../../components/MasterForm';
 import { masters } from '../../config/masters';
 
 let seq = 0;
-const blankItem = (extra = {}) => ({ key: ++seq, id: null, area: '', values: {}, remarks: '', component_image: '', reference_image: '', drawing_file: '', drawing_name: '', production_date: '', ...extra });
+const blankItem = (extra = {}) => ({ key: ++seq, id: null, area: '', values: {}, remarks: '', component_image: '', reference_image: '', drawing_file: '', drawing_name: '', ...extra });
 const blankOrder = (userId) => ({ customer_id: '', project_name: '', order_date: today(), delivery_date: '', order_by_id: userId || '', shipping_address: '' });
 const cleanValues = (v) => Object.fromEntries(Object.entries(v || {}).map(([k, x]) => [k, String(x ?? '').trim()]).filter(([, x]) => x));
-const itemBody = ({ id, area, values, remarks, component_image, reference_image, drawing_file, drawing_name, production_date }) => ({ id, area: (area || '').trim(), values: cleanValues(values), remarks: remarks || '', component_image: component_image || '', reference_image: reference_image || '', drawing_file: drawing_file || '', drawing_name: drawing_file ? drawing_name || '' : '', production_date: production_date || '' });
+const itemBody = ({ id, area, values, remarks, component_image, reference_image, drawing_file, drawing_name }) => ({ id, area: (area || '').trim(), values: cleanValues(values), remarks: remarks || '', component_image: component_image || '', reference_image: reference_image || '', drawing_file: drawing_file || '', drawing_name: drawing_file ? drawing_name || '' : '' });
 const snapshot = (h, items) => JSON.stringify({ h, items: items.map(itemBody) });
-const isBlank = (it) => !it.id && !(it.area || '').trim() && !Object.keys(cleanValues(it.values)).length && !it.remarks && !it.component_image && !it.reference_image && !it.drawing_file && !it.production_date;
+const isBlank = (it) => !it.id && !(it.area || '').trim() && !Object.keys(cleanValues(it.values)).length && !it.remarks && !it.component_image && !it.reference_image && !it.drawing_file;
 
 // Add Order (new) or one order (edit). Each order item is exactly one piece.
 export default function OrderForm({ id, leadId }) {
@@ -66,7 +66,7 @@ export default function OrderForm({ id, leadId }) {
   const fill = (o) => {
     setOrder(o);
     const h = { customer_id: o.customer_id, project_name: o.project_name || '', order_date: o.order_date, delivery_date: o.delivery_date || '', order_by_id: o.order_by_id || '', shipping_address: o.shipping_address || '' };
-    const its = o.items.map((i) => ({ key: ++seq, id: i.id, area: i.area || '', values: { ...(i.values || {}) }, remarks: i.remarks || '', component_image: i.component_image || '', reference_image: i.reference_image || '', drawing_file: i.drawing_file || '', drawing_name: i.drawing_name || '', production_date: i.production_date || '' }));
+    const its = o.items.map((i) => ({ key: ++seq, id: i.id, area: i.area || '', values: { ...(i.values || {}) }, remarks: i.remarks || '', component_image: i.component_image || '', reference_image: i.reference_image || '', drawing_file: i.drawing_file || '', drawing_name: i.drawing_name || '' }));
     setHeader(h);
     setItems(its);
     setSaved(snapshot(h, its));
@@ -82,7 +82,7 @@ export default function OrderForm({ id, leadId }) {
     if (c && !header.shipping_address) setH('shipping_address', c.address || '');
   };
   const setItem = (i, k, v) => { setItems((its) => its.map((it, j) => (j === i ? { ...it, [k]: v } : it))); setErrors((e) => ({ ...e, [`items.${i}.${k}`]: undefined, items: undefined })); };
-  const addAfter = (i, copy) => setItems((its) => [...its.slice(0, i + 1), blankItem(copy ? { area: its[i].area, values: { ...its[i].values }, remarks: its[i].remarks, component_image: its[i].component_image, reference_image: its[i].reference_image, drawing_file: its[i].drawing_file, drawing_name: its[i].drawing_name, production_date: its[i].production_date } : {}), ...its.slice(i + 1)]);
+  const addAfter = (i, copy) => setItems((its) => [...its.slice(0, i + 1), blankItem(copy ? { area: its[i].area, values: { ...its[i].values }, remarks: its[i].remarks, component_image: its[i].component_image, reference_image: its[i].reference_image, drawing_file: its[i].drawing_file, drawing_name: its[i].drawing_name } : {}), ...its.slice(i + 1)]);
   const removeItem = (i) => setItems((its) => (its.length === 1 ? [blankItem()] : its.filter((_, j) => j !== i)));
 
   const clear = () => { setHeader(blankOrder(user?.id)); setItems([blankItem()]); setErrors({}); setFormError(''); };
@@ -199,7 +199,6 @@ export default function OrderForm({ id, leadId }) {
                   <th className={th}>Order Item</th>
                   <th className={`${th} ${isEdit ? 'w-60' : 'w-[26%]'}`}>Remarks</th>
                   {isEdit && <th className={`${th} w-40`}>Photos / Drawing</th>}
-                  {isEdit && <th className={`${th} w-36`}>Production Date</th>}
                   {isEdit && <th className={`${th} w-28`}>Stage</th>}
                   {isEdit && <th className={`${th} w-[10.5rem] text-center`}>BOQ / Dispatch</th>}
                   {!locked && <th className={`${th} w-24 border-r-0 text-center`}>Action</th>}
@@ -225,7 +224,6 @@ export default function OrderForm({ id, leadId }) {
                         </div>
                         <div className="mt-1.5"><DrawingSlot id={`o-item-${i}-drawing`} title={`Item ${n}`} path={it.drawing_file} name={it.drawing_name} onChange={(p, nm) => { setItem(i, 'drawing_file', p); setItem(i, 'drawing_name', nm); }} disabled={locked} error={errors[`items.${i}.drawing_file`]} /></div>
                       </td>}
-                      {isEdit && <td className={td}><DateInput compact aria-label={`Production date, item ${n}`} value={it.production_date} onChange={(v) => setItem(i, 'production_date', v)} error={errors[`items.${i}.production_date`]} disabled={locked} /></td>}
                       {isEdit && <td className={`${td} px-3 py-3`}>{s ? <><ItemStage stage={s.stage} />{s.dispatch && <div className="mt-1 text-xs text-gray-500">{fmtDate(s.dispatch.dispatch_date)}</div>}</> : <span className="text-xs text-gray-400">New</span>}</td>}
                       {isEdit && (
                         <td className={`${td} py-2.5 text-center`}>

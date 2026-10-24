@@ -111,7 +111,6 @@ export const ordersApi = {
   openItems: (include, finalBoq = false) => request('GET', 'order-items', { params: { include, final_boq: finalBoq ? 1 : undefined } }),
   boqMaster: (q) => request('GET', 'order-items', { params: { saved_boq: 1, q } }),
   pendingBoq: (q) => request('GET', 'order-items', { params: { pending_boq: 1, q } }),
-  setProductionDate: (itemId, date) => request('PATCH', `order-items/${itemId}`, { body: { production_date: date } }),
   dispatch: (itemId, body) => request('PUT', `order-items/${itemId}/dispatch`, { body }),
   undoDispatch: (itemId) => request('DELETE', `order-items/${itemId}/dispatch`),
   dispatches: (params) => request('GET', 'dispatches', { params }),

@@ -162,11 +162,10 @@ function BoqEditor({ itemId }) {
 
       <section className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 text-sm sm:flex-row print:flex-row print:p-3">
         <div className="min-w-0 flex-1 space-y-4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 print:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 print:grid-cols-4">
             <Info label="Order No.">{data.order_no} · #{data.line_no}</Info>
             <Info label="Customer">{data.customer_name}</Info>
             <Info label="Project">{data.project_name || '—'}</Info>
-            <Info label="Production Date">{data.production_date ? fmtDate(data.production_date) : '—'}</Info>
             <Info label="Delivery Date">{data.delivery_date ? fmtDate(data.delivery_date) : '—'}</Info>
           </div>
           <div className="border-t border-gray-100 pt-3">

@@ -179,15 +179,12 @@ function low_stock(): array
 function dashboard(): array
 {
     $today = date('Y-m-d');
-    $week = date('Y-m-d', strtotime('+6 days'));
     return ['data' => [
         'open_orders' => (int) db_value("SELECT COUNT(*) FROM orders WHERE status IN ('Open', 'Partly Dispatched')"),
         'boq_pending' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
-        'planned_week' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.production_date BETWEEN :a AND :b AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)", ['a' => $today, 'b' => $week]),
         'to_dispatch' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
         'low_stock' => count(array_filter(inventory_rows(), fn ($r) => $r['is_low'])),
         'followups_today' => (int) db_value("SELECT COUNT(*) FROM leads WHERE status = 'Open' AND temperature = 'Hot' AND next_followup_date = :d", ['d' => $today]),
         'followups_overdue' => (int) db_value("SELECT COUNT(*) FROM leads WHERE status = 'Open' AND temperature = 'Hot' AND next_followup_date < :d", ['d' => $today]),
-        'week_from' => $today, 'week_to' => $week,
     ]];
 }
