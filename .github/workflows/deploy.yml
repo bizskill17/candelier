@@ -94,4 +94,24 @@ jobs:
                   with path.open("rb") as source:
                       ftp.storbinary("STOR " + path.name, source)
                   count += 1
-              print(f"Uploaded {count} website files. Existing configuration and uploaded media retained.")
+
+              # Bootstrap configuration once; retain the server copy thereafter.
+              # Credentials are entered only in Hostinger, never in this repository.
+              from io import BytesIO
+              enter_directory(Path("api"))
+              existing = {name.rsplit("/", 1)[-1] for name in ftp.nlst()}
+              if "config.php" not in existing:
+                  config = (
+                      "<?php\nreturn [\n"
+                      "    'db' => [\n"
+                      "        'dsn' => 'mysql:host=localhost;dbname=u380752258_candelier;charset=utf8mb4',\n"
+                      "        'user' => 'u380752258_candelier',\n"
+                      "        'password' => 'YOUR_DATABASE_PASSWORD',\n"
+                      "    ],\n"
+                      "    'timezone' => 'Asia/Kolkata',\n"
+                      "    'debug' => false,\n"
+                      "];\n"
+                  )
+                  ftp.storbinary("STOR config.php", BytesIO(config.encode("utf-8")))
+
+              print("Website deployment completed; existing configuration retained.")
