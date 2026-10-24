@@ -1,3 +1,5 @@
+import MasterForm from '../../components/MasterForm';
+import { masters } from '../../config/masters';
 import { ItemDetailLines } from '../../lib/items';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -173,6 +175,7 @@ function DocForm({ type, id, presetItem }) {
   const [header, setHeader] = useState(() => emptyHeader(type, presetItem));
   const [lines, setLines] = useState(() => [blankStockLine(type === 'damage' ? { reason: 'Broken' } : {})]);
   const [suppliers, setSuppliers] = useState(null);
+  const [supplierOpen, setSupplierOpen] = useState(false);
   const [items, setItems] = useState(null);
   const [prefill, setPrefill] = useState(null);
   const [users, setUsers] = useState(null);
@@ -270,6 +273,7 @@ function DocForm({ type, id, presetItem }) {
   if (isEdit && !doc) return <div className="mx-auto max-w-5xl space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-100" />)}</div>;
 
   return (
+    <>
     <form onSubmit={save} noValidate className="mx-auto max-w-6xl space-y-4 pb-24">
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={back} className="inline-flex items-center gap-1 rounded-md py-1 pr-2 text-sm font-medium text-gray-600 hover:text-gray-900"><ChevronLeft size={16} /> {cfg.title}</button>
@@ -290,7 +294,10 @@ function DocForm({ type, id, presetItem }) {
                 </div>
               </Field>
               <Field label="Supplier" required htmlFor="d-supplier" error={errors.supplier_id}>
-                <SearchSelect id="d-supplier" options={(suppliers || []).filter((s) => s.is_active || String(s.id) === String(header.supplier_id)).map((s) => ({ value: s.id, label: s.name }))} value={header.supplier_id} onChange={(v) => setH('supplier_id', v)} error={errors.supplier_id} disabled={readOnly || !suppliers} placeholder={suppliers ? 'Select supplier' : 'Loading…'} />
+                <div className="flex items-stretch gap-2">
+                <SearchSelect className="min-w-0 flex-1" id="d-supplier" options={(suppliers || []).filter((s) => s.is_active || String(s.id) === String(header.supplier_id)).map((s) => ({ value: s.id, label: s.name }))} value={header.supplier_id} onChange={(v) => setH('supplier_id', v)} error={errors.supplier_id} disabled={readOnly || !suppliers} placeholder={suppliers ? 'Select supplier' : 'Loading…'} />
+                  {!readOnly && <button type="button" onClick={() => setSupplierOpen(true)} title="Add a new supplier" aria-label="Add a new supplier" className="shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>}
+                </div>
               </Field>
               <Field label="Date" required htmlFor="d-date" error={errors[cfg.date]}>
                 <DateInput id="d-date" max={today()} value={header[cfg.date]} onChange={(v) => setH(cfg.date, v)} error={errors[cfg.date]} disabled={readOnly} />
@@ -359,6 +366,13 @@ function DocForm({ type, id, presetItem }) {
       )}
       <ConfirmDialog open={confirmDelete} title={`Delete ${cfg.singular.toLowerCase()}?`} message={isEdit ? `${doc[cfg.no]} will be removed and its stock movements reversed.` : ''} onConfirm={doDelete} onCancel={() => setConfirmDelete(false)} />
     </form>
+    {supplierOpen && !readOnly && <MasterForm entity="suppliers" def={masters.suppliers}
+      onClose={() => setSupplierOpen(false)}
+      onSaved={(supplier) => {
+        setSuppliers((list) => [...(list || []).filter((s) => String(s.id) !== String(supplier.id)), supplier].sort((a, b) => a.name.localeCompare(b.name)));
+        setH('supplier_id', supplier.id);
+      }} />}
+    </>
   );
 }
 
