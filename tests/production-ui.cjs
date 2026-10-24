@@ -68,7 +68,7 @@ const assert = require('node:assert/strict');
   await page.getByText('40 items', { exact: true }).waitFor();
   await page.locator('#production-customer').click();
   await page.getByRole('textbox', { name: 'Search options' }).fill('Beta');
-  assert.equal(await page.getByRole('option').count(), 1);
+  assert.equal(await page.locator('[data-searchselect-panel]').getByRole('option').count(), 1);
   await page.getByRole('option', { name: 'Beta Customer', exact: true }).click();
   await page.getByText('19 items', { exact: true }).waitFor();
   await page.locator('#production-area').click();
