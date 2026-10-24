@@ -60,7 +60,7 @@ boq_save($newItemId, ['status' => 'Final', 'lines' => [$line]]);
 doc_save($issueDef, $extraIssue['id'], $transfer);
 check(array_column(production_list()['data'], 'id') === [$newItemId], 'Issue reassignment enters the new linked item into production');
 // Pagination and search cover the entire eligible set, not just the visible page.
-$paginationOrder = order_save(null, ['customer_id' => $customer, 'project_name' => 'Pagination Workshop', 'order_date' => date('Y-m-d'), 'items' => array_map(fn ($n) => ['area' => 'Pagination room ' . $n], range(1, 21))])['data'];
+$paginationOrder = order_save(null, ['customer_id' => $customer, 'project_name' => 'Pagination Workshop', 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => array_map(fn ($n) => ['area' => 'Pagination room ' . $n], range(1, 21))])['data'];
 doc_save($receiptDef, null, ['receipt_date' => date('Y-m-d'), 'receipt_type' => 'Purchase', 'supplier_id' => $supplier, 'lines' => [['material_id' => $wire, 'quantity' => 100]], 'challan_no' => 'PRODUCTION-TEST']);
 foreach ($paginationOrder['items'] as $pi) {
     boq_save($pi['id'], ['status' => 'Final', 'lines' => [$line]]);

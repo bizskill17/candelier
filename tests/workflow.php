@@ -108,12 +108,12 @@ reject(fn () => material_delete($wire), 'Materials with stock/issues cannot be d
 check((float) db_value('SELECT SUM(quantity) FROM stock_moves WHERE variant_id = ' . $vid) === 18.0, 'Final stock balance remains correct');
 
 // Order creation/editing no longer depends on the retired scheduling field.
-$newOrder = order_save(null, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'items' => [['area' => 'Test room', 'production_date' => 'obsolete-invalid-date']]]);
+$newOrder = order_save(null, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['area' => 'Test room', 'production_date' => 'obsolete-invalid-date']]]);
 $newOrderId = $newOrder['data']['id'];
 $newItemId = $newOrder['data']['items'][0]['id'];
 check(!array_key_exists('production_date', $newOrder['data']['items'][0]), 'Order creation omits retired scheduling field');
 $pdo->prepare("UPDATE order_items SET production_date = '2020-01-01' WHERE id = :i")->execute(['i' => $newItemId]);
-$editedOrder = order_save($newOrderId, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'items' => [['id' => $newItemId, 'area' => 'Updated room']]]);
+$editedOrder = order_save($newOrderId, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['id' => $newItemId, 'area' => 'Updated room']]]);
 check($editedOrder['data']['items'][0]['area'] === 'Updated room', 'Orders remain editable without scheduling dates');
 check($editedOrder['data']['items'][0]['stage'] === 'BOQ Pending', 'Archived dates do not change item stage');
 check(!array_key_exists('production_date', item_find($newItemId)), 'BOQ and item responses omit retired field');
@@ -135,3 +135,5 @@ check(doc_list($issueDef)['total'] === 1, 'Clearing issue filters restores recor
 require __DIR__ . '/production.php';
 
 echo "All migration and workflow integration checks passed.\n";
+
+reject(fn () => order_save(null, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'items' => [['area' => 'Missing delivery']]]), 'Order requires Delivery Date');

@@ -90,6 +90,7 @@ export default function OrderForm({ id, leadId }) {
 
   const save = async (e) => {
     e?.preventDefault();
+    if (!header.delivery_date) { setErrors((prev) => ({ ...prev, delivery_date: 'Enter the delivery date.' })); return; }
     setSaving(true);
     setFormError('');
     const body = { ...header, items: items.map(itemBody), lead_id: !isEdit && fromLead ? fromLead.id : undefined };
@@ -173,7 +174,7 @@ export default function OrderForm({ id, leadId }) {
             <Field label="Order Date" required htmlFor="o-date" error={errors.order_date}>
               <DateInput id="o-date" value={header.order_date} onChange={(v) => setH('order_date', v)} error={errors.order_date} disabled={locked} />
             </Field>
-            <Field label="Delivery Date" htmlFor="o-delivery" error={errors.delivery_date}>
+            <Field label="Delivery Date" required htmlFor="o-delivery" error={errors.delivery_date}>
               <DateInput id="o-delivery" min={header.order_date} value={header.delivery_date} onChange={(v) => setH('delivery_date', v)} error={errors.delivery_date} disabled={locked} />
             </Field>
             <Field label="Order By" htmlFor="o-by" error={errors.order_by_id}>

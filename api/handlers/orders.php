@@ -157,7 +157,7 @@ function order_validate(?array $existing, array $in): array
     $h['order_date'] = trim((string) ($in['order_date'] ?? ''));
     if (!valid_date($h['order_date'])) $errors['order_date'] = 'Enter the order date.';
     $dd = trim((string) ($in['delivery_date'] ?? ''));
-    if ($dd === '') $h['delivery_date'] = null;
+    if ($dd === '') $errors['delivery_date'] = 'Enter the delivery date.';
     elseif (!valid_date($dd)) $errors['delivery_date'] = 'Enter a valid date.';
     elseif (!isset($errors['order_date']) && $dd < $h['order_date']) $errors['delivery_date'] = 'Delivery date cannot be before the order date.';
     else $h['delivery_date'] = $dd;
