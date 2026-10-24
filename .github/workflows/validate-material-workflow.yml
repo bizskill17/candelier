@@ -54,3 +54,10 @@ jobs:
           TEST_DB_DSN: mysql:host=127.0.0.1;port=33306;dbname=candelier_test;charset=utf8mb4
         run: php tests/workflow.php
 
+      - name: Test BOQ and Materials UI
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+          npm run dev -- --host 127.0.0.1 > /tmp/candelier-vite.log 2>&1 &
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:5173/ > /dev/null && break || sleep 1; done
+          node tests/ui.cjs
