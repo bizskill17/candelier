@@ -5,7 +5,6 @@ import { boqApi, materialsApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useCatalog } from '../../lib/catalog';
-import { SpecCell } from '../../components/Spec';
 import SearchSelect from '../../components/SearchSelect';
 import Modal from '../../components/Modal';
 import { inputCls } from '../../components/table';
@@ -15,7 +14,7 @@ import { ItemDetailLines } from '../../lib/items';
 import { DrawingLink } from '../../components/Drawing';
 
 let seq = 0;
-const row = (r) => ({ key: ++seq, material_id: r.material_id, values: { ...(r.values || {}) }, qty: r.qty_required ?? '', extra: !!r.extra });
+const row = (r) => ({ key: ++seq, material_id: r.material_id || '', category_id: r.category_id || '', values: { ...(r.values || {}) }, qty: r.qty_required ?? '', extra: !!r.extra });
 
 // BOQ of one order item: the plan. Only specification + Qty Required are saved;
 // the stock columns are worked out live every time.
@@ -44,20 +43,11 @@ function BoqEditor({ itemId }) {
   const [booking, setBooking] = useState(null); // { mode: 'book'|'release', row, variant }
   const asked = useRef(false);
 
-  // One row per material (all active materials, in master order), then saved extra rows
   const buildRows = useCallback((lines, extra) => {
-    const out = [];
-    const mats = cat.materials.filter((m) => m.is_active || lines.some((l) => l.material_id === m.id));
-    mats.forEach((m) => {
-      const mine = lines.filter((l) => l.material_id === m.id);
-      if (mine.length) mine.forEach((l) => out.push(row(l)));
-      else out.push(row({ material_id: m.id }));
-    });
-    (extra || []).forEach((e) => out.push(row({ ...e, extra: true })));
-    return out;
+    const rs = (lines || []).map((l) => row({ ...l, category_id: l.category_id || cat.material(l.material_id)?.category_id || '' }));
+    return rs.length ? rs : [row({})];
   }, [cat.materials]);
-
-  const snap = (rs) => JSON.stringify(rs.filter((r) => !r.extra && (r.qty !== '' || cat.hasValues(r.values))).map((r) => [r.material_id, cat.keyOf(r.material_id, r.values), String(r.qty)]));
+  const snap = (rs) => JSON.stringify(rs.map((r) => [r.category_id, r.material_id, String(r.qty)]));
 
   const load = useCallback(() => {
     setLoadError('');
@@ -99,12 +89,8 @@ function BoqEditor({ itemId }) {
   const dirty = rows.length > 0 && snap(rows) !== savedSnap;
   const readOnly = !canEdit || (data && data.order_status === 'Cancelled');
   const setRow = (key, patch) => { setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r))); setErrors({}); };
-  const addRow = (idx) => setRows((rs) => [...rs.slice(0, idx + 1), row({ material_id: rs[idx].material_id }), ...rs.slice(idx + 1)]);
-  const removeRow = (idx) => setRows((rs) => {
-    const r = rs[idx];
-    const sameMat = rs.filter((x) => x.material_id === r.material_id && !x.extra).length;
-    return sameMat > 1 ? rs.filter((_, i) => i !== idx) : rs.map((x, i) => (i === idx ? { ...x, values: {}, qty: '' } : x));
-  });
+  const addRow = () => setRows((rs) => [...rs, row({})]);
+  const removeRow = (idx) => setRows((rs) => rs.length > 1 ? rs.filter((_, i) => i !== idx) : [row({})]);
 
   const applyCopy = async (srcId) => {
     try {
@@ -118,12 +104,12 @@ function BoqEditor({ itemId }) {
     setCopyFrom('');
   };
 
-  const save = async () => {
+  const save = async (status) => {
     setSaving(true);
     setFormError('');
     const send = rows.filter((r) => !r.extra);
     try {
-      const r = await boqApi.save(itemId, send.map((x) => ({ material_id: x.material_id, values: x.values, qty_required: x.qty })));
+      const r = await boqApi.save(itemId, send.map((x) => ({ material_id: x.material_id, category_id: x.category_id, values: {}, qty_required: x.qty })), status);
       toast(r.message);
       await cat.refresh();
       setData(r.data);
@@ -167,7 +153,7 @@ function BoqEditor({ itemId }) {
       <div className="print:hidden flex flex-wrap items-center gap-3">
         <button onClick={() => navigate(`/orders/${data.order_id}`)} className="inline-flex items-center gap-1 rounded-md py-1 pr-2 text-sm font-medium text-gray-600 hover:text-gray-900"><ChevronLeft size={16} /> Order {data.order_no}</button>
         <span className="flex-1" />
-        {data.dispatched ? <Badge color="green">Dispatched</Badge> : data.order_status === 'Cancelled' ? <Badge>Order cancelled</Badge> : <Badge color={data.boq_status === 'Saved' ? 'blue' : 'gray'}>BOQ {data.boq_status}</Badge>}
+        {data.dispatched ? <Badge color="green">Dispatched</Badge> : data.order_status === 'Cancelled' ? <Badge>Order cancelled</Badge> : <Badge color={data.boq_status === 'Final' ? 'green' : data.boq_status === 'Draft' ? 'amber' : 'gray'}>BOQ {data.boq_status}</Badge>}
       </div>
 
       <div className="hidden print:block mb-2">
@@ -201,91 +187,48 @@ function BoqEditor({ itemId }) {
         )}
       </section>
 
+      {data.boq_status === 'Draft' && <p className="print:hidden rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">Draft BOQ. Finalise the BOQ before issuing materials.</p>}
       {formError && <div className="print:hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
 
       <div className="print:hidden flex flex-wrap items-center gap-2">
         {!readOnly && <button onClick={() => setCopyOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Copy size={15} /> Copy from earlier BOQ</button>}
-        {canEdit && !data.closed && data.lines.length > 0 && <button onClick={() => navigate(`/material-issue/new/item/${itemId}`)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><PackageMinus size={15} /> Issue Material</button>}
+        {canEdit && !data.closed && data.boq_status === 'Final' && !dirty && data.lines.length > 0 && <button onClick={() => navigate(`/material-issue/new/item/${itemId}`)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><PackageMinus size={15} /> Issue Material</button>}
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Printer size={15} /> Print / PDF</button>
         {data.drawing_file && <span className="min-w-0 max-w-xs"><DrawingLink path={data.drawing_file} name={data.drawing_name} title={label} /></span>}
         <span className="flex-1" />
       </div>
 
       <section className="overflow-hidden rounded-xl border border-blue-300 bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: 900 }}>
-            <thead className="bg-brand-600 text-xs uppercase tracking-wide text-white">
-              <tr>
-                <th className={`${th} w-9 border-l-0 text-center`}>#</th>
-                <th className={th}>Material / Specification</th>
-                <th className={`${th} w-[5.5rem] text-right`}>Qty Req.</th>
-                <th className={`${th} w-12`}>Unit</th>
-                <th className={`${th} print:hidden w-[4.75rem] text-right`}>In Stock</th>
-                <th className={`${th} print:hidden w-[4.75rem] text-right`}>Booked (All Orders)</th>
-                <th className={`${th} print:hidden w-[4.75rem] text-right`}>Available to Book</th>
-                <th className={`${th} print:hidden w-[4.75rem] text-right`}>Booked (This Item)</th>
-                <th className={`${th} print:hidden w-[4.75rem] text-right`}>Required</th>
-                <th className={`${th} print:hidden w-[4.75rem] text-right`}>Consumed</th>
-                <th className={`${th} print:hidden w-28 border-r-0 text-center`}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => {
-                const m = cat.material(r.material_id);
-                const v = variantOf(r);
-                const st = v ? stats[v.id] : null;
-                const qty = r.qty === '' ? 0 : Number(r.qty) || 0;
-                const required = st ? round3(qty - st.booked_item - st.consumed) : (r.qty !== '' ? qty : null);
-                const filled = cat.hasValues(r.values) || r.qty !== '';
-                const dupStock = v && counted.has(v.id);
-                if (v) counted.add(v.id);
-                return (
-                  <tr key={r.key} className={`${!filled ? 'print:hidden' : ''} ${r.extra ? 'bg-amber-50/40' : ''}`}>
-                    <td className={`${td} border-l-0 py-3 text-center tabular-nums text-gray-500`}>{idx + 1}</td>
-                    <td className={td}>
-                      <SpecCell id={`boq-${idx}-spec`} materialId={r.material_id} values={r.values} onChange={(vals) => setRow(r.key, { values: vals })} readOnly={readOnly || r.extra} showMaterial orderItemId={itemId} error={errors[`${r.key}.values`]} />
-                      {r.extra && <p className="mt-1 px-1 text-xs text-amber-700">Not on the BOQ (booked or issued to this item)</p>}
-                      {errors[`${r.key}.values`] && <p className="mt-1 text-xs text-red-600">{errors[`${r.key}.values`]}</p>}
-                      {errors[`${r.key}.material_id`] && <p className="mt-1 text-xs text-red-600">{errors[`${r.key}.material_id`]}</p>}
-                    </td>
-                    <td className={td}>
-                      {readOnly || r.extra ? <span className="block px-1 py-1.5 text-right tabular-nums">{r.extra ? '—' : fmtQty(r.qty)}</span> : (
-                        <input id={`boq-${idx}-qty`} aria-label={`Qty required, ${m?.name}`} type="number" min="0" step="any" inputMode="decimal" value={r.qty}
-                          onChange={(e) => setRow(r.key, { qty: e.target.value })} className={`${inputCls(errors[`${r.key}.qty_required`])} px-2 text-right tabular-nums`} />
-                      )}
-                      {errors[`${r.key}.qty_required`] && <p className="mt-1 text-xs text-red-600">{errors[`${r.key}.qty_required`]}</p>}
-                    </td>
-                    <td className={`${td} py-3 text-gray-700`}>{m?.unit}</td>
-                    <td className={`${num} print:hidden py-3`}>{st ? fmtQty(st.in_stock) : v === null && cat.hasValues(r.values) ? <span className="text-xs text-amber-700">New</span> : <Dash />}</td>
-                    <td className={`${num} print:hidden py-3`}>{st ? fmtQty(st.booked_all) : <Dash />}</td>
-                    <td className={`${num} print:hidden py-3 ${st && st.available < 0 ? 'text-red-600' : ''}`}>{st ? fmtQty(st.available) : <Dash />}</td>
-                    <td className={`${num} print:hidden py-3`}>{st ? fmtQty(st.booked_item) : <Dash />}</td>
-                    <td className={`${num} print:hidden py-3 ${required > 0 ? 'font-semibold text-amber-700' : required !== null ? 'text-green-700' : ''}`}>{required !== null && filled ? fmtQty(Math.max(0, required)) : <Dash />}</td>
-                    <td className={`${num} print:hidden py-3`}>{st ? fmtQty(st.consumed) : <Dash />}</td>
-                    <td className={`${td} print:hidden border-r-0 px-1 py-2 text-center`}>
-                      <div className="inline-flex flex-wrap items-center justify-center gap-1">
-                        {canEdit && !data.closed && v && !dupStock && st && (
-                          <>
-                            <button onClick={() => setBooking({ mode: 'book', row: r, variant: v, st, required })} disabled={st.available <= 0} title={st.available <= 0 ? 'Nothing available to book' : 'Book stock to this item'}
-                              className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-2 py-1 text-xs font-medium text-white hover:bg-brand-700 disabled:bg-gray-300"><Lock size={12} /> Book</button>
-                            {st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release booked stock" className="rounded-md p-1 text-gray-500 hover:bg-gray-100"><Unlock size={14} /></button>}
-                          </>
-                        )}
-                        {!readOnly && !r.extra && <>
-                          <button onClick={() => addRow(idx)} title={`Add another ${m?.name} specification`} aria-label={`Add another ${m?.name}`} className="rounded-md p-1 text-brand-600 hover:bg-brand-50"><Plus size={15} /></button>
-                          {filled && <button onClick={() => removeRow(idx)} title="Clear / remove row" aria-label={`Clear row ${idx + 1}`} className="rounded-md p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={14} /></button>}
-                        </>}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="print:hidden border-t border-blue-200 px-5 py-2.5 text-xs text-gray-500">
-          Available to Book = In Stock − Booked (All Orders) · Required = Qty Req. − Booked (This Item) − Consumed. Rows left empty are not saved.
-        </div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[1100px] border-collapse text-sm">
+          <thead className="bg-brand-600 text-xs uppercase text-white"><tr>
+            {['#', 'Material Category', 'Material', 'Quantity', 'Unit', 'In Stock', 'Booked (All)', 'Available', 'Booked (Item)', 'Remaining to Book', 'Consumed', 'Action'].map((t, i) => <th key={t} className={`${th} ${i > 4 ? 'print:hidden' : ''}`}>{t}</th>)}
+          </tr></thead><tbody>
+            {rows.map((r, idx) => {
+              const m = cat.material(r.material_id);
+              const v = variantOf(r);
+              const st = v ? stats[v.id] : null;
+              const required = Math.max(0, round3(Number(r.qty || 0) - (st?.booked_item || 0) - (st?.consumed || 0)));
+              const categoryId = r.category_id || m?.category_id || '';
+              const categories = cat.categories.filter((c) => Number(c.is_active) || String(c.id) === String(categoryId));
+              const mats = cat.materials.filter((m) => String(m.category_id) === String(categoryId) && (m.is_active || String(m.id) === String(r.material_id)));
+              return <tr key={r.key}>
+                <td className={td}>{idx + 1}</td>
+                <td className={`${td} min-w-40`}>{readOnly ? cat.categories.find((c) => String(c.id) === String(categoryId))?.name : <SearchSelect id={`boq-${idx}-category`} options={categories.map((c) => ({ value: c.id, label: c.name }))} value={categoryId} onChange={(value) => setRow(r.key, { category_id: value, material_id: '', values: {} })} placeholder="Select category" error={errors[`${r.key}.category_id`]} />}{errors[`${r.key}.category_id`] && <p className="text-xs text-red-600">{errors[`${r.key}.category_id`]}</p>}</td>
+                <td className={`${td} min-w-48`}>{readOnly ? m?.name : <SearchSelect id={`boq-${idx}-material`} options={mats.map((m) => ({ value: m.id, label: m.name }))} value={r.material_id} onChange={(value) => setRow(r.key, { category_id: categoryId, material_id: value, values: {} })} disabled={!categoryId} placeholder="Select material" error={errors[`${r.key}.material_id`]} />}{errors[`${r.key}.material_id`] && <p className="text-xs text-red-600">{errors[`${r.key}.material_id`]}</p>}</td>
+                <td className={`${td} w-28`}>{readOnly ? fmtQty(r.qty) : <input aria-label={`Quantity, row ${idx + 1}`} type="number" min="0" step="0.001" value={r.qty} onChange={(e) => setRow(r.key, { qty: e.target.value })} className={`${inputCls(errors[`${r.key}.qty_required`])} text-right`} />}{errors[`${r.key}.qty_required`] && <p className="text-xs text-red-600">{errors[`${r.key}.qty_required`]}</p>}</td>
+                <td className={td}>{m?.unit || '—'}</td>
+                {[st?.in_stock, st?.booked_all, st?.available, st?.booked_item, r.material_id ? required : null, st?.consumed].map((n, i) => <td key={i} className={`${num} print:hidden`}>{n == null ? '—' : fmtQty(n)}</td>)}
+                <td className={`${td} print:hidden`}><div className="flex items-center gap-1">
+                  {!readOnly && <button onClick={() => removeRow(idx)} title="Remove row" aria-label={`Remove row ${idx + 1}`} className="p-1 text-red-500"><Trash2 size={15} /></button>}
+                  {canEdit && !data.closed && v && st && <>
+                    {data.boq_status === 'Final' && !dirty && required > 0 && <button disabled={st.available <= 0} onClick={() => setBooking({ mode: 'book', row: r, variant: v, st, required })} className="rounded bg-brand-600 px-2 py-1 text-xs text-white disabled:opacity-40">Book</button>}
+                    {st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release booked stock" className="p-1 text-gray-500"><Unlock size={14} /></button>}
+                  </>}
+                </div></td>
+              </tr>;
+            })}
+          </tbody></table></div>
+          {!readOnly && <div className="print:hidden border-t border-blue-200 px-4 py-3"><button onClick={addRow} className="inline-flex items-center gap-1 text-sm font-medium text-brand-600"><Plus size={15} /> Add Row</button></div>}
       </section>
 
       {!readOnly && (
@@ -293,7 +236,8 @@ function BoqEditor({ itemId }) {
           <button onClick={() => navigate(`/orders/${data.order_id}`)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Back</button>
           <span className="flex-1" />
           {dirty && <span className="text-xs text-amber-700">Unsaved changes</span>}
-          <button onClick={save} disabled={saving} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save BOQ'}</button>
+          <button onClick={() => save('Draft')} disabled={saving} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium disabled:opacity-60">{saving ? 'Saving…' : 'Save as Draft'}</button>
+          <button onClick={() => save('Final')} disabled={saving} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save as Final'}</button>
         </div>
       )}
 
@@ -333,7 +277,7 @@ function BookDialog({ itemId, booking, onClose, onDone }) {
         <button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
         <button onClick={go} disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : mode === 'book' ? 'Book' : 'Release'}</button>
       </>}>
-      <p className="font-medium text-gray-900">{m?.name} · {variant.spec_text}</p>
+      <p className="font-medium text-gray-900">{m?.name}</p>
       <dl className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3 text-sm">
         <dt className="text-gray-500">In stock</dt><dd className="text-right tabular-nums">{fmtQty(st.in_stock)} {m?.unit}</dd>
         <dt className="text-gray-500">Available to book</dt><dd className="text-right font-medium tabular-nums">{fmtQty(st.available)}</dd>

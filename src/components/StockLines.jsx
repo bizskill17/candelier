@@ -2,7 +2,6 @@ import { Plus, Trash2, Copy } from 'lucide-react';
 import SearchSelect from './SearchSelect';
 import AutoTextarea from './AutoTextarea';
 import DateInput from './DateInput';
-import { SpecCell } from './Spec';
 import { inputCls } from './table';
 import { useCatalog } from '../lib/catalog';
 import { today } from '../lib/util';
@@ -15,7 +14,7 @@ export const DAMAGE_REASONS = ['Broken', 'Defective', 'Lost', 'Other'];
 
 // Lines of material + specification + quantity, used by Opening Stock, Material In, Material Issue and Damage.
 //   infoColumns: [{ label, render: (line) => node }]  read-only columns before Quantity
-export default function StockLines({ title = 'Materials', lines, onChange, errors = {}, readOnly, infoColumns = [], showDate, showReason, orderItemId, emptyHint }) {
+export default function StockLines({ title = 'Materials', lines, onChange, errors = {}, readOnly, infoColumns = [], showDate, showReason, orderItemId, emptyHint, allowedMaterialIds }) {
   const cat = useCatalog();
   const filled = lines.filter((l) => l.material_id).length;
   const setLine = (idx, patch) => onChange(lines.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
@@ -25,7 +24,7 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
     onChange([...lines.slice(0, idx + 1), blankStockLine(base), ...lines.slice(idx + 1)]);
   };
   const remove = (idx) => onChange(lines.length === 1 ? [blankStockLine(extra())] : lines.filter((_, i) => i !== idx));
-  const matOptions = cat.materials.filter((m) => m.is_active || lines.some((l) => String(l.material_id) === String(m.id))).map((m) => ({ value: m.id, label: m.name, hint: m.unit }));
+  const eligible = cat.materials.filter((m) => (m.is_active || lines.some((l) => String(l.material_id) === String(m.id))) && (!allowedMaterialIds || allowedMaterialIds.some((id) => String(id) === String(m.id))));
 
   const th = 'border border-blue-400 px-3 py-2 text-left font-semibold';
   const td = 'border border-blue-200 px-2 py-2 align-top';
@@ -44,8 +43,8 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
             <tr>
               <th className={`${th} w-10 border-l-0 text-center`}>#</th>
               {showDate && <th className={`${th} w-36`}>Date</th>}
-              <th className={`${th} w-44`}>Material</th>
-              <th className={th}>Specification</th>
+              <th className={`${th} w-44`}>Material Category</th>
+              <th className={th}>Material</th>
               {infoColumns.map((c) => <th key={c.label} className={`${th} w-[5.5rem] text-right`}>{c.label}</th>)}
               <th className={`${th} w-28 text-right`}>Quantity</th>
               <th className={`${th} w-16`}>Unit</th>
@@ -57,6 +56,9 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
           <tbody>
             {lines.map((l, idx) => {
               const m = cat.material(l.material_id);
+              const categoryId = l.category_id || m?.category_id || '';
+              const categories = cat.categories.filter((c) => (Number(c.is_active) || String(c.id) === String(categoryId)) && (!allowedMaterialIds || eligible.some((m) => String(m.category_id) === String(c.id))));
+              const matOptions = eligible.filter((m) => String(m.category_id) === String(categoryId)).map((m) => ({ value: m.id, label: m.name, hint: m.unit }));
               return (
                 <tr key={l.key}>
                   <td className={`${td} border-l-0 py-3 text-center tabular-nums text-gray-500`}>{idx + 1}</td>
@@ -67,23 +69,11 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
                     </td>
                   )}
                   <td className={td}>
-                    {readOnly ? <div className="px-1 py-1.5 font-medium text-gray-900">{m?.name || l.material_name}</div> : (
-                      <SearchSelect
-                        id={`line-${idx}-material`}
-                        aria-label={`Material, line ${idx + 1}`}
-                        options={matOptions}
-                        value={l.material_id}
-                        onChange={(v) => setLine(idx, { material_id: v, values: String(v) === String(l.material_id) ? l.values : {} })}
-                        error={err(idx, 'material_id')}
-                        disabled={!cat.loaded}
-                        placeholder={cat.loaded ? 'Select material' : 'Loading…'}
-                      />
-                    )}
-                    {err(idx, 'material_id') && <p className="mt-1 text-xs text-red-600">{err(idx, 'material_id')}</p>}
+                    {readOnly ? <span>{cat.categories.find((c) => String(c.id) === String(categoryId))?.name || '—'}</span> : <SearchSelect id={`line-${idx}-category`} options={categories.map((c) => ({ value: c.id, label: c.name }))} value={categoryId} onChange={(v) => setLine(idx, { category_id: v, material_id: '', values: {} })} disabled={!cat.loaded} placeholder="Select category" />}
                   </td>
                   <td className={td}>
-                    <SpecCell id={`line-${idx}-spec`} materialId={l.material_id} values={l.values} onChange={(v) => setLine(idx, { values: v })} readOnly={readOnly} error={err(idx, 'values')} orderItemId={orderItemId} />
-                    {err(idx, 'values') && <p className="mt-1 text-xs text-red-600">{err(idx, 'values')}</p>}
+                    {readOnly ? <div className="px-1 py-1.5 font-medium text-gray-900">{m?.name || l.material_name}</div> : <SearchSelect id={`line-${idx}-material`} options={matOptions} value={l.material_id} onChange={(v) => setLine(idx, { category_id: categoryId, material_id: v, values: {} })} error={err(idx, 'material_id')} disabled={!cat.loaded || !categoryId} placeholder="Select material" />}
+                    {err(idx, 'material_id') && <p className="mt-1 text-xs text-red-600">{err(idx, 'material_id')}</p>}
                   </td>
                   {infoColumns.map((c) => <td key={c.label} className={`${td} px-3 py-3 text-right tabular-nums`}>{c.render(l)}</td>)}
                   <td className={td}>

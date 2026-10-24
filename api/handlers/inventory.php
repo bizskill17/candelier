@@ -81,7 +81,7 @@ function inventory_list(): array
 function inventory_detail(int $vid): array
 {
     $v = db_one('SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.unit FROM material_variants v JOIN materials m ON m.id = v.material_id WHERE v.id = :id', ['id' => $vid]);
-    if (!$v) throw new ApiError('Specification not found.', 404);
+    if (!$v) throw new ApiError('Material not found.', 404);
     $moves = db_all('SELECT * FROM stock_moves WHERE variant_id = :v ORDER BY move_date, id', ['v' => $vid]);
     $bal = 0.0;
     $hist = [];
@@ -131,7 +131,7 @@ function inventory_set_reorder(int $vid, array $in): array
 {
     $lvl = $in['reorder_level'] ?? '';
     if ($lvl !== '' && $lvl !== null && (!is_numeric($lvl) || (float) $lvl < 0)) throw new ApiError('Please fix the highlighted fields.', 422, ['reorder_level' => 'Enter 0 or more, or leave blank.']);
-    if (!db_value('SELECT COUNT(*) FROM material_variants WHERE id = :v', ['v' => $vid])) throw new ApiError('Specification not found.', 404);
+    if (!db_value('SELECT COUNT(*) FROM material_variants WHERE id = :v', ['v' => $vid])) throw new ApiError('Material not found.', 404);
     db()->prepare('UPDATE material_variants SET reorder_level = :l, updated_at = :u WHERE id = :id')->execute(['l' => $lvl === '' || $lvl === null ? null : round((float) $lvl, 3), 'u' => now(), 'id' => $vid]);
     $lbl = variant_label($vid);
     return ['message' => $lvl === '' || $lvl === null ? "Reorder level cleared for {$lbl['label']}." : "Reorder level of {$lbl['label']} set to " . fmt_qty($lvl) . " {$lbl['unit']}."];
@@ -139,7 +139,7 @@ function inventory_set_reorder(int $vid, array $in): array
 
 function inventory_adjust(int $vid, array $in): array
 {
-    if (!db_value('SELECT COUNT(*) FROM material_variants WHERE id = :v', ['v' => $vid])) throw new ApiError('Specification not found.', 404);
+    if (!db_value('SELECT COUNT(*) FROM material_variants WHERE id = :v', ['v' => $vid])) throw new ApiError('Material not found.', 404);
     $errors = [];
     $date = trim((string) ($in['adj_date'] ?? ''));
     if (!valid_date($date)) $errors['adj_date'] = 'Enter the date.';
@@ -182,7 +182,7 @@ function dashboard(): array
     $week = date('Y-m-d', strtotime('+6 days'));
     return ['data' => [
         'open_orders' => (int) db_value("SELECT COUNT(*) FROM orders WHERE status IN ('Open', 'Partly Dispatched')"),
-        'boq_pending' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.boq_status = 'Pending' AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
+        'boq_pending' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
         'planned_week' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.production_date BETWEEN :a AND :b AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)", ['a' => $today, 'b' => $week]),
         'to_dispatch' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
         'low_stock' => count(array_filter(inventory_rows(), fn ($r) => $r['is_low'])),

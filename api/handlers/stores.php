@@ -208,16 +208,30 @@ function doc_save(array $d, ?int $id, array $in): array
     $pdo = db();
     $pdo->beginTransaction();
     try {
+        if ($d['type'] === 'material-issue') {
+            $lockedItem = db_one('SELECT boq_status FROM order_items WHERE id = :i FOR UPDATE', ['i' => $h['order_item_id']]);
+            if (!$lockedItem || $lockedItem['boq_status'] !== 'Final') throw new ApiError('Finalise the BOQ before issuing materials.', 409);
+        }
         // Resolve specifications (creates new ones) and merge duplicate lines check
         $seen = [];
         foreach ($lines as &$l) {
             $l['variant_id'] = variant_resolve($l['material_id'], $l['values']);
             if (isset($seen[$l['variant_id']])) {
-                throw new ApiError('Please fix the highlighted fields.', 422, ["lines.{$l['n']}.values" => 'This specification is already listed. Change the quantity on that line instead.']);
+                throw new ApiError('Please fix the highlighted fields.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that line instead.']);
             }
             $seen[$l['variant_id']] = $l['n'];
         }
         unset($l);
+        $lockIds = array_column($lines, 'variant_id');
+        sort($lockIds);
+        foreach ($lockIds as $vid) db_one('SELECT id FROM material_variants WHERE id = :v FOR UPDATE', ['v' => $vid]);
+        if ($d['type'] === 'material-issue') {
+            foreach ($lines as $l) {
+                $needed = db_value('SELECT qty_required FROM boq_lines WHERE order_item_id = :i AND variant_id = :v', ['i' => $h['order_item_id'], 'v' => $l['variant_id']]);
+                $issued = (float) db_value('SELECT COALESCE(SUM(x.quantity), 0) FROM material_issue_items x JOIN material_issues h ON h.id = x.issue_id WHERE h.order_item_id = :i AND x.variant_id = :v AND h.id <> :ex', ['i' => $h['order_item_id'], 'v' => $l['variant_id'], 'ex' => $id ?? 0]);
+                if (($needed === false || $needed === null) || $l['quantity'] > (float) $needed - $issued + 0.0005) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.quantity" => ($needed === false || $needed === null) ? 'Material is not in the Final BOQ.' : 'Quantity exceeds the remaining BOQ requirement (' . fmt_qty(max(0, (float) $needed - $issued)) . ').']);
+            }
+        }
         $except = $existing ? [[$d['ref'], $id]] : [];
         $moves = array_map(fn ($l) => [$l['variant_id'], $d['sign'] * $l['quantity']], $lines);
         $also = $existing ? array_column($existing['lines'], 'variant_id') : [];
@@ -235,7 +249,7 @@ function doc_save(array $d, ?int $id, array $in): array
                 $othersOpen = ($bf['all'][$vid] ?? 0) - ($bf['items'][$h['order_item_id']][$vid]['open'] ?? 0);
                 $limit = round(($stock[$vid] ?? 0) - $othersOpen, 3);
                 if ($l['quantity'] > $limit + 0.0005) {
-                    $errors["lines.{$l['n']}.quantity"] = $limit > 0 ? 'Only ' . fmt_qty($limit) . ' can be issued (the rest is booked for other orders).' : 'All stock of this specification is booked for other orders.';
+                    $errors["lines.{$l['n']}.quantity"] = $limit > 0 ? 'Only ' . fmt_qty($limit) . ' can be issued (the rest is booked for other orders).' : 'All stock of this material is booked for other orders.';
                 }
             }
         }
@@ -298,6 +312,7 @@ function doc_delete(array $d, int $id): array
 function issue_prefill(int $itemId, ?int $exceptIssue): array
 {
     $item = boq_item($itemId);
+    if ($item['boq_status'] !== 'Final') throw new ApiError('Finalise the BOQ before issuing materials.', 409);
     $lines = db_all('SELECT b.material_id, b.variant_id, b.qty_required, v.spec_text FROM boq_lines b JOIN material_variants v ON v.id = b.variant_id WHERE b.order_item_id = :i ORDER BY b.line_no', ['i' => $itemId]);
     $ids = array_column($lines, 'variant_id');
     $stats = variant_stats($ids, $itemId);
@@ -371,7 +386,7 @@ function opening_save(array $in): array
         $seen = [];
         foreach ($lines as &$l) {
             $l['variant_id'] = variant_resolve($l['material_id'], $l['values']);
-            if (isset($seen[$l['variant_id']])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This specification is already listed. Change the quantity on that row instead.']);
+            if (isset($seen[$l['variant_id']])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that row instead.']);
             $seen[$l['variant_id']] = $l['n'];
         }
         unset($l);

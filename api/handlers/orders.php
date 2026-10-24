@@ -53,7 +53,7 @@ function order_items_route(string $method, array $parts): void
 const ORDER_SELECT = 'SELECT o.*, c.name AS customer_name, c.city AS customer_city, ub.name AS order_by_name,
                              (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id) AS item_count,
                              (SELECT COUNT(*) FROM order_items i JOIN dispatches d ON d.order_item_id = i.id WHERE i.order_id = o.id) AS dispatched_count,
-                             (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id AND i.boq_status = \'Saved\') AS boq_count
+                             (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id AND i.boq_status = \'Final\') AS boq_count
                         FROM orders o JOIN customers c ON c.id = o.customer_id LEFT JOIN users ub ON ub.id = o.order_by_id';
 
 function order_cast(array $r): array
@@ -102,7 +102,7 @@ function item_stage(array $it): string
 {
     if (!empty($it['dispatch'])) return 'Dispatched';
     if (!empty($it['production_date'])) return 'Planned';
-    return $it['boq_status'] === 'Saved' ? 'BOQ Saved' : 'BOQ Pending';
+    return 'BOQ ' . $it['boq_status'];
 }
 
 function order_items_of(int $orderId): array
@@ -377,14 +377,15 @@ function order_items_lookup(): array
     if (!empty($_GET['saved_boq'])) return saved_boq();
     if (!empty($_GET['pending_boq'])) return pending_boq();
     $inc = (int) ($_GET['include'] ?? 0);
-    $rows = db_all(ITEM_SELECT . " WHERE (o.status <> 'Cancelled' AND d.id IS NULL) OR i.id = :inc ORDER BY o.order_date DESC, o.id DESC, i.line_no", ['inc' => $inc]);
+    $final = !empty($_GET['final_boq']) ? " AND i.boq_status = 'Final'" : '';
+    $rows = db_all(ITEM_SELECT . " WHERE (o.status <> 'Cancelled' AND d.id IS NULL$final) OR i.id = :inc ORDER BY o.order_date DESC, o.id DESC, i.line_no", ['inc' => $inc]);
     return ['data' => items_cast($rows)];
 }
 
 // Pending BOQ: items of open orders whose BOQ is not saved yet, earliest delivery first.
 function pending_boq(): array
 {
-    $where = "i.boq_status = 'Pending' AND o.status <> 'Cancelled' AND d.id IS NULL";
+    $where = "i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND d.id IS NULL";
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
@@ -485,7 +486,7 @@ function dispatch_list(): array
 
 function saved_boq(): array
 {
-    $where = "i.boq_status = 'Saved'";
+    $where = "i.boq_status IN ('Draft', 'Final')";
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {

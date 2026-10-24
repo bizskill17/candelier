@@ -32,7 +32,7 @@ export default function PendingBoq() {
           <Search size={16} className="text-gray-400" />
           <input id="search-pending-boq" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search order no., customer, project, area, item…" className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
-        {rows && <span className="text-sm text-gray-500">{rows.length} {rows.length === 1 ? 'item' : 'items'} without BOQ</span>}
+        {rows && <span className="text-sm text-gray-500">{rows.length} {rows.length === 1 ? 'item' : 'items'} awaiting Final BOQ</span>}
       </div>
       <div className={tableWrap}>
         <div className="overflow-x-auto">
@@ -54,7 +54,7 @@ export default function PendingBoq() {
             <tbody>
               {!rows && !loadError && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
-              {rows && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q ? 'No items match.' : 'Every order item has its BOQ.'}</td></tr>}
+              {rows && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q ? 'No items match.' : 'Every order item has a Final BOQ.'}</td></tr>}
               {(rows || []).map((it) => {
                 const late = it.delivery_date && it.delivery_date < today();
                 return (
@@ -69,7 +69,7 @@ export default function PendingBoq() {
                     <td className={`${td} min-w-[10rem] text-gray-700`}>{it.remarks || DASH}</td>
                     <td className={`${td} whitespace-nowrap tabular-nums`}>{it.delivery_date ? <span className={late ? 'inline-flex items-center gap-1 font-medium text-red-600' : ''}>{late && <AlertTriangle size={12} />}{fmtDate(it.delivery_date)}</span> : DASH}</td>
                     <td className={`${td} text-center`}>
-                      <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700"><ClipboardList size={13} /> Make BOQ</button>
+                      <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700"><ClipboardList size={13} /> {it.boq_status === 'Draft' ? 'Continue Draft' : 'Make BOQ'}</button>
                     </td>
                   </tr>
                 );

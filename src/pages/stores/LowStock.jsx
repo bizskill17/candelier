@@ -38,7 +38,7 @@ export default function LowStock() {
           <table className="w-full min-w-[880px] border-collapse text-sm">
             <thead className={theadCls}>
               <tr>
-                <th className={thCls}>Material / Specification</th>
+                <th className={thCls}>Material</th>
                 <th className={`${thCls} w-16`}>Unit</th>
                 <th className={`${thCls} w-24 text-right`}>In Stock</th>
                 <th className={`${thCls} w-24 text-right`}>Booked</th>

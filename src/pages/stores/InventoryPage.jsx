@@ -15,7 +15,7 @@ const th = 'border border-blue-400 px-2.5 py-2.5 text-left font-semibold';
 const td = 'border border-blue-200 px-2.5 py-2 align-top';
 const num = `${td} text-right tabular-nums`;
 const ONLY = [
-  { value: '', label: 'All specifications' }, { value: 'instock', label: 'In stock' }, { value: 'zero', label: 'Out of stock' },
+  { value: '', label: 'All stock levels' }, { value: 'instock', label: 'In stock' }, { value: 'zero', label: 'Out of stock' },
   { value: 'booked', label: 'Has bookings' }, { value: 'low', label: 'Below reorder level' },
 ];
 
@@ -58,16 +58,16 @@ export default function InventoryPage() {
     <div className="mx-auto max-w-[90rem] space-y-4">
       <div className="print:hidden flex flex-wrap gap-2">
         <SearchSelect id="filter-material" className="w-full sm:w-52" options={[{ value: '', label: 'All materials' }, ...cat.materials.map((m) => ({ value: m.id, label: m.name }))]} value={materialId} onChange={setMaterialId} placeholder="All materials" clearable />
-        <SearchSelect id="filter-only" className="w-full sm:w-52" options={ONLY} value={only} onChange={setOnly} placeholder="All specifications" clearable />
+        <SearchSelect id="filter-only" className="w-full sm:w-52" options={ONLY} value={only} onChange={setOnly} placeholder="All stock levels" clearable />
         <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
           <Search size={16} className="text-gray-400" />
-          <input id="search-inventory" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search specification values…" className="w-full bg-transparent text-sm focus:outline-none" />
+          <input id="search-inventory" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search materials…" className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Printer size={15} /> Print / PDF</button>
       </div>
       {summary && (
         <div className="print:hidden flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600">
-          <span><b className="text-gray-900">{summary.specs}</b> specifications</span>
+          <span><b className="text-gray-900">{summary.specs}</b> materials</span>
           <span><b className="text-gray-900">{summary.in_stock}</b> in stock</span>
           <span><b className="text-gray-900">{summary.zero}</b> out of stock</span>
           <span><b className="text-gray-900">{summary.booked}</b> with bookings</span>
@@ -81,7 +81,7 @@ export default function InventoryPage() {
           <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: 1040 }}>
             <thead className={theadCls}>
               <tr>
-                <th className={th}>Material / Specification</th>
+                <th className={th}>Material</th>
                 <th className={`${th} w-12`}>Unit</th>
                 <th className={`${th} w-20 text-right`}>Opening</th>
                 <th className={`${th} w-[5.25rem] text-right`}>Purchased</th>
@@ -101,10 +101,10 @@ export default function InventoryPage() {
               {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${td} py-14 text-center text-gray-500`}>{q || materialId || only ? 'Nothing matches.' : 'No stock yet. Start with Opening Stock or Material In.'}</td></tr>}
               {groups.map((g) => (
                 <Fragment key={g.material_id}>
-                  <tr className="bg-gray-50"><td colSpan={cols} className="border border-blue-200 px-3 py-2 font-semibold text-gray-900">{g.name} <span className="font-normal text-gray-500">· {g.rows.length} {g.rows.length === 1 ? 'specification' : 'specifications'}</span></td></tr>
+
                   {g.rows.map((r) => (
                     <tr key={r.id} className={loading ? 'opacity-60' : ''}>
-                      <td className={`${td} pl-5`}>{r.spec_text || <span className="text-gray-400">(no values)</span>}</td>
+                      <td className={`${td} pl-5`}>{r.material_name}</td>
                       <td className={td}>{r.unit}</td>
                       <td className={num}>{fmtQty(r.opening)}</td>
                       <td className={num}>{fmtQty(r.purchased)}</td>
@@ -157,7 +157,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
   const tabs = [['history', 'History'], ['bookings', `Bookings${d ? ` (${d.bookings.length})` : ''}`], ...(canEdit ? [['adjust', 'Count Correction']] : [])];
 
   return (
-    <Modal open wide="xl" title={`${variant.material_name} · ${variant.spec_text}`} onClose={onClose} footer={<button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Close</button>}>
+    <Modal open wide="xl" title={variant.material_name} onClose={onClose} footer={<button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Close</button>}>
       {!d ? <div className="h-32 animate-pulse rounded bg-gray-100" /> : (
         <>
           <div className="mb-4 grid grid-cols-3 gap-3 text-center">

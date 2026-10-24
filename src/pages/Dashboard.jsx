@@ -15,7 +15,7 @@ export default function Dashboard() {
     { label: 'Follow-ups today', value: v('followups_today'), icon: PhoneCall, to: '/follow-ups' },
     { label: 'Overdue follow-ups', value: v('followups_overdue'), icon: AlarmClock, to: '/follow-ups', warn: d && d.followups_overdue > 0 },
     { label: 'Open orders', value: v('open_orders'), icon: ShoppingCart, to: '/orders/all' },
-    { label: 'Items without BOQ', value: v('boq_pending'), icon: ClipboardList, to: '/pending-boq' },
+    { label: 'BOQs pending finalisation', value: v('boq_pending'), icon: ClipboardList, to: '/pending-boq' },
     { label: 'Planned this week', value: v('planned_week'), icon: CalendarDays, to: '/orders/all/week' },
     { label: 'Items to dispatch', value: v('to_dispatch'), icon: Truck, to: '/orders/all' },
     { label: 'Low stock', value: v('low_stock'), icon: TrendingDown, to: '/low-stock', warn: d && d.low_stock > 0 },

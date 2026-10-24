@@ -17,6 +17,7 @@ date_default_timezone_set($GLOBALS['CONFIG']['timezone'] ?? 'Asia/Kolkata');
 require __DIR__ . '/lib/http.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/stock.php';
+require __DIR__ . '/lib/migrate.php';
 require __DIR__ . '/entities.php';
 require __DIR__ . '/handlers/auth.php';
 require __DIR__ . '/handlers/masters.php';
@@ -34,6 +35,7 @@ $parts  = $route === '' ? [] : explode('/', $route);
 $area   = array_shift($parts);
 
 try {
+    migrate_material_categories();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 

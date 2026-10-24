@@ -36,7 +36,7 @@ function next_doc_no(string $table, string $prefix, string $col): string
 
 function qty_ok($v): bool
 {
-    return is_numeric($v) && (float) $v > 0;
+    return is_numeric($v) && is_finite((float) $v) && round((float) $v, 3) > 0 && (float) $v <= 999999999;
 }
 
 // ---------------------------------------------------------------------------
@@ -49,11 +49,7 @@ function spec_norm(string $v): string
 
 function material_fields(int $materialId): array
 {
-    return array_map(function ($f) {
-        $f['id'] = (int) $f['id'];
-        $f['sort_order'] = (int) $f['sort_order'];
-        return $f;
-    }, db_all('SELECT id, name, sort_order FROM material_spec_fields WHERE material_id = :m ORDER BY sort_order, id', ['m' => $materialId]));
+    return []; // Materials have no editable specification fields.
 }
 
 // spec_key and spec_text for a set of values [field_id => value] in field order.

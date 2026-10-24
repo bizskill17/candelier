@@ -44,6 +44,7 @@ export default function App() {
           <Route path="damage/*" element={<DocsPage key="damage" type="damage" />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="low-stock" element={<LowStock />} />
+          <Route path="material-categories" element={<MasterPage key="material_categories" module={mod('material_categories')} />} />
           <Route path="materials" element={<MaterialsPage />} />
           <Route path="item-fields" element={<ItemFieldsPage />} />
           {['customers', 'suppliers', 'transporters'].map((k) => (

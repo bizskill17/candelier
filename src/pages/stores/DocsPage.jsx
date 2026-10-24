@@ -173,20 +173,21 @@ function DocForm({ type, id, presetItem }) {
   useEffect(() => {
     if (type === 'material-issue' || type === 'damage') ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
     if (type === 'material-in') api.lookup('suppliers').then((r) => setSuppliers(r.data)).catch(() => setSuppliers([]));
-    if (type === 'material-issue') ordersApi.openItems(presetItem || undefined).then((r) => setItems(r.data)).catch(() => setItems([]));
+    if (type === 'material-issue') ordersApi.openItems(presetItem || undefined, true).then((r) => setItems(r.data)).catch(() => setItems([]));
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPrefill = async (itemId, fill) => {
     if (!itemId) { setPrefill(null); return; }
     try {
+      setPrefill(null);
       const r = await docsApi.issuePrefill(itemId, id);
       setPrefill(r.data);
       if (fill) {
         const rows = r.data.lines.map((l) => ({ material_id: l.material_id, values: l.values, quantity: round3(Math.max(0, Math.min(l.pending, l.in_stock))) || '' })).filter((l) => l.quantity);
         setLines(toStockLines(rows));
-        if (!rows.length) toast(r.data.lines.length ? 'Everything on the BOQ has been issued already.' : 'This item has no BOQ yet. Add the lines yourself.', 'error');
+        if (!rows.length) toast(r.data.lines.length ? 'Everything on the BOQ has been issued already.' : 'No materials remain to issue.', 'error');
       }
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) { setPrefill({ blocked: true, lines: [] }); setFormError(e.message); toast(e.message, 'error'); }
   };
 
   const load = () => {
@@ -199,7 +200,7 @@ function DocForm({ type, id, presetItem }) {
       setHeader(h);
       setLines(toStockLines(d.lines.map((l) => ({ material_id: l.material_id, values: l.values, quantity: l.quantity, remarks: l.remarks || '', reason: l.reason }))));
       if (type === 'material-issue') {
-        ordersApi.openItems(d.order_item_id).then((x) => setItems(x.data)).catch(() => {});
+        ordersApi.openItems(d.order_item_id, true).then((x) => setItems(x.data)).catch(() => {});
         loadPrefill(d.order_item_id, false);
       }
     }).catch((e) => setLoadError(e.message));
@@ -226,6 +227,7 @@ function DocForm({ type, id, presetItem }) {
     e?.preventDefault();
     setSaving(true);
     setFormError('');
+    if (type === 'material-issue' && (!prefill || prefill.blocked)) { setFormError('Finalise the BOQ before issuing materials.'); setSaving(false); return; }
     const body = { ...header, lines: lines.map(({ material_id, values, quantity, remarks, reason }) => ({ material_id, values, quantity, remarks, reason })) };
     try {
       const r = isEdit ? await docsApi.update(type, id, body) : await docsApi.create(type, body);
@@ -328,19 +330,19 @@ function DocForm({ type, id, presetItem }) {
             <textarea id="d-notes" rows={1} value={header.notes} onChange={(e) => setH('notes', e.target.value)} disabled={readOnly} className={inputCls(errors.notes)} />
           </Field>
         </div>
-        {prefill && <p className="mt-3 text-sm text-gray-600">{prefill.item.customer_name} · <b className="text-gray-900">{prefill.item.item_title}</b></p>}
+        {prefill?.item && <p className="mt-3 text-sm text-gray-600">{prefill.item.customer_name} · <b className="text-gray-900">{prefill.item.item_title}</b></p>}
       </section>
 
       <StockLines lines={lines} onChange={(ls) => { setLines(ls); if (Object.keys(errors).some((k) => k.startsWith('lines'))) setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !k.startsWith('lines')))); }}
         errors={errors} readOnly={readOnly} infoColumns={infoColumns} showReason={type === 'damage'} orderItemId={type === 'material-issue' ? header.order_item_id || undefined : undefined}
-        emptyHint={type === 'material-in' ? 'A new specification typed here is added automatically.' : null} />
+        allowedMaterialIds={type === 'material-issue' ? (prefill?.lines || []).map((l) => l.material_id) : undefined} />
 
       {!readOnly && (
         <div className="sticky bottom-0 -mx-4 flex items-center gap-2 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
           {isEdit && <button type="button" onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Trash2 size={15} /> Delete</button>}
           <div className="flex-1" />
           <button type="button" onClick={back} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
-          <button type="submit" disabled={saving} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : isEdit ? 'Save Changes' : `Save ${cfg.singular}`}</button>
+          <button type="submit" disabled={saving || (type === 'material-issue' && (!prefill || prefill.blocked))} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : isEdit ? 'Save Changes' : `Save ${cfg.singular}`}</button>
         </div>
       )}
       <ConfirmDialog open={confirmDelete} title={`Delete ${cfg.singular.toLowerCase()}?`} message={isEdit ? `${doc[cfg.no]} will be removed and its stock movements reversed.` : ''} onConfirm={doDelete} onCancel={() => setConfirmDelete(false)} />

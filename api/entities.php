@@ -15,6 +15,12 @@ function entities(): array
         'address'        => ['label' => 'Address', 'type' => 'textarea', 'max' => 255],
     ];
     return [
+        'material_categories' => [
+            'label' => 'Material Category', 'table' => 'material_categories', 'prefix' => 'MC',
+            'fields' => ['name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'max' => 100, 'unique' => true]],
+            'search' => ['code', 'name'],
+            'referenced_by' => [['table' => 'materials', 'column' => 'category_id', 'label' => 'material']],
+        ],
         'customers' => [
             'label' => 'Customer', 'table' => 'customers', 'prefix' => 'CUS',
             'fields' => [

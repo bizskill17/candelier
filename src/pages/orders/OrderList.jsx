@@ -53,7 +53,7 @@ function OrderItems({ id, onChanged, prodFrom, prodTo }) {
               </td>
               <td className={`${subTd} text-center`}>
                 <div className="inline-flex gap-1.5">
-                  <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50"><ClipboardList size={13} /> BOQ</button>
+                  <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50"><ClipboardList size={13} /> BOQ · {it.boq_status}</button>
                   {canEdit && !cancelled && (
                     <button onClick={() => setDispatching(it)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium ${it.dispatch ? 'text-brand-600 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'}`}><Truck size={13} /> {it.dispatch ? 'Dispatched' : 'Dispatch'}</button>
                   )}
@@ -140,7 +140,7 @@ export default function OrderList({ week }) {
                 <th className={`${thCls} w-28`}>Date</th>
                 <th className={thCls}>Customer / Project</th>
                 <th className={`${thCls} w-20 text-right`}>Items</th>
-                <th className={`${thCls} w-24 text-right`}>BOQ Saved</th>
+                <th className={`${thCls} w-24 text-right`}>BOQ Final</th>
                 <th className={`${thCls} w-28`}>Delivery Date</th>
                 <th className={`${thCls} w-40`}>Status</th>
                 <th className={`${thCls} w-24 text-center`}>Action</th>

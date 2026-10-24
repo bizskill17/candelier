@@ -28,7 +28,7 @@ export function Badge({ color = 'gray', children }) {
 const ORDER_COLOR = { Open: 'blue', 'Partly Dispatched': 'amber', Dispatched: 'green', Cancelled: 'gray' };
 export const OrderStatus = ({ status }) => <Badge color={ORDER_COLOR[status] || 'gray'}>{status}</Badge>;
 
-const STAGE_COLOR = { 'BOQ Pending': 'gray', 'BOQ Saved': 'blue', Planned: 'violet', Dispatched: 'green' };
+const STAGE_COLOR = { 'BOQ Pending': 'gray', 'BOQ Final': 'green', 'BOQ Draft': 'amber', Planned: 'violet', Dispatched: 'green' };
 export const ItemStage = ({ stage }) => <Badge color={STAGE_COLOR[stage] || 'gray'}>{stage}</Badge>;
 
 export const ORDER_STATUSES = ['Open', 'Partly Dispatched', 'Dispatched', 'Cancelled'];

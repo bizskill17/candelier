@@ -1,0 +1,56 @@
+name: Validate Material and BOQ Workflow
+
+on:
+  push:
+    branches: [implementation/material-categories-boq]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candelier-material-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      database:
+        image: mariadb:11
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: candelier_test
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install and build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Check PHP syntax
+        run: find api -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Test CSV import
+        run: node tests/materialCsv.test.mjs
+
+      - name: Test migration and BOQ workflow
+        env:
+          TEST_DB_DSN: mysql:host=127.0.0.1;port=33306;dbname=candelier_test;charset=utf8mb4
+        run: php tests/workflow.php
+

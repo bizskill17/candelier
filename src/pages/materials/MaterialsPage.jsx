@@ -1,165 +1,80 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Plus, Pencil, RefreshCw, ArrowUp, ArrowDown, Trash2, Search } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Plus, Pencil, Search, Upload, Download, Trash2 } from 'lucide-react';
 import { materialsApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useCatalog } from '../../lib/catalog';
 import Toggle from '../../components/Toggle';
+import SearchSelect from '../../components/SearchSelect';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { tableWrap, theadCls, thCls, tdCls, inputCls } from '../../components/table';
+import { parseMaterialCsv } from '../../lib/materialCsv';
 
 const UNITS = ['Nos', 'Pcs', 'Set', 'Pair', 'Mtr', 'Ft', 'Kg', 'g', 'Box', 'Roll', 'Coil', 'Ltr'];
-let fseq = 0;
-
-// Materials and their specification fields. The values themselves are filled in on the BOQ, Material In, etc.
 export default function MaterialsPage() {
   const { canEdit } = useAuth();
   const toast = useToast();
   const cat = useCatalog();
+  const file = useRef(null);
   const [rows, setRows] = useState(null);
-  const [loadError, setLoadError] = useState('');
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState(null); // null | {} (new) | material
-
-  const load = useCallback(() => {
-    setLoadError('');
-    materialsApi.list().then((r) => setRows(r.data)).catch((e) => setLoadError(e.message));
-  }, []);
+  const [editing, setEditing] = useState(null);
+  const [upload, setUpload] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => { setError(''); materialsApi.list().then((r) => setRows(r.data)).catch((e) => setError(e.message)); }, []);
   useEffect(load, [load]);
-
-  const toggle = async (m) => {
-    try { const r = await materialsApi.setStatus(m.id, !m.is_active); toast(r.message); load(); cat.refresh(); } catch (e) { toast(e.message, 'error'); }
+  const refresh = () => { load(); cat.refresh(); };
+  const toggle = async (m) => { try { const r = await materialsApi.setStatus(m.id, !m.is_active); toast(r.message); refresh(); } catch (e) { toast(e.message, 'error'); } };
+  const template = () => {
+    const blob = new Blob(['\uFEFFMaterial Category,Material Name,Unit\r\n'], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'materials-template.csv'; a.click(); URL.revokeObjectURL(url);
+  };
+  const readUpload = async (e) => {
+    const selected = e.target.files?.[0]; e.target.value = '';
+    if (!selected) return;
+    if (selected.size > 1024 * 1024) { toast('Use a CSV file up to 1 MB.', 'error'); return; }
+    try { const data = parseMaterialCsv(await selected.text()); setUpload({ rows: data, errors: {} }); } catch (err) { toast(err.message, 'error'); }
+  };
+  const importRows = async () => {
+    setBusy(true);
+    try { const r = await materialsApi.bulk(upload.rows); toast(r.message); setUpload(null); refresh(); }
+    catch (e) { setUpload((u) => ({ ...u, errors: e.fields || { Import: e.message } })); }
+    finally { setBusy(false); }
   };
   const q = search.trim().toLowerCase();
-  const list = (rows || []).filter((m) => !q || m.name.toLowerCase().includes(q) || m.fields.some((f) => f.name.toLowerCase().includes(q)));
-
-  return (
-    <div className="mx-auto max-w-6xl space-y-4">
-      <div className="flex gap-2">
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
-          <Search size={16} className="text-gray-400" />
-          <input id="search-materials" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search materials or fields…" className="w-full bg-transparent text-sm focus:outline-none" />
-        </label>
-        {canEdit && <button onClick={() => setEditing({})} aria-label="Add Material" className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add</button>}
-      </div>
-      <div className={tableWrap}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
-            <thead className={theadCls}>
-              <tr>
-                <th className={`${thCls} w-14 text-center`}>#</th>
-                <th className={thCls}>Material</th>
-                <th className={`${thCls} w-20`}>Unit</th>
-                <th className={thCls}>Specification Fields</th>
-                <th className={`${thCls} w-28 text-right`}>Specs Used</th>
-                <th className={`${thCls} w-24 text-center`}>Status</th>
-                <th className={`${thCls} w-24 text-center`}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!rows && !loadError && [1, 2, 3].map((i) => <tr key={i}><td colSpan={7} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
-              {loadError && <tr><td colSpan={7} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
-              {rows && list.length === 0 && <tr><td colSpan={7} className={`${tdCls} py-12 text-center text-gray-500`}>{q ? 'No materials match.' : 'No materials yet. Add your materials and their specification fields.'}</td></tr>}
-              {list.map((m) => (
-                <tr key={m.id} className={m.is_active ? '' : 'bg-gray-50 text-gray-500'}>
-                  <td className={`${tdCls} text-center tabular-nums text-gray-500`}>{m.sort_order}</td>
-                  <td className={`${tdCls} font-medium text-gray-900`}>{m.name}</td>
-                  <td className={tdCls}>{m.unit}</td>
-                  <td className={tdCls}>
-                    <div className="flex flex-wrap gap-1.5">
-                      {m.fields.length ? m.fields.map((f) => <span key={f.id} className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-200">{f.name}</span>) : <span className="text-gray-400">None</span>}
-                    </div>
-                  </td>
-                  <td className={`${tdCls} text-right tabular-nums`}>{m.variant_count}</td>
-                  <td className={`${tdCls} text-center`}><Toggle checked={m.is_active} onChange={() => toggle(m)} disabled={!canEdit} label={m.is_active ? 'Active' : 'Inactive'} /></td>
-                  <td className={`${tdCls} text-center`}>
-                    <button onClick={() => setEditing(m)} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Pencil size={13} /> {canEdit ? 'Edit' : 'Open'}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {editing && <MaterialForm material={editing} readOnly={!canEdit} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); cat.refresh(); }} />}
+  const list = (rows || []).filter((m) => `${m.name} ${m.category_name} ${m.unit}`.toLowerCase().includes(q));
+  return <div className="mx-auto max-w-6xl space-y-4">
+    <div className="flex flex-wrap gap-2">
+      <label className="flex min-w-52 flex-1 items-center gap-2 rounded-lg border bg-white px-3 py-2"><Search size={16} /><input aria-label="Search materials" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search material or category…" className="w-full text-sm outline-none" /></label>
+      {canEdit && <><button onClick={template} className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Download size={15} /> Template</button><button onClick={() => file.current.click()} className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Upload size={15} /> Bulk Upload</button><input ref={file} type="file" accept=".csv,text/csv" hidden onChange={readUpload} /><button onClick={() => setEditing({})} className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm text-white"><Plus size={16} /> Add</button></>}
     </div>
-  );
+    <div className={tableWrap}><div className="overflow-x-auto"><table className="w-full min-w-[620px] border-collapse text-sm"><thead className={theadCls}><tr>{['Material Category', 'Material', 'Unit', 'Status', 'Action'].map((t) => <th key={t} className={thCls}>{t}</th>)}</tr></thead><tbody>
+      {error && <tr><td colSpan={5} className={`${tdCls} text-red-600`}>{error} <button onClick={load}>Retry</button></td></tr>}
+      {!rows && !error && <tr><td colSpan={5} className={tdCls}>Loading…</td></tr>}
+      {rows && !list.length && <tr><td colSpan={5} className={`${tdCls} py-10 text-center text-gray-500`}>No materials found.</td></tr>}
+      {list.map((m) => <tr key={m.id}><td className={tdCls}>{m.category_name}</td><td className={`${tdCls} font-medium`}>{m.name}</td><td className={tdCls}>{m.unit}</td><td className={tdCls}><Toggle checked={m.is_active} onChange={() => toggle(m)} disabled={!canEdit} label={m.is_active ? 'Active' : 'Inactive'} /></td><td className={tdCls}><button onClick={() => setEditing(m)} className="inline-flex items-center gap-1 text-brand-600"><Pencil size={14} /> {canEdit ? 'Edit' : 'Open'}</button></td></tr>)}
+    </tbody></table></div></div>
+    {editing && <MaterialForm material={editing} readOnly={!canEdit} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
+    {upload && <Modal open wide title="Import Materials" onClose={() => !busy && setUpload(null)} footer={<><button disabled={busy} onClick={() => setUpload(null)} className="px-3 py-2">Cancel</button><button disabled={busy} onClick={importRows} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy ? 'Importing…' : `Import ${upload.rows.length} materials`}</button></>}>
+      <p className="mb-3 text-sm text-gray-600">Create the categories first. Unit must be one of: {UNITS.join(', ')}. Up to 500 rows per upload.</p>
+      {Object.entries(upload.errors).map(([row, message]) => <p key={row} className="text-sm text-red-600">{row}: {message}</p>)}
+      <div className="max-h-80 overflow-auto"><table className="w-full text-sm"><thead><tr><th>Row</th><th>Material Category</th><th>Material Name</th><th>Unit</th></tr></thead><tbody>{upload.rows.map((r, i) => <tr key={i}><td className={tdCls}>{i + 2}</td><td className={tdCls}>{r.category}</td><td className={tdCls}>{r.name}</td><td className={tdCls}>{r.unit}</td></tr>)}</tbody></table></div>
+    </Modal>}
+  </div>;
 }
-
 function MaterialForm({ material, readOnly, onClose, onSaved }) {
-  const toast = useToast();
-  const isEdit = Boolean(material.id);
-  const [form, setForm] = useState({ name: material.name || '', unit: material.unit || 'Pcs', sort_order: material.sort_order || '' });
-  const [fields, setFields] = useState(() => (material.fields?.length ? material.fields.map((f) => ({ key: ++fseq, id: f.id, name: f.name })) : [{ key: ++fseq, name: '' }]));
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const setF = (i, v) => setFields((fs) => fs.map((f, j) => (j === i ? { ...f, name: v } : f)));
-  const move = (i, d) => setFields((fs) => { const a = [...fs]; const j = i + d; if (j < 0 || j >= a.length) return a; [a[i], a[j]] = [a[j], a[i]]; return a; });
-  const save = async () => {
-    setSaving(true);
-    try {
-      const body = { ...form, fields: fields.map((f) => ({ id: f.id, name: f.name })) };
-      const r = isEdit ? await materialsApi.update(material.id, body) : await materialsApi.create(body);
-      toast(r.message);
-      onSaved();
-    } catch (e) {
-      setErrors(e.fields || {});
-      if (!e.fields || !Object.keys(e.fields).length) toast(e.message, 'error');
-    } finally { setSaving(false); }
-  };
-  const del = async () => {
-    try { const r = await materialsApi.remove(material.id); toast(r.message); onSaved(); } catch (e) { toast(e.message, 'error'); setConfirmDelete(false); }
-  };
-
-  return (
-    <Modal open wide title={isEdit ? `Material: ${material.name}` : 'New Material'} onClose={onClose}
-      footer={<>
-        {isEdit && !readOnly && material.variant_count === 0 && <button onClick={() => setConfirmDelete(true)} className="mr-auto inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Trash2 size={14} /> Delete</button>}
-        <button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">{readOnly ? 'Close' : 'Cancel'}</button>
-        {!readOnly && <button onClick={save} disabled={saving} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save'}</button>}
-      </>}>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="col-span-3 sm:col-span-2">
-          <label htmlFor="m-name" className="mb-1 block text-sm font-medium text-gray-700">Name <span className="text-red-500">*</span></label>
-          <input id="m-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={readOnly} className={inputCls(errors.name)} placeholder="e.g. Crystal" />
-          {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-        </div>
-        <div>
-          <label htmlFor="m-unit" className="mb-1 block text-sm font-medium text-gray-700">Unit <span className="text-red-500">*</span></label>
-          <select id="m-unit" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} disabled={readOnly} className={inputCls(errors.unit)}>
-            {UNITS.map((u) => <option key={u}>{u}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="m-order" className="mb-1 block text-sm font-medium text-gray-700">Order on BOQ</label>
-          <input id="m-order" type="number" min="0" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} disabled={readOnly} className={inputCls()} placeholder="Auto" />
-        </div>
-      </div>
-      <div className="mt-5">
-        <div className="mb-2 text-sm font-medium text-gray-700">Specification fields</div>
-        <div className="space-y-2">
-          {fields.map((f, i) => (
-            <div key={f.key}>
-              <div className="flex items-center gap-1.5">
-                <span className="w-6 text-right text-xs tabular-nums text-gray-400">{i + 1}</span>
-                <input aria-label={`Field ${i + 1}`} value={f.name} onChange={(e) => setF(i, e.target.value)} disabled={readOnly} className={inputCls(errors[`fields.${i}.name`])} placeholder="Field name" />
-                {!readOnly && <>
-                  <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"><ArrowUp size={15} /></button>
-                  <button type="button" onClick={() => move(i, 1)} disabled={i === fields.length - 1} aria-label="Move down" className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30"><ArrowDown size={15} /></button>
-                  <button type="button" onClick={() => setFields((fs) => fs.filter((_, j) => j !== i))} aria-label="Remove field" className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={15} /></button>
-                </>}
-              </div>
-              {errors[`fields.${i}.name`] && <p className="ml-8 mt-1 text-xs text-red-600">{errors[`fields.${i}.name`]}</p>}
-            </div>
-          ))}
-        </div>
-        {errors.fields && <p className="mt-2 text-xs text-red-600">{errors.fields}</p>}
-        {!readOnly && <button type="button" onClick={() => setFields((fs) => [...fs, { key: ++fseq, name: '' }])} className="ml-8 mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline"><Plus size={14} /> Add field</button>}
-      </div>
-      <ConfirmDialog open={confirmDelete} title="Delete material?" message={`${material.name} will be removed.`} onConfirm={del} onCancel={() => setConfirmDelete(false)} />
-    </Modal>
-  );
+  const cat = useCatalog(); const toast = useToast();
+  const [f, setF] = useState({ name: material.name || '', category_id: material.category_id || '', unit: material.unit || 'Pcs' });
+  const [errors, setErrors] = useState({}); const [busy, setBusy] = useState(false); const [confirm, setConfirm] = useState(false);
+  const save = async () => { setBusy(true); try { const r = material.id ? await materialsApi.update(material.id, f) : await materialsApi.create(f); toast(r.message); onSaved(); } catch (e) { setErrors(e.fields || {}); toast(e.message, 'error'); } finally { setBusy(false); } };
+  const remove = async () => { try { await materialsApi.remove(material.id); onSaved(); } catch (e) { toast(e.message, 'error'); setConfirm(false); } };
+  return <Modal open title={material.id ? 'Edit Material' : 'New Material'} onClose={onClose} footer={<>{material.id && !readOnly && <button onClick={() => setConfirm(true)} className="mr-auto text-red-600"><Trash2 size={16} /></button>}<button onClick={onClose} className="px-3 py-2">Cancel</button>{!readOnly && <button onClick={save} disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy ? 'Saving…' : 'Save'}</button>}</>}>
+    <div className="space-y-4">
+      <div><label htmlFor="m-category" className="mb-1 block text-sm">Material Category <span className="text-red-500">*</span></label><SearchSelect id="m-category" options={cat.categories.filter((c) => Number(c.is_active) || String(c.id) === String(f.category_id)).map((c) => ({ value: c.id, label: c.name }))} value={f.category_id} onChange={(v) => setF({ ...f, category_id: v })} disabled={readOnly || !cat.loaded} error={errors.category_id} placeholder="Select material category" />{errors.category_id && <p className="text-xs text-red-600">{errors.category_id}</p>}</div>
+      <div><label htmlFor="m-name" className="mb-1 block text-sm">Material Name <span className="text-red-500">*</span></label><input id="m-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} disabled={readOnly} className={inputCls(errors.name)} />{errors.name && <p className="text-xs text-red-600">{errors.name}</p>}</div>
+      <div><label htmlFor="m-unit" className="mb-1 block text-sm">Unit <span className="text-red-500">*</span></label><SearchSelect id="m-unit" options={UNITS.map((u) => ({ value: u, label: u }))} value={f.unit} onChange={(v) => setF({ ...f, unit: v })} disabled={readOnly} error={errors.unit} />{errors.unit && <p className="text-xs text-red-600">{errors.unit}</p>}</div>
+    </div><ConfirmDialog open={confirm} title="Delete material?" message="Materials in use can only be deactivated." onConfirm={remove} onCancel={() => setConfirm(false)} />
+  </Modal>;
 }

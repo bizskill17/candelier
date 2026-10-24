@@ -137,15 +137,27 @@ INSERT INTO item_fields (name, sort_order) VALUES
 -- ---------------------------------------------------------------
 -- Materials and their specifications
 -- ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS material_categories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(20) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS materials (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  category_id INT UNSIGNED NOT NULL,
   name        VARCHAR(100) NOT NULL,
   unit        VARCHAR(20)  NOT NULL,
   sort_order  INT          NOT NULL DEFAULT 0 COMMENT 'Row order on the BOQ',
   is_active   TINYINT(1)   NOT NULL DEFAULT 1,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_material_name (name)
+  UNIQUE KEY uq_material_name (name),
+  KEY idx_material_category (category_id),
+  CONSTRAINT fk_material_category FOREIGN KEY (category_id) REFERENCES material_categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Specification fields of a material, e.g. Crystal: Shape, Size, Colour, Quality
@@ -216,7 +228,8 @@ CREATE TABLE IF NOT EXISTS order_items (
   reference_image  VARCHAR(255) NULL COMMENT 'Uploaded file path',
   drawing_file     VARCHAR(255) NULL COMMENT 'Uploaded drawing (PDF or image) path',
   drawing_name     VARCHAR(150) NULL COMMENT 'Original file name of the drawing',
-  boq_status       VARCHAR(20)  NOT NULL DEFAULT 'Pending' COMMENT 'Pending, Saved',
+  boq_status       VARCHAR(20)  NOT NULL DEFAULT 'Pending' COMMENT 'Pending, Draft, Final',
+  boq_draft_json LONGTEXT NULL,
   production_date  DATE         NULL COMMENT 'Production plan date',
   created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

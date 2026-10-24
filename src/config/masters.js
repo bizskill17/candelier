@@ -16,6 +16,7 @@ const partyColumns = [
 ];
 
 export const masters = {
+  material_categories: { singular: 'Material Category', plural: 'material categories', hideCode: true, columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }], fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true }] },
   customers: {
     singular: 'Customer', plural: 'customers', hideCode: true, minWidth: 1450,
     columns: [

@@ -66,6 +66,7 @@ export const authApi = {
 };
 
 export const materialsApi = {
+  bulk: (rows) => request('POST', 'materials/bulk', { body: { rows } }),
   list: (params) => request('GET', 'materials', { params }),
   get: (id) => request('GET', `materials/${id}`),
   create: (body) => request('POST', 'materials', { body }),
@@ -107,7 +108,7 @@ export const ordersApi = {
   setStatus: (id, status) => request('PATCH', `orders/${id}/status`, { body: { status } }),
   remove: (id) => request('DELETE', `orders/${id}`),
   users: () => request('GET', 'users-list'),
-  openItems: (include) => request('GET', 'order-items', { params: { include } }),
+  openItems: (include, finalBoq = false) => request('GET', 'order-items', { params: { include, final_boq: finalBoq ? 1 : undefined } }),
   boqMaster: (q) => request('GET', 'order-items', { params: { saved_boq: 1, q } }),
   pendingBoq: (q) => request('GET', 'order-items', { params: { pending_boq: 1, q } }),
   setProductionDate: (itemId, date) => request('PATCH', `order-items/${itemId}`, { body: { production_date: date } }),
@@ -118,7 +119,7 @@ export const ordersApi = {
 
 export const boqApi = {
   get: (itemId) => request('GET', `boq/${itemId}`),
-  save: (itemId, lines) => request('PUT', `boq/${itemId}`, { body: { lines } }),
+  save: (itemId, lines, status) => request('PUT', `boq/${itemId}`, { body: { lines, status } }),
   sources: (exclude) => request('GET', 'boq/sources', { params: { exclude } }),
   book: (itemId, variantId, quantity) => request('POST', `boq/${itemId}/book`, { body: { variant_id: variantId, quantity } }),
   release: (itemId, variantId, quantity) => request('POST', `boq/${itemId}/release`, { body: { variant_id: variantId, quantity } }),

@@ -15,6 +15,7 @@ export function CatalogProvider({ children }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const api = useMemo(() => {
+    const categories = data?.categories || [];
     const materials = data?.materials || [];
     const variants = data?.variants || [];
     const material = (id) => materials.find((m) => String(m.id) === String(id));
@@ -37,7 +38,7 @@ export function CatalogProvider({ children }) {
       });
       return [...seen.values()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     };
-    return { loaded: !!data, materials, variants, material, keyOf, textOf, hasValues, findVariant, variantsOf, suggestions, refresh };
+    return { loaded: !!data, categories, materials, variants, material, keyOf, textOf, hasValues, findVariant, variantsOf, suggestions, refresh };
   }, [data, refresh]);
 
   return <CatalogContext.Provider value={api}>{children}</CatalogContext.Provider>;
