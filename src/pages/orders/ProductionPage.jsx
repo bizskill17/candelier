@@ -71,6 +71,16 @@ export default function ProductionPage({ status }) {
       return next;
     });
   };
+  const moveBack = async (item) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await productionApi.setStatus(item.id, 'In Progress');
+      toast(r.message);
+      refresh();
+    } catch (e) { toast(e.message, 'error'); }
+    finally { setBusy(false); }
+  };
   const saveChanges = async () => {
     if (busy || !pendingCount) return;
     setBusy(true);
@@ -119,7 +129,7 @@ export default function ProductionPage({ status }) {
     {filterError && <p role="alert" className="text-sm text-red-600">Filters could not load: {filterError} <button onClick={refresh} className="underline">Retry</button></p>}
     <div className="flex flex-wrap items-center justify-between gap-3">
       <span className="text-sm text-gray-500">{!loading && !error ? `${result?.total || 0} ${result?.total === 1 ? 'item' : 'items'}` : ''}</span>
-      {canEdit && <div className="flex items-center gap-3">
+      {canEdit && !ready && <div className="flex items-center gap-3">
         {pendingCount > 0 && <><span role="status" className="text-xs text-amber-700">{pendingCount} {pendingCount === 1 ? 'item has' : 'items have'} unsaved changes</span><button disabled={busy} onClick={() => setPending({})} className="text-sm text-gray-600 hover:underline disabled:opacity-50">Discard changes</button></>}
         <button onClick={saveChanges} disabled={busy || !pendingCount} className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"><Save size={16} />{busy ? 'Updating…' : 'Update'}</button>
       </div>}
@@ -141,16 +151,16 @@ export default function ProductionPage({ status }) {
               <td className={`${td} min-w-[100px]`}>{it.area || dash}</td>
               <td className={`${td} min-w-[200px]`}><ItemDetailLines details={it.details} empty={it.item_title || dash} /></td>
               <td className={`${td} min-w-[165px]`}>
-                {canEdit ? <select aria-label={`Production Status for ${it.order_no} item ${it.line_no}`} value={pending[it.id]?.status ?? it.production_status} disabled={busy || loading} onChange={(e) => stageChange(it, 'status', e.target.value)} className={inputCls(false)}>
+                {canEdit && !ready ? <select aria-label={`Production Status for ${it.order_no} item ${it.line_no}`} value={pending[it.id]?.status ?? it.production_status} disabled={busy || loading} onChange={(e) => stageChange(it, 'status', e.target.value)} className={inputCls(false)}>
                   <option value="In Progress">In Progress</option><option value="Complete">Complete</option>
                 </select> : <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${ready ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>{it.production_status}</span>}
               </td>
               <td className={`${td} min-w-[200px]`}>
-                {canEdit ? <textarea aria-label={`Remarks for ${it.order_no} item ${it.line_no}`} rows={3} maxLength={255} value={pending[it.id]?.remarks ?? it.remarks ?? ''} onChange={(e) => stageChange(it, 'remarks', e.target.value)} disabled={busy} placeholder="Enter remarks…" className={inputCls(false)} /> : <span className="whitespace-pre-wrap">{it.remarks || dash}</span>}
+                {canEdit && !ready ? <textarea aria-label={`Remarks for ${it.order_no} item ${it.line_no}`} rows={3} maxLength={255} value={pending[it.id]?.remarks ?? it.remarks ?? ''} onChange={(e) => stageChange(it, 'remarks', e.target.value)} disabled={busy} placeholder="Enter remarks…" className={inputCls(false)} /> : <span className="whitespace-pre-wrap">{it.remarks || dash}</span>}
               </td>
               {ready && canEdit && <td className={`${td} min-w-[210px]`}><div className="flex flex-col items-start gap-2">
                 <button disabled={busy || loading || pendingCount > 0} title={pendingCount ? "Save changes before dispatch" : "Dispatch"} onClick={() => setDispatch(it)} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"><Truck size={14} /> Dispatch</button>
-                <button disabled={busy || loading} onClick={() => stageChange(it, 'status', 'In Progress')} className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline disabled:opacity-50"><Undo2 size={14} /> Move Back to In Progress</button>
+                <button disabled={busy || loading} onClick={() => moveBack(it)} className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline disabled:opacity-50"><Undo2 size={14} /> Move Back to In Progress</button>
               </div></td>}
             </tr>)}
           </tbody>
