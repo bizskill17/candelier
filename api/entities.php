@@ -25,6 +25,7 @@ function entities(): array
             'label' => 'Customer', 'table' => 'customers', 'prefix' => 'CUS',
             'fields' => [
                 'name'           => ['label' => 'Name', 'type' => 'text', 'required' => true, 'max' => 150],
+                'category_id'    => ['label' => 'Client category', 'type' => 'fk', 'ref' => 'client_categories'],
                 'phone'          => ['label' => 'Phone', 'type' => 'mobile'],
                 'email'          => ['label' => 'Email', 'type' => 'email', 'max' => 150],
                 'contact_person' => ['label' => 'Contact person', 'type' => 'text', 'max' => 100],
@@ -33,10 +34,11 @@ function entities(): array
                 'state_id'       => ['label' => 'State', 'type' => 'fk', 'ref' => 'states'],
                 'address'        => ['label' => 'Address', 'type' => 'textarea', 'max' => 255],
             ],
-            'joins' => ['state_id' => ['table' => 'states', 'as' => 'state_name']],
-            'search' => ['code', 'name', 'contact_person', 'phone', 'city', 'email', 'contact_mobile'],
+            'joins' => ['state_id' => ['table' => 'states', 'as' => 'state_name'], 'category_id' => ['table' => 'client_categories', 'as' => 'category_name']],
+            'search' => ['code', 'name', 'contact_person', 'phone', 'city', 'email', 'contact_mobile', 'address'],
+            'text_filters' => ['city'],
             'referenced_by' => [['table' => 'orders', 'column' => 'customer_id', 'label' => 'order'], ['table' => 'leads', 'column' => 'customer_id', 'label' => 'lead']],
-            'lookup' => ['address', 'phone', 'city', 'email', 'contact_person', 'contact_mobile', 'state_id'],
+            'lookup' => ['address', 'phone', 'city', 'email', 'contact_person', 'contact_mobile', 'state_id', 'category_id'],
         ],
         'suppliers' => [
             'label' => 'Supplier', 'table' => 'suppliers', 'prefix' => 'SUP',
@@ -57,7 +59,13 @@ function entities(): array
             'label' => 'State', 'table' => 'states', 'prefix' => 'ST',
             'fields' => ['name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'max' => 60, 'unique' => true]],
             'search' => ['code', 'name'],
-            'referenced_by' => [['table' => 'leads', 'column' => 'state_id', 'label' => 'lead']],
+            'referenced_by' => [['table' => 'leads', 'column' => 'state_id', 'label' => 'lead'], ['table' => 'customers', 'column' => 'state_id', 'label' => 'customer']],
+        ],
+        'client_categories' => [
+            'label' => 'Client Category', 'table' => 'client_categories', 'prefix' => 'CC',
+            'fields' => ['name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'max' => 60, 'unique' => true]],
+            'search' => ['code', 'name'],
+            'referenced_by' => [['table' => 'customers', 'column' => 'category_id', 'label' => 'customer']],
         ],
         'lead_sources' => [
             'label' => 'Lead Source', 'table' => 'lead_sources', 'prefix' => 'SRC',

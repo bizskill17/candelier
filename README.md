@@ -65,3 +65,9 @@ For local development, run PHP on port 8000 and `npm run dev` (Vite proxies `/ap
 `node tests/materialCsv.test.mjs` checks CSV parsing. `php tests/workflow.php` requires an isolated
 MySQL database called `candelier_test` via `TEST_DB_DSN`; it creates fixture data in that test database.
 Never run it against a production database. CI provisions its own MariaDB service.
+
+## Client categories
+
+- Masters → Client Categories: your own list (Architect, Interior Designer, Hotel, Banquet, Residential, Dealer to start).
+- Each customer has a Client Category (pick from the list, or + to add one on the spot); it shows as a column in Customers.
+- Customers list: search, City filter (every city entered so far), Category filter, and an **Excel** button that downloads exactly what the search and filters show.

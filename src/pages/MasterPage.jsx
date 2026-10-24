@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Download, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { api } from '../api/client';
 import Toggle from '../components/Toggle';
 import { useAuth } from '../auth/AuthContext';
@@ -8,6 +8,7 @@ import { masters } from '../config/masters';
 import { useToast } from '../components/Toast';
 import MasterForm from '../components/MasterForm';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { downloadXlsx } from '../lib/xlsx';
 
 const PER_PAGE = 20;
 
@@ -38,8 +39,12 @@ export default function MasterPage({ module }) {
   const [search, setSearch] = useState('');
   const q = useDebounced(search);
   const [status, setStatus] = useState('active');
-  const [filterValue, setFilterValue] = useState('');
-  const [filterOptions, setFilterOptions] = useState([]);
+  const filterDefs = def.filters || (def.filter ? [def.filter] : []);
+  const [filterValues, setFilterValues] = useState({});
+  const [filterOptions, setFilterOptions] = useState({});
+  const [exporting, setExporting] = useState(false);
+  const activeFilters = Object.fromEntries(Object.entries(filterValues).filter(([, v]) => v !== '' && v !== null && v !== undefined));
+  const filterKey = JSON.stringify(activeFilters);
   const [sort, setSort] = useState({ key: 'name', dir: 'asc' });
   const [page, setPage] = useState(1);
 
@@ -51,26 +56,50 @@ export default function MasterPage({ module }) {
     setLoading(true);
     setLoadError('');
     try {
-      const params = { q, status, page, per_page: PER_PAGE, sort: sort.key, dir: sort.dir };
-      if (def.filter && filterValue) params[def.filter.name] = filterValue;
+      const params = { q, status, page, per_page: PER_PAGE, sort: sort.key, dir: sort.dir, ...JSON.parse(filterKey) };
       const res = await api.list(entity, params);
       setRows(res.data);
       setTotal(res.total);
       setCounts(res.counts);
+      if (res.filter_values) setFilterOptions((o) => ({ ...o, ...Object.fromEntries(Object.entries(res.filter_values).map(([k, list]) => [k, list.map((v) => ({ value: v, label: v }))])) }));
     } catch (err) {
       setLoadError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [entity, def, q, status, page, sort, filterValue]);
+  }, [entity, def, q, status, page, sort, filterKey]);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [q, status, filterValue, sort]);
+  useEffect(() => { setPage(1); }, [q, status, filterKey, sort]);
 
   useEffect(() => {
-    if (!def.filter) return;
-    api.lookup(def.filter.ref).then((r) => setFilterOptions(r.data)).catch(() => {});
-  }, [def]);
+    filterDefs.filter((f) => f.ref).forEach((f) => {
+      api.lookup(f.ref).then((r) => setFilterOptions((o) => ({ ...o, [f.name]: r.data.map((x) => ({ value: x.id, label: x.name })) }))).catch(() => {});
+    });
+  }, [def]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Excel download of everything that matches the current search and filters
+  const exportExcel = async () => {
+    setExporting(true);
+    try {
+      const all = [];
+      for (let p = 1; ; p++) {
+        const res = await api.list(entity, { q, status, page: p, per_page: 1000, sort: sort.key, dir: sort.dir, ...activeFilters });
+        all.push(...res.data);
+        if (all.length >= res.total || res.data.length === 0) break;
+      }
+      const cols = def.columns;
+      const headers = [...cols.map((c) => c.label), 'Status'];
+      const data = all.map((r) => [...cols.map((c) => r[c.key] ?? ''), r.is_active ? 'Active' : 'Inactive']);
+      const name = def.exportName || def.plural;
+      const saved = await downloadXlsx(`${name.replace(/\s+/g, '-')}-${new Date().toLocaleDateString('en-CA')}.xlsx`, headers, data, name);
+      if (saved) toast(`Downloaded ${all.length} ${all.length === 1 ? def.singular.toLowerCase() : def.plural}.`);
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const toggleSort = (key) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
@@ -103,7 +132,7 @@ export default function MasterPage({ module }) {
   const from = total === 0 ? 0 : (page - 1) * PER_PAGE + 1;
   const to = Math.min(page * PER_PAGE, total);
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const filtered = q || filterValue;
+  const filtered = q || Object.keys(activeFilters).length > 0;
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -128,20 +157,21 @@ export default function MasterPage({ module }) {
         </div>
 
         <div className="flex flex-1 flex-wrap gap-2">
-          {def.filter && (
+          {filterDefs.map((f) => (
             <SearchSelect
-              id={`filter-${entity}`}
-              className="w-full sm:w-56"
-              options={[{ value: '', label: def.filter.label }, ...filterOptions.map((o) => ({ value: o.id, label: o.name }))]}
-              value={filterValue}
-              onChange={setFilterValue}
-              placeholder={def.filter.label}
+              key={f.name}
+              id={`filter-${entity}-${f.name}`}
+              className="w-full sm:w-48"
+              options={[{ value: '', label: f.label }, ...(filterOptions[f.name] || [])]}
+              value={filterValues[f.name] ?? ''}
+              onChange={(v) => setFilterValues((fv) => ({ ...fv, [f.name]: v ?? '' }))}
+              placeholder={f.label}
               clearable
             />
-          )}
+          ))}
           {/* Search with the Add button on its right */}
-          <div className="flex min-w-[240px] flex-1 gap-2">
-            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+          <div className="flex min-w-[min(100%,340px)] flex-1 gap-2">
+            <label className="flex min-w-[140px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
               <Search size={16} className="text-gray-400" />
               <input
                 id={`search-${entity}`}
@@ -151,6 +181,14 @@ export default function MasterPage({ module }) {
                 className="w-full bg-transparent text-sm focus:outline-none"
               />
             </label>
+            {def.exportName && <button
+              onClick={exportExcel}
+              disabled={exporting || total === 0}
+              title="Download the list as an Excel file"
+              className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <Download size={16} /> {exporting ? 'Preparing…' : 'Excel'}
+            </button>}
             {canEdit && <button
               onClick={() => setEditing('new')}
               aria-label={`Add ${def.singular}`}

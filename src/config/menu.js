@@ -1,7 +1,7 @@
 // The left menu. Quantities only: no rates or prices anywhere.
 import {
   LayoutDashboard, FilePlus2, ListOrdered, Truck, ClipboardList, PackageOpen, PackagePlus, PackageMinus,
-  AlertOctagon, UserPlus, Contact, PhoneCall, Megaphone, MapPin, ScrollText, Warehouse, TrendingDown, Boxes, ListChecks, Handshake, Building2, Send, UserCog,
+  AlertOctagon, UserPlus, Contact, PhoneCall, Megaphone, MapPin, ScrollText, Warehouse, TrendingDown, Boxes, ListChecks, Tags, Handshake, Building2, Send, UserCog,
 } from 'lucide-react';
 
 export const menu = [
@@ -46,6 +46,7 @@ export const menu = [
       { key: 'item-fields', label: 'Item Fields', path: '/item-fields', icon: ListChecks, description: 'Your own list of details for each order item (Area, Size, Glass Colour…).' },
       { key: 'lead_sources', label: 'Lead Sources', path: '/lead-sources', icon: Megaphone, description: 'Where leads come from: Instagram Ads, Walk-in…' },
       { key: 'states', label: 'States', path: '/states', icon: MapPin, description: 'States used on leads.' },
+      { key: 'client_categories', label: 'Client Categories', path: '/client-categories', icon: Tags, description: 'Groups of customers: Architect, Hotel, Dealer…' },
       { key: 'customers', label: 'Customers', path: '/customers', icon: Handshake, description: 'Parties who place orders.' },
       { key: 'suppliers', label: 'Suppliers', path: '/suppliers', icon: Building2, description: 'Parties who supply material.' },
       { key: 'transporters', label: 'Transporters', path: '/transporters', icon: Send, description: 'Used when dispatching.' },

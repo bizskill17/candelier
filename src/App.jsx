@@ -54,6 +54,7 @@ export default function App() {
             <Route key={k} path={k} element={<MasterPage key={k} module={mod(k)} />} />
           ))}
           <Route path="lead-sources" element={<MasterPage key="lead_sources" module={mod('lead_sources')} />} />
+          <Route path="client-categories" element={<MasterPage key="client_categories" module={mod('client_categories')} />} />
           <Route path="states" element={<MasterPage key="states" module={mod('states')} />} />
           <Route path="users" element={isAdmin ? <MasterPage key="users" module={mod('users')} /> : <NotFound />} />
           <Route path="*" element={<NotFound />} />

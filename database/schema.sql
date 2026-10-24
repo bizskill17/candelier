@@ -78,6 +78,25 @@ INSERT INTO states (code, name) VALUES
   ('ST-0035', 'Uttarakhand'),
   ('ST-0036', 'West Bengal');
 
+-- Client categories (editable list)
+CREATE TABLE IF NOT EXISTS client_categories (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  code        VARCHAR(20)  NOT NULL,
+  name        VARCHAR(60)  NOT NULL,
+  is_active   TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_client_category_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO client_categories (code, name) VALUES
+  ('CC-0001', 'Architect'),
+  ('CC-0002', 'Interior Designer'),
+  ('CC-0003', 'Hotel'),
+  ('CC-0004', 'Banquet'),
+  ('CC-0005', 'Residential'),
+  ('CC-0006', 'Dealer');
+
 CREATE TABLE IF NOT EXISTS customers (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   code            VARCHAR(20)  NOT NULL,
@@ -89,11 +108,14 @@ CREATE TABLE IF NOT EXISTS customers (
   city            VARCHAR(80)  NULL,
   state_id        INT UNSIGNED NULL,
   address         VARCHAR(255) NULL,
+  category_id     INT UNSIGNED NULL,
   is_active       TINYINT(1)   NOT NULL DEFAULT 1,
   created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_customer_code (code),
-  CONSTRAINT fk_customer_state FOREIGN KEY (state_id) REFERENCES states(id)
+  KEY idx_customer_city (city),
+  CONSTRAINT fk_customer_state FOREIGN KEY (state_id) REFERENCES states(id),
+  CONSTRAINT fk_customer_category FOREIGN KEY (category_id) REFERENCES client_categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS suppliers (

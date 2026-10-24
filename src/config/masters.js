@@ -18,9 +18,15 @@ const partyColumns = [
 export const masters = {
   material_categories: { singular: 'Material Category', plural: 'material categories', hideCode: true, columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }], fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true }] },
   customers: {
-    singular: 'Customer', plural: 'customers', hideCode: true, minWidth: 1450,
+    singular: 'Customer', plural: 'customers', hideCode: true, minWidth: 1600,
+    filters: [
+      { name: 'city', label: 'All cities', values: true },
+      { name: 'category_id', label: 'All categories', ref: 'client_categories' },
+    ],
+    exportName: 'Customers',
     columns: [
       { key: 'name', label: 'Name', sort: 'name', strong: true },
+      { key: 'category_name', label: 'Client Category', sort: 'category_name', nowrap: true },
       { key: 'phone', label: 'Phone', nowrap: true },
       { key: 'email', label: 'Email', sort: 'email' },
       { key: 'contact_person', label: 'Contact Person', sort: 'contact_person' },
@@ -31,6 +37,7 @@ export const masters = {
     ],
     fields: [
       { name: 'name', label: 'Name', type: 'text', required: true, full: true },
+      { name: 'category_id', label: 'Client Category', type: 'lookup', ref: 'client_categories', quickAdd: true },
       { name: 'phone', label: 'Phone', type: 'mobile', placeholder: '10-digit mobile' },
       { name: 'email', label: 'Email', type: 'email', placeholder: 'name@example.com' },
       { name: 'contact_person', label: 'Contact person', type: 'text' },
@@ -45,6 +52,11 @@ export const masters = {
     singular: 'Transporter', plural: 'transporters', hideCode: true,
     columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }, { key: 'phone', label: 'Phone', nowrap: true }],
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Blue Dart' }, { name: 'phone', label: 'Phone', type: 'phone' }],
+  },
+  client_categories: {
+    singular: 'Client Category', plural: 'client categories', hideCode: true,
+    columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }],
+    fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Architect' }],
   },
   states: {
     singular: 'State', plural: 'states', hideCode: true,

@@ -87,6 +87,14 @@ function master_list(array $e): array
             $params["f_$name"] = (int) $_GET[$name];
         }
     }
+    // Exact-match filter on a text column, e.g. ?city=Guwahati
+    foreach ($e['text_filters'] ?? [] as $name) {
+        $v = trim((string) ($_GET[$name] ?? ''));
+        if ($v !== '') {
+            $where[] = "$t.$name = :tf_$name";
+            $params["tf_$name"] = $v;
+        }
+    }
 
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
@@ -106,7 +114,7 @@ function master_list(array $e): array
     }
     $dir = strtolower($_GET['dir'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 
-    $perPage = max(1, min(200, (int) ($_GET['per_page'] ?? 20)));
+    $perPage = max(1, min(1000, (int) ($_GET['per_page'] ?? 20)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $perPage;
 
@@ -122,6 +130,11 @@ function master_list(array $e): array
             'active'   => (int) db_value("SELECT COUNT(*) FROM $t WHERE is_active = 1"),
             'inactive' => (int) db_value("SELECT COUNT(*) FROM $t WHERE is_active = 0"),
         ],
+        // Choices for the text filters (e.g. every city used so far)
+        'filter_values' => (object) array_combine($e['text_filters'] ?? [], array_map(
+            fn ($c) => array_column(db_all("SELECT DISTINCT TRIM($c) AS v FROM $t WHERE $c IS NOT NULL AND TRIM($c) <> '' ORDER BY v"), 'v'),
+            $e['text_filters'] ?? []
+        )),
     ];
 }
 
