@@ -61,7 +61,7 @@ function OrderItems({ id, onChanged }) {
         </tbody>
       </table>
       {dispatching && (
-        <DispatchDialog item={dispatching} label={`${order.order_no} · #${dispatching.line_no} ${dispatching.item_title}`} onClose={() => setDispatching(null)}
+        <DispatchDialog item={{ ...dispatching, customer_name: order.customer_name }} label={`${order.order_no} · #${dispatching.line_no} ${dispatching.item_title}`} onClose={() => setDispatching(null)}
           onDone={(o) => { setDispatching(null); setOrder(o); onChanged(); }} />
       )}
     </div>

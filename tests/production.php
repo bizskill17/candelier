@@ -98,3 +98,15 @@ reject(fn () => production_bulk_update(['changes' => [['id' => $a, 'remarks' => 
 production_bulk_update(['changes' => [['id' => $b, 'remarks' => '']]]);
 check(item_find($b)['remarks'] === null, 'Bulk remarks can be cleared');
 echo "Bulk production checks passed.\n";
+
+$document = DRAWING_DIR . '/2026/10/test-dispatch.pdf';
+dispatch_save($b, ['dispatch_date' => date('Y-m-d'), 'dispatch_by' => 'Workshop Supervisor', 'dispatch_document' => $document, 'dispatch_document_name' => 'Dispatch note.pdf']);
+$savedDispatch = array_values(array_filter(order_find($paginationOrder['id'])['items'], fn ($it) => $it['id'] === $b))[0]['dispatch'];
+check($savedDispatch['dispatch_by'] === 'Workshop Supervisor' && $savedDispatch['dispatch_document'] === $document && $savedDispatch['dispatch_document_name'] === 'Dispatch note.pdf', 'Dispatch form fields persist and reopen with client-linked order');
+migrate_dispatch_fields();
+check(db_value('SELECT dispatch_by FROM dispatches WHERE order_item_id = ' . $b) === 'Workshop Supervisor', 'Dispatch migration is idempotent and preserves saved fields');
+reject(fn () => dispatch_save($b, ['dispatch_date' => date('Y-m-d'), 'dispatch_document' => '../../config.php']), 'Dispatch rejects unsafe document paths');
+reject(fn () => dispatch_save($b, ['dispatch_date' => date('Y-m-d'), 'dispatch_by' => str_repeat('x', 101)]), 'Dispatch By length is validated');
+dispatch_save($b, ['dispatch_date' => date('Y-m-d'), 'dispatch_by' => 'Updated Supervisor', 'dispatch_document' => '', 'dispatch_document_name' => '']);
+check(db_value('SELECT dispatch_document FROM dispatches WHERE order_item_id = ' . $b) === null, 'Dispatch document can be removed');
+echo "Dispatch form checks passed.\n";

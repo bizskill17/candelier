@@ -101,7 +101,7 @@ function order_items_of(int $orderId): array
 {
     $items = db_all(
         'SELECT i.*, i.id AS order_item_id,
-                d.id AS dispatch_id, d.dispatch_no, d.dispatch_date, d.transporter_id, t.name AS transporter_name, d.vehicle_no, d.docket_no, d.remarks AS dispatch_remarks,
+                d.id AS dispatch_id, d.dispatch_no, d.dispatch_date, d.transporter_id, t.name AS transporter_name, d.vehicle_no, d.docket_no, d.dispatch_by, d.dispatch_document, d.dispatch_document_name, d.remarks AS dispatch_remarks,
                 (SELECT COUNT(*) FROM material_issues mi WHERE mi.order_item_id = i.id) AS issue_count,
                 (SELECT COUNT(*) FROM boq_lines b WHERE b.order_item_id = i.id) AS boq_lines
            FROM order_items i
@@ -123,7 +123,7 @@ function order_items_of(int $orderId): array
             'dispatch' => $i['dispatch_id'] ? [
                 'id' => (int) $i['dispatch_id'], 'dispatch_no' => $i['dispatch_no'], 'dispatch_date' => $i['dispatch_date'],
                 'transporter_id' => $i['transporter_id'] === null ? null : (int) $i['transporter_id'], 'transporter_name' => $i['transporter_name'],
-                'vehicle_no' => $i['vehicle_no'], 'docket_no' => $i['docket_no'], 'remarks' => $i['dispatch_remarks'],
+                'vehicle_no' => $i['vehicle_no'], 'docket_no' => $i['docket_no'], 'dispatch_by' => $i['dispatch_by'], 'dispatch_document' => $i['dispatch_document'], 'dispatch_document_name' => $i['dispatch_document_name'], 'remarks' => $i['dispatch_remarks'],
             ] : null,
         ];
         $out['stage'] = item_stage($out);
@@ -398,12 +398,17 @@ function dispatch_save(int $itemId, array $in): array
     $tid = (int) ($in['transporter_id'] ?? 0);
     if ($tid && !db_value('SELECT COUNT(*) FROM transporters WHERE id = :id', ['id' => $tid])) $errors['transporter_id'] = 'Choose a valid transporter.';
     $h['transporter_id'] = $tid ?: null;
-    foreach (['vehicle_no' => 20, 'docket_no' => 50, 'remarks' => 255] as $f => $max) {
+    foreach (['vehicle_no' => 20, 'docket_no' => 50, 'remarks' => 255, 'dispatch_by' => 100] as $f => $max) {
         $v = trim((string) ($in[$f] ?? ''));
         if ($f === 'vehicle_no') $v = strtoupper(str_replace(' ', '', $v));
         if (mb_strlen($v) > $max) $errors[$f] = "Keep this under $max characters.";
         $h[$f] = $v === '' ? null : $v;
     }
+    $h['dispatch_document'] = clean_drawing_path($in['dispatch_document'] ?? '');
+    if ($h['dispatch_document'] === false) $errors['dispatch_document'] = 'Upload a PDF, JPG, PNG or WEBP dispatch document.';
+    $documentName = trim((string) ($in['dispatch_document_name'] ?? ''));
+    if (mb_strlen($documentName) > 150) $errors['dispatch_document'] = 'Keep the document name under 150 characters.';
+    $h['dispatch_document_name'] = $h['dispatch_document'] ? ($documentName ?: 'Dispatch document') : null;
     if ($errors) throw new ApiError('Please fix the highlighted fields.', 422, $errors);
     $pdo = db();
     $pdo->beginTransaction();
