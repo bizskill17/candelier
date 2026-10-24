@@ -74,8 +74,11 @@ export default function DispatchDialog({ item, label, onClose, onDone }) {
         <button onClick={save} disabled={busy || uploading || addingBusy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : d ? 'Save' : 'Dispatch'}</button>
       </>}>
       <div className="mb-4 space-y-1 rounded-lg bg-gray-50 p-3">
-        <p className="text-sm"><span className="font-medium">Client Name:</span> {item.customer_name || '—'}</p>
-        <p className="break-words text-xs text-gray-500">{d?.dispatch_no && `${d.dispatch_no} · `}{label}</p>
+        <p className="text-sm"><span className="font-semibold">Client Name:</span> {item.customer_name || '—'}</p>
+        <p className="break-words text-xs text-gray-500">{d?.dispatch_no && `${d.dispatch_no} · `}{String(label || '').split(' · ').map((part, index) => {
+          const colon = part.indexOf(':');
+          return <span key={index}>{index > 0 && ' · '}{colon > 0 ? <><strong className="font-semibold text-gray-700">{part.slice(0, colon + 1)}</strong>{part.slice(colon + 1)}</> : part}</span>;
+        })}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -112,7 +115,7 @@ export default function DispatchDialog({ item, label, onClose, onDone }) {
           <label htmlFor="dp-document" className="mb-1 block text-sm font-medium text-gray-700">Dispatch Document</label>
           {form.dispatch_document && <div className="mb-2 flex items-center justify-between gap-2"><button type="button" onClick={() => setViewDocument(true)} className="truncate text-brand-600 underline">{form.dispatch_document_name || 'View document'}</button><button type="button" disabled={busy || uploading} onClick={() => setForm((prev) => ({ ...prev, dispatch_document: '', dispatch_document_name: '' }))} className="text-xs text-red-600">Remove document</button></div>}
           <input id="dp-document" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={busy || uploading} onChange={uploadDocument} className="block w-full text-sm" />
-          <p className="mt-1 text-xs text-gray-500">{uploading ? 'Uploading…' : 'PDF, JPG, PNG or WEBP · up to 25 MB'}</p>
+          {uploading && <p className="mt-1 text-xs text-gray-500">Uploading…</p>}
           {errors.dispatch_document && <p className="mt-1 text-xs text-red-600">{errors.dispatch_document}</p>}
         </div>
         <div className="col-span-2">
