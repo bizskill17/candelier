@@ -10,7 +10,6 @@ import Modal from '../../components/Modal';
 import { inputCls } from '../../components/table';
 import { fmtDate, fmtQty, round3, Badge } from '../../lib/util';
 import { PhotoThumb } from '../../components/Photo';
-import { ItemDetailLines } from '../../lib/items';
 import { DrawingLink } from '../../components/Drawing';
 
 let seq = 0;
@@ -173,7 +172,7 @@ function BoqEditor({ itemId }) {
           <div className="border-t border-gray-100 pt-3">
             <div className="flex flex-wrap gap-x-8 gap-y-2">
               <div><div className="text-xs text-gray-500">Area</div><div className="mt-0.5 font-semibold text-gray-900">{data.area || '—'}</div></div>
-              <div className="min-w-0 flex-1"><div className="text-xs text-gray-500">Order Item</div><div className="mt-0.5 text-sm"><ItemDetailLines details={data.details} empty="—" /></div></div>
+              <div className="min-w-0 flex-1"><div className="text-xs text-gray-500">Order Item</div><div className="mt-0.5 text-sm">{data.details?.length ? <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">{data.details.map((detail, index) => <span key={index} className="inline-flex max-w-full items-baseline gap-2">{index > 0 && <span aria-hidden="true" className="text-gray-400">|</span>}<span className="min-w-0 break-words"><span className="font-semibold text-gray-900">{detail.name}:</span> <span className="text-gray-700">{detail.value}</span></span></span>)}</div> : '—'}</div></div>
             </div>
             {data.drawing_file && <p className="mt-2 hidden text-gray-700 print:block"><span className="text-xs text-gray-500">Drawing: </span>{data.drawing_name || 'attached'}</p>}
             {data.remarks && <p className="mt-2 text-gray-700"><span className="text-xs text-gray-500">Remarks: </span>{data.remarks}</p>}
