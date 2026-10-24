@@ -86,6 +86,7 @@ function BoqEditor({ itemId }) {
   }, [missingKey, itemId]);
 
   const dirty = rows.length > 0 && snap(rows) !== savedSnap;
+  const showStockDetails = data?.boq_status === 'Final' && !dirty;
   const readOnly = !canEdit || (data && data.order_status === 'Cancelled');
   const setRow = (key, patch) => { setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r))); setErrors({}); };
   const addRow = () => setRows((rs) => [...rs, row({})]);
@@ -197,9 +198,9 @@ function BoqEditor({ itemId }) {
       </div>
 
       <section className="overflow-hidden rounded-xl border border-blue-300 bg-white">
-        <div className="overflow-x-auto"><table className="w-full min-w-[1100px] border-collapse text-sm">
+        <div className="overflow-x-auto"><table className={`w-full ${showStockDetails ? 'min-w-[1100px]' : 'min-w-[760px]'} border-collapse text-sm`}>
           <thead className="bg-brand-600 text-xs uppercase text-white"><tr>
-            {['#', 'Material Category', 'Material', 'Quantity', 'Unit', 'In Stock', 'Booked (All)', 'Available', 'Booked (Item)', 'Remaining to Book', 'Consumed', 'Action'].map((t, i) => <th key={t} className={`${th} ${i > 4 ? 'print:hidden' : ''}`}>{t}</th>)}
+            {['#', 'Material Category', 'Material', 'Quantity', 'Unit', 'In Stock', ...(showStockDetails ? ['Booked (All)', 'Available', 'Booked (Item)', 'Remaining to Book', 'Consumed'] : []), 'Action'].map((t, i) => <th key={t} className={`${th} ${i > 4 ? 'print:hidden' : ''}`}>{t}</th>)}
           </tr></thead><tbody>
             {rows.map((r, idx) => {
               const m = cat.material(r.material_id);
@@ -215,10 +216,10 @@ function BoqEditor({ itemId }) {
                 <td className={`${td} min-w-48`}>{readOnly ? m?.name : <SearchSelect id={`boq-${idx}-material`} options={mats.map((m) => ({ value: m.id, label: m.name }))} value={r.material_id} onChange={(value) => setRow(r.key, { category_id: categoryId, material_id: value, values: {} })} disabled={!categoryId} placeholder="Select material" error={errors[`${r.key}.material_id`]} />}{errors[`${r.key}.material_id`] && <p className="text-xs text-red-600">{errors[`${r.key}.material_id`]}</p>}</td>
                 <td className={`${td} w-28`}>{readOnly ? fmtQty(r.qty) : <input aria-label={`Quantity, row ${idx + 1}`} type="number" min="0" step="0.001" value={r.qty} onChange={(e) => setRow(r.key, { qty: e.target.value })} className={`${inputCls(errors[`${r.key}.qty_required`])} text-right`} />}{errors[`${r.key}.qty_required`] && <p className="text-xs text-red-600">{errors[`${r.key}.qty_required`]}</p>}</td>
                 <td className={td}>{m?.unit || '—'}</td>
-                {[st?.in_stock, st?.booked_all, st?.available, st?.booked_item, r.material_id ? required : null, st?.consumed].map((n, i) => <td key={i} className={`${num} print:hidden`}>{n == null ? '—' : fmtQty(n)}</td>)}
+                {[st?.in_stock, ...(showStockDetails ? [st?.booked_all, st?.available, st?.booked_item, r.material_id ? required : null, st?.consumed] : [])].map((n, i) => <td key={i} className={`${num} print:hidden`}>{n == null ? '—' : fmtQty(n)}</td>)}
                 <td className={`${td} print:hidden`}><div className="flex items-center gap-1">
                   {!readOnly && <button onClick={() => removeRow(idx)} title="Remove row" aria-label={`Remove row ${idx + 1}`} className="p-1 text-red-500"><Trash2 size={15} /></button>}
-                  {canEdit && !data.closed && v && st && <>
+                  {showStockDetails && canEdit && !data.closed && v && st && <>
                     {data.boq_status === 'Final' && !dirty && required > 0 && <button disabled={st.available <= 0} onClick={() => setBooking({ mode: 'book', row: r, variant: v, st, required })} className="rounded bg-brand-600 px-2 py-1 text-xs text-white disabled:opacity-40">Book</button>}
                     {st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release booked stock" className="p-1 text-gray-500"><Unlock size={14} /></button>}
                   </>}
