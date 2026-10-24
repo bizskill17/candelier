@@ -160,7 +160,12 @@ function boq_book(int $id, array $in): array
         $qty = round((float) $qty, 3);
         $st = variant_stats([$vid], $id)[$vid];
         if ($qty > $st['available'] + 0.0005 || $qty > (float) $need - $st['booked_item'] - $st['consumed'] + 0.0005) throw new ApiError('Quantity exceeds available stock or the remaining BOQ requirement.', 422);
-        $pdo->prepare('INSERT INTO bookings (order_item_id, variant_id, quantity, booked_on, booked_by, created_at, updated_at) VALUES (:i, :v, :q, :t, :u, :t2, :t3)')->execute(['i' => $id, 'v' => $vid, 'q' => $qty, 't' => now(), 'u' => current_user()['id'] ?? null, 't2' => now(), 't3' => now()]);
+        // Booking totals include material already consumed. Compensate when an
+        // earlier issue used free stock, so a new booking reserves the full requested amount.
+        $bf = booking_figures([$vid]);
+        $rawBooked = $bf['items'][$id][$vid]['booked'] ?? 0.0;
+        $entryQty = $qty + max(0.0, $st['consumed'] - $rawBooked);
+        $pdo->prepare('INSERT INTO bookings (order_item_id, variant_id, quantity, booked_on, booked_by, created_at, updated_at) VALUES (:i, :v, :q, :t, :u, :t2, :t3)')->execute(['i' => $id, 'v' => $vid, 'q' => $entryQty, 't' => now(), 'u' => current_user()['id'] ?? null, 't2' => now(), 't3' => now()]);
         $pdo->commit();
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     return ['data' => boq_find($id), 'message' => 'Stock booked.'];
