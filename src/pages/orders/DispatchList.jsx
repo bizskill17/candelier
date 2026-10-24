@@ -1,13 +1,22 @@
 import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, Pencil, Trash2 } from 'lucide-react';
 import { ordersApi } from '../../api/client';
 import DateInput from '../../components/DateInput';
+import DispatchDialog from './DispatchDialog';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { useAuth } from '../../auth/AuthContext';
+import { useToast } from '../../components/Toast';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate } from '../../lib/util';
 
 // Every dispatched order item.
 export default function DispatchList() {
+  const { canEdit } = useAuth();
+  const toast = useToast();
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -22,7 +31,16 @@ export default function DispatchList() {
   }, [q, from, to]);
   useEffect(() => { load(); }, [load]);
   const pagination = usePagination(rows, JSON.stringify([q, from, to]));
-  const cols = 8;
+  const cols = canEdit ? 9 : 8;
+  const removeDispatch = async () => {
+    if (!deleting || busy) return;
+    setBusy(true);
+    try {
+      const r = await ordersApi.undoDispatch(deleting.order_item_id);
+      toast(r.message); setDeleting(null); load();
+    } catch (e) { toast(e.message, 'error'); }
+    finally { setBusy(false); }
+  };
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -46,6 +64,7 @@ export default function DispatchList() {
                 <th className={thCls}>Transporter</th>
                 <th className={`${thCls} w-28`}>Vehicle No.</th>
                 <th className={`${thCls} w-32`}>Docket / LR No.</th>
+                {canEdit && <th className={`${thCls} w-24 text-center`}>Action</th>}
               </tr>
             </thead>
             <tbody>
@@ -62,6 +81,10 @@ export default function DispatchList() {
                   <td className={tdCls}>{d.transporter_name || <span className="text-gray-300">—</span>}</td>
                   <td className={`${tdCls} font-mono text-xs`}>{d.vehicle_no || <span className="text-gray-300">—</span>}</td>
                   <td className={tdCls}>{d.docket_no || <span className="text-gray-300">—</span>}</td>
+                  {canEdit && <td className={tdCls}><div className="flex items-center justify-center gap-1">
+                    <button type="button" title="Edit dispatch" aria-label={`Edit dispatch ${d.dispatch_no}`} disabled={busy} onClick={() => setEditing(d)} className="rounded-md p-1.5 text-brand-600 hover:bg-brand-50 disabled:opacity-50"><Pencil size={16} /></button>
+                    <button type="button" title="Delete dispatch" aria-label={`Delete dispatch ${d.dispatch_no}`} disabled={busy} onClick={() => setDeleting(d)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"><Trash2 size={16} /></button>
+                  </div></td>}
                 </tr>
               ))}
             </tbody>
@@ -69,6 +92,8 @@ export default function DispatchList() {
         </div>
         <Pagination {...pagination} />
       </div>
+      {editing && <DispatchDialog item={{ ...editing, id: editing.order_item_id, dispatch: editing }} label={`${editing.order_no} · #${editing.line_no} ${editing.item_title || ''}`} onClose={() => setEditing(null)} onDone={() => { setEditing(null); load(); }} />}
+      <ConfirmDialog open={Boolean(deleting)} title="Delete dispatch?" message={deleting ? `${deleting.dispatch_no} will be removed. The order item will return to its previous production status.` : ''} confirmLabel={busy ? 'Deleting…' : 'Delete'} onConfirm={removeDispatch} onCancel={() => { if (!busy) setDeleting(null); }} />
     </div>
   );
 }
