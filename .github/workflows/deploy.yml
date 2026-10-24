@@ -64,8 +64,8 @@ jobs:
               ftp.connect(host, 21, timeout=90)
               ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
               ftp.set_pasv(True)
-              # This site-specific Hostinger account is rooted at public_html.
-              ftp.cwd("/")
+              # The domain serves public_html, below the FTP account root.
+              ftp.cwd("/public_html")
               root = ftp.pwd()
 
               def enter_directory(relative):
@@ -112,6 +112,14 @@ jobs:
                       "    'debug' => false,\n"
                       "];\n"
                   )
-                  ftp.storbinary("STOR config.php", BytesIO(config.encode("utf-8")))
+                  payload = BytesIO()
+                  try:
+                      ftp.retrbinary("RETR /api/config.php", payload.write)
+                  except ftplib.error_perm as error:
+                      if not str(error).startswith("550"):
+                          raise
+                      payload = BytesIO(config.encode("utf-8"))
+                  payload.seek(0)
+                  ftp.storbinary("STOR config.php", payload)
 
               print("Website deployment completed; existing configuration retained.")
