@@ -1,0 +1,98 @@
+name: Deploy Candelier to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candelier-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install and build
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Check PHP syntax
+        run: find api -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Prepare website
+        run: |
+          mkdir -p dist/api
+          cp -a api/. dist/api/
+          rm -f dist/api/config.php dist/api/config.sample.php
+
+      - name: Upload website by FTP
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        shell: python
+        run: |
+          import ftplib
+          import os
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          for key in ("FTP_SERVER", "FTP_USERNAME", "FTP_PASSWORD"):
+              if not os.environ.get(key):
+                  raise SystemExit(f"Missing repository secret: {key}")
+
+          server = os.environ["FTP_SERVER"].strip()
+          host = urlparse(server if "://" in server else "//" + server).hostname
+          if not host:
+              raise SystemExit("FTP_SERVER must contain the FTP hostname or IP.")
+
+          with ftplib.FTP() as ftp:
+              ftp.connect(host, 21, timeout=90)
+              ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
+              ftp.set_pasv(True)
+              # The FTP account starts above public_html. Fail rather than upload
+              # into another directory if its configured root is different.
+              ftp.cwd("public_html")
+              root = ftp.pwd()
+
+              def enter_directory(relative):
+                  ftp.cwd(root)
+                  for part in relative.parts:
+                      if part == ".":
+                          continue
+                      try:
+                          ftp.cwd(part)
+                      except ftplib.error_perm:
+                          ftp.mkd(part)
+                          ftp.cwd(part)
+
+              files = sorted(
+                  (p for p in Path("dist").rglob("*") if p.is_file()),
+                  key=lambda p: (p.name == "index.html", str(p))
+              )
+              count = 0
+              for path in files:
+                  relative = path.relative_to("dist")
+                  if relative.as_posix() in ("api/config.php", "api/config.sample.php"):
+                      continue
+                  if relative.parts[0] == "uploads" and relative.as_posix() != "uploads/.htaccess":
+                      continue
+                  enter_directory(relative.parent)
+                  with path.open("rb") as source:
+                      ftp.storbinary("STOR " + path.name, source)
+                  count += 1
+              print(f"Uploaded {count} website files. Existing configuration and uploaded media retained.")
