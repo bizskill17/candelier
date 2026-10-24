@@ -21,6 +21,7 @@ export default function DispatchDialog({ item, label, onClose, onDone }) {
     dispatch_date: d?.dispatch_date || today(), transporter_id: d?.transporter_id || '', vehicle_no: d?.vehicle_no || '', docket_no: d?.docket_no || '', remarks: d?.remarks || '',
   });
   const [transporters, setTransporters] = useState(null);
+  const [dispatchUsers, setDispatchUsers] = useState(null);
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [viewDocument, setViewDocument] = useState(false);
@@ -30,6 +31,8 @@ export default function DispatchDialog({ item, label, onClose, onDone }) {
   const [addingBusy, setAddingBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => { api.lookup('transporters').then((r) => setTransporters(r.data)).catch(() => setTransporters([])); }, []);
+  useEffect(() => { ordersApi.users().then((r) => setDispatchUsers(r.data)).catch((e) => { setDispatchUsers([]); toast(e.message, 'error'); }); }, []);
+  const userNames = [...new Set([...(dispatchUsers || []).filter((u) => u.is_active || u.name === form.dispatch_by).map((u) => u.name), ...(form.dispatch_by ? [form.dispatch_by] : [])])];
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setErrors((e) => ({ ...e, [k]: undefined })); };
 
   const addTransporter = async () => {
@@ -108,7 +111,9 @@ export default function DispatchDialog({ item, label, onClose, onDone }) {
         </div>
         <div className="col-span-2">
           <label htmlFor="dp-by" className="mb-1 block text-sm font-medium text-gray-700">Dispatch By</label>
-          <input id="dp-by" maxLength={100} value={form.dispatch_by} onChange={(e) => set('dispatch_by', e.target.value)} className={inputCls(errors.dispatch_by)} />
+          <SearchSelect id="dp-by" value={form.dispatch_by} onChange={(value) => set('dispatch_by', value)}
+            options={[{ value: '', label: 'Select user' }, ...userNames.map((name) => ({ value: name, label: name }))]}
+            placeholder="Select user" disabled={dispatchUsers === null || busy} error={errors.dispatch_by} />
           {errors.dispatch_by && <p className="mt-1 text-xs text-red-600">{errors.dispatch_by}</p>}
         </div>
         <div className="col-span-2">
