@@ -147,14 +147,16 @@ function lead_save(?int $id, array $in): array
     }
     $h['city'] = clean_text($in['city'] ?? '', 80, 'city', $errors);
     $stid = (int) ($in['state_id'] ?? 0);
-    if ($stid && !db_value('SELECT COUNT(*) FROM states WHERE id = :id', ['id' => $stid])) $errors['state_id'] = 'Choose a valid state.';
+    if (!$stid) $errors['state_id'] = 'Choose a state.';
+    elseif (!db_value('SELECT COUNT(*) FROM states WHERE id = :id', ['id' => $stid])) $errors['state_id'] = 'Choose a valid state.';
     $h['state_id'] = $stid ?: null;
     $h['contact_person'] = clean_text($in['contact_person'] ?? '', 100, 'contact_person', $errors);
     $h['contact_mobile'] = mobile10($in['contact_mobile'] ?? '', 'contact_mobile', $errors);
     $h['email'] = clean_text($in['email'] ?? '', 150, 'email', $errors);
     if ($h['email'] !== null && !isset($errors['email']) && !filter_var($h['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Enter a valid email address.';
     $sid = (int) ($in['source_id'] ?? 0);
-    if ($sid && !db_value('SELECT COUNT(*) FROM lead_sources WHERE id = :id', ['id' => $sid])) $errors['source_id'] = 'Choose a valid source.';
+    if (!$sid) $errors['source_id'] = 'Choose a source.';
+    elseif (!db_value('SELECT COUNT(*) FROM lead_sources WHERE id = :id', ['id' => $sid])) $errors['source_id'] = 'Choose a valid source.';
     $h['source_id'] = $sid ?: null;
     $h['requirement'] = clean_text($in['requirement'] ?? '', 255, 'requirement', $errors);
     if ($h['requirement'] === null) $errors['requirement'] = 'Enter the requirement.';

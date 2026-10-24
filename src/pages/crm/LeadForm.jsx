@@ -78,6 +78,10 @@ export default function LeadForm({ id }) {
 
   const save = async (e) => {
     e?.preventDefault();
+    const requiredErrors = {};
+    if (!f.state_id) requiredErrors.state_id = 'Choose a state.';
+    if (!f.source_id) requiredErrors.source_id = 'Choose a source.';
+    if (Object.keys(requiredErrors).length) { setErrors(requiredErrors); return; }
     setSaving(true);
     try {
       const r = isEdit ? await crmApi.update(id, f) : await crmApi.create(f);
@@ -227,9 +231,9 @@ export default function LeadForm({ id }) {
               {err('city')}
             </div>
             <div>
-              <label htmlFor="ld-state" className={lbl}>State</label>
+              <label htmlFor="ld-state" className={lbl}>State <span className="text-red-500">*</span></label>
               <div className="flex gap-1.5">
-                <SearchSelect compact id="ld-state" className="min-w-0 flex-1" options={stateOpts} value={f.state_id} onChange={(v) => set('state_id', v)} disabled={locked || !states} placeholder="Select state" clearable />
+                <SearchSelect compact id="ld-state" className="min-w-0 flex-1" options={stateOpts} value={f.state_id} onChange={(v) => set('state_id', v)} disabled={locked || !states} placeholder="Select state" error={errors.state_id} clearable />
                 {plus('states', 'Add a new state')}
               </div>
               {err('state_id')}
@@ -245,9 +249,9 @@ export default function LeadForm({ id }) {
               {err('contact_mobile')}
             </div>
             <div>
-              <label htmlFor="ld-source" className={lbl}>Source</label>
+              <label htmlFor="ld-source" className={lbl}>Source <span className="text-red-500">*</span></label>
               <div className="flex gap-1.5">
-                <SearchSelect compact id="ld-source" className="min-w-0 flex-1" options={srcOpts} value={f.source_id} onChange={(v) => set('source_id', v)} disabled={locked || !sources} placeholder="Select source" clearable />
+                <SearchSelect compact id="ld-source" className="min-w-0 flex-1" options={srcOpts} value={f.source_id} onChange={(v) => set('source_id', v)} disabled={locked || !sources} placeholder="Select source" error={errors.source_id} clearable />
                 {plus('lead_sources', 'Add a new source')}
               </div>
               {err('source_id')}
