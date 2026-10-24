@@ -41,6 +41,13 @@ function DocList({ type }) {
   const [to, setTo] = useState('');
   const [supplier, setSupplier] = useState('');
   const [rtype, setRtype] = useState('');
+  const [customerId, setCustomerId] = useState('');
+  const [area, setArea] = useState('');
+  const [issueFilters, setIssueFilters] = useState({ customers: [], areas: [] });
+  useEffect(() => {
+    if (type === 'material-issue') docsApi.issueFilters().then((r) => setIssueFilters(r.data)).catch((e) => setLoadError(e.message));
+  }, [type]);
+  const areaOptions = [...new Set(issueFilters.areas.filter((a) => !customerId || String(a.customer_id) === String(customerId)).map((a) => a.name))];
   const [suppliers, setSuppliers] = useState([]);
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState({});
@@ -50,12 +57,12 @@ function DocList({ type }) {
   const load = useCallback(async () => {
     setLoading(true); setLoadError('');
     try {
-      const r = await docsApi.list(type, { q, from, to, party_id: supplier, receipt_type: rtype, page, per_page: PER_PAGE });
+      const r = await docsApi.list(type, { q, from, to, party_id: supplier, receipt_type: rtype, customer_id: customerId, area, page, per_page: PER_PAGE });
       setRows(r.data); setTotal(r.total);
     } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
-  }, [type, q, from, to, supplier, rtype, page]);
+  }, [type, q, from, to, supplier, rtype, customerId, area, page]);
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [q, from, to, supplier, rtype]);
+  useEffect(() => { setPage(1); }, [q, from, to, supplier, rtype, customerId, area]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const cols = type === 'material-in' ? 7 : type === 'material-issue' ? 10 : 6;
@@ -65,6 +72,10 @@ function DocList({ type }) {
         {type === 'material-in' && <>
           <SearchSelect id="filter-supplier" className="w-full sm:w-56" options={[{ value: '', label: 'All suppliers' }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]} value={supplier} onChange={setSupplier} placeholder="All suppliers" clearable />
           <SearchSelect id="filter-type" className="w-full sm:w-40" options={[{ value: '', label: 'Purchase + Sample' }, { value: 'Purchase', label: 'Purchase' }, { value: 'Sample', label: 'Sample' }]} value={rtype} onChange={setRtype} placeholder="Purchase + Sample" clearable />
+        </>}
+        {type === 'material-issue' && <>
+          <SearchSelect id="filter-issue-customer" aria-label="Customer Name" className="w-full sm:w-56" options={[{ value: '', label: 'All customers' }, ...issueFilters.customers.map((c) => ({ value: c.id, label: c.name }))]} value={customerId} onChange={(v) => { setCustomerId(v); setArea(''); }} placeholder="Customer Name" clearable />
+          <SearchSelect id="filter-issue-area" aria-label="Area" className="w-full sm:w-44" options={[{ value: '', label: 'All areas' }, ...areaOptions.map((name) => ({ value: name, label: name }))]} value={area} onChange={setArea} placeholder="Area" clearable />
         </>}
         <DateInput compact aria-label="From date" value={from} onChange={setFrom} className="w-40" />
         <DateInput compact aria-label="To date" min={from} value={to} onChange={setTo} className="w-40" />
@@ -93,7 +104,7 @@ function DocList({ type }) {
             <tbody>
               {loading && rows.length === 0 && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {!loading && loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
-              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || from || to || supplier || rtype ? 'Nothing matches.' : 'No entries yet.'}</td></tr>}
+              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || from || to || supplier || rtype || customerId || area ? 'Nothing matches.' : 'No entries yet.'}</td></tr>}
               {rows.map((d) => {
                 const isOpen = !!open[d.id];
                 return (

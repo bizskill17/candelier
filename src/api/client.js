@@ -126,6 +126,7 @@ export const boqApi = {
 
 // Material In, Material Issue, Damage
 export const docsApi = {
+  issueFilters: () => request('GET', 'docs/material-issue/filters'),
   list: (type, params) => request('GET', `docs/${type}`, { params }),
   get: (type, id) => request('GET', `docs/${type}/${id}`),
   create: (type, body) => request('POST', `docs/${type}`, { body }),

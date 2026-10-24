@@ -116,4 +116,17 @@ check($editedOrder['data']['items'][0]['stage'] === 'BOQ Pending', 'Archived dat
 check(!array_key_exists('production_date', item_find($newItemId)), 'BOQ and item responses omit retired field');
 check(!array_key_exists('planned_week', dashboard()['data']), 'Dashboard omits retired planning count');
 
+
+$filters = issue_filter_options()['data'];
+check(in_array((string) $customer, array_map('strval', array_column($filters['customers'], 'id')), true), 'Issue filters include customers across all records');
+check(in_array('Living', array_column($filters['areas'], 'name'), true), 'Issue filters include linked order item areas');
+$_GET = ['customer_id' => $customer, 'area' => 'Living'];
+check(doc_list($issueDef)['total'] === 1, 'Issue customer and area filters combine correctly');
+$_GET = ['customer_id' => $customer, 'area' => 'Not a matching area'];
+check(doc_list($issueDef)['total'] === 0, 'Issue filters exclude nonmatching areas');
+$_GET = ['customer_id' => $customer + 100000];
+check(doc_list($issueDef)['total'] === 0, 'Issue filters exclude nonmatching customers');
+$_GET = [];
+check(doc_list($issueDef)['total'] === 1, 'Clearing issue filters restores records');
+
 echo "All migration and workflow integration checks passed.\n";

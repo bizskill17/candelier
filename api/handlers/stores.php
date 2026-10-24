@@ -45,6 +45,7 @@ function docs_route(string $method, array $parts): void
 {
     $first = $parts[0] ?? '';
     if ($first === 'issue-prefill' && $method === 'GET') { json_out(issue_prefill((int) ($_GET['order_item_id'] ?? 0), (int) ($_GET['except_id'] ?? 0) ?: null)); return; }
+    if ($first === 'material-issue' && ($parts[1] ?? '') === 'filters' && $method === 'GET') { json_out(issue_filter_options()); return; }
     $d = doc_def($first);
     $id = isset($parts[1]) ? (int) $parts[1] : null;
     if ($id === null) {
@@ -72,6 +73,15 @@ function doc_select(array $d): string
     return "SELECT h.* FROM $t h";
 }
 
+function issue_filter_options(): array
+{
+    $join = ' FROM material_issues h JOIN order_items i ON i.id = h.order_item_id JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id';
+    return ['data' => [
+        'customers' => db_all('SELECT DISTINCT c.id, c.name' . $join . ' ORDER BY c.name, c.id'),
+        'areas' => db_all("SELECT DISTINCT o.customer_id, TRIM(i.area) AS name" . $join . " WHERE i.area IS NOT NULL AND TRIM(i.area) <> '' ORDER BY name"),
+    ]];
+}
+
 function doc_list(array $d): array
 {
     $where = [];
@@ -92,6 +102,11 @@ function doc_list(array $d): array
     if ($d['type'] === 'material-in') {
         if (!empty($_GET['party_id'])) { $where[] = 'h.supplier_id = :sid'; $params['sid'] = (int) $_GET['party_id']; }
         if (in_array($_GET['receipt_type'] ?? '', ['Purchase', 'Sample'], true)) { $where[] = 'h.receipt_type = :rt'; $params['rt'] = $_GET['receipt_type']; }
+    }
+    if ($d['type'] === 'material-issue') {
+        if (!empty($_GET['customer_id'])) { $where[] = 'o.customer_id = :customer'; $params['customer'] = (int) $_GET['customer_id']; }
+        $area = trim((string) ($_GET['area'] ?? ''));
+        if ($area !== '') { $where[] = 'TRIM(i.area) = :area'; $params['area'] = $area; }
     }
     if (valid_date($_GET['from'] ?? '')) { $where[] = "h.{$d['date']} >= :f"; $params['f'] = $_GET['from']; }
     if (valid_date($_GET['to'] ?? '')) { $where[] = "h.{$d['date']} <= :t"; $params['t'] = $_GET['to']; }
