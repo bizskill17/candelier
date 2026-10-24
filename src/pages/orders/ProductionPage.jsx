@@ -72,7 +72,6 @@ export default function ProductionPage({ status }) {
   const dash = <span className="text-gray-400">—</span>;
 
   return <div className="mx-auto max-w-screen-2xl space-y-4">
-    {ready && <p className="text-sm text-gray-500">Production is complete. Dispatch an item or move it back for corrections.</p>}
     <div className="flex flex-wrap items-end gap-3">
       <div className="min-w-[200px] flex-1">
         <label htmlFor="production-customer" className="mb-1 block text-xs font-medium text-gray-600">Customer Name</label>
