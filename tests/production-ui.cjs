@@ -11,6 +11,7 @@ const assert = require('node:assert/strict');
     customer_id: n < 21 ? 1 : 2, customer_name: n < 21 ? 'Alpha Customer' : 'Beta Customer',
     project_name: 'Production Project', area: n < 21 ? 'Dining' : 'Living',
     details: [{ name: 'Size', value: `Chandelier ${String(n + 1).padStart(2, '0')}` }],
+    item_title: `Chandelier ${String(n + 1).padStart(2, '0')}`,
     label: `ORD-0001 item ${n + 1}`, production_status: 'In Progress', dispatch_id: null,
   }));
   await page.route('**/api/index.php?**', async (route) => {
