@@ -30,8 +30,9 @@ Inventory and Low Stock track one balance per material.
 
 Orders includes **Production In Progress** and **Ready to Dispatch**. Each order item
 appears once after its first saved Material Issue, including existing issued items.
-Production Status defaults to In Progress. Choose Complete to move the item to Ready to
-Dispatch; use the existing Dispatch dialog there, or Move Back to In Progress for corrections.
+Production Status defaults to In Progress. Edit statuses and Remarks across rows/pages, then
+click Update above the table to save the entire edited set together. Choose Complete and
+Update to move the item to Ready to Dispatch; use the existing Dispatch dialog there, or Move Back to In Progress for corrections.
 Dispatched and cancelled items are excluded. Undoing dispatch restores the saved production
 status. Additional issues do not reset completion. Removing or reassigning issues updates
 view membership from the current issue links. Customer and Area filters are searchable;
