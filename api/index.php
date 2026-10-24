@@ -24,6 +24,7 @@ require __DIR__ . '/handlers/masters.php';
 require __DIR__ . '/handlers/materials.php';
 require __DIR__ . '/handlers/items.php';
 require __DIR__ . '/handlers/orders.php';
+require __DIR__ . '/handlers/production.php';
 require __DIR__ . '/handlers/boq.php';
 require __DIR__ . '/handlers/stores.php';
 require __DIR__ . '/handlers/inventory.php';
@@ -36,6 +37,7 @@ $area   = array_shift($parts);
 
 try {
     migrate_material_categories();
+    migrate_production_status();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 
@@ -54,6 +56,7 @@ try {
         case 'variants':        variants_route($method, $parts); break;
         case 'item-fields':     item_fields_route($method); break;
         case 'uploads':         if ($method !== 'POST') throw new ApiError('Not found.', 404); json_out(($_GET['kind'] ?? '') === 'drawing' ? upload_drawing() : upload_image(), 201); break;
+        case 'production':      production_route($method, $parts); break;
         case 'orders':          orders_route($method, $parts); break;
         case 'order-items':     order_items_route($method, $parts); break;
         case 'boq':             boq_route($method, $parts); break;

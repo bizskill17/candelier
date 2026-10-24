@@ -6,7 +6,7 @@ if (!$dsn || !str_contains($dsn, 'candelier_test')) throw new RuntimeException('
 $GLOBALS['CONFIG'] = ['db' => ['dsn' => $dsn, 'user' => 'root', 'password' => '']];
 date_default_timezone_set('Asia/Kolkata');
 $root = dirname(__DIR__);
-foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'entities', 'handlers/auth', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
+foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'entities', 'handlers/auth', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
 session_begin();
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); echo "PASS: $message\n"; }
 function reject(callable $action, string $message): void {
@@ -18,7 +18,7 @@ $schema = file_get_contents("$root/database/schema.sql");
 $pdo->exec($schema);
 // Reconstruct the legacy shape before the migration.
 $pdo->exec('ALTER TABLE materials DROP FOREIGN KEY fk_material_category, DROP COLUMN category_id');
-$pdo->exec('ALTER TABLE order_items DROP COLUMN boq_draft_json');
+$pdo->exec('ALTER TABLE order_items DROP COLUMN boq_draft_json, DROP COLUMN production_status');
 $pdo->exec("INSERT INTO customers (code, name) VALUES ('CUS-TEST', 'Test customer')");
 $customer = (int) $pdo->lastInsertId();
 $pdo->exec("INSERT INTO suppliers (code, name) VALUES ('SUP-TEST', 'Test supplier')");
@@ -44,6 +44,7 @@ foreach (['Clear', 'Amber'] as $i => $colour) {
 $before = db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id');
 $variantIds = array_column(db_all('SELECT id FROM material_variants ORDER BY id'), 'id');
 migrate_material_categories();
+migrate_production_status();
 check($before === db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id'), 'Migration preserves ledger rows and balances');
 check((int) db_value('SELECT COUNT(*) FROM materials') === 3, 'Distinct legacy specifications become separate materials');
 check((int) db_value('SELECT COUNT(*) FROM materials WHERE category_id IS NULL') === 0, 'Existing materials assigned a category');
@@ -128,5 +129,7 @@ $_GET = ['customer_id' => $customer + 100000];
 check(doc_list($issueDef)['total'] === 0, 'Issue filters exclude nonmatching customers');
 $_GET = [];
 check(doc_list($issueDef)['total'] === 1, 'Clearing issue filters restores records');
+
+require __DIR__ . '/production.php';
 
 echo "All migration and workflow integration checks passed.\n";

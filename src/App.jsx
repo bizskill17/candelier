@@ -10,6 +10,7 @@ import BoqPage from './pages/boq/BoqPage';
 import BoqMaster from './pages/boq/BoqMaster';
 import DispatchList from './pages/orders/DispatchList';
 import PendingBoq from './pages/orders/PendingBoq';
+import ProductionPage from './pages/orders/ProductionPage';
 import DocsPage from './pages/stores/DocsPage';
 import OpeningStock from './pages/stores/OpeningStock';
 import InventoryPage from './pages/stores/InventoryPage';
@@ -36,6 +37,8 @@ export default function App() {
           <Route path="orders/*" element={<OrdersPage />} />
           <Route path="boq-master" element={<BoqMaster />} />
           <Route path="boq/*" element={<BoqPage />} />
+          <Route path="production-in-progress" element={<ProductionPage key="in-progress" status="In Progress" />} />
+          <Route path="ready-to-dispatch" element={<ProductionPage key="complete" status="Complete" />} />
           <Route path="dispatches" element={<DispatchList />} />
           <Route path="pending-boq" element={<PendingBoq />} />
           <Route path="opening-stock" element={<OpeningStock />} />

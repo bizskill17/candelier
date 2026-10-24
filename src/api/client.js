@@ -116,6 +116,12 @@ export const ordersApi = {
   dispatches: (params) => request('GET', 'dispatches', { params }),
 };
 
+export const productionApi = {
+  list: (params) => request('GET', 'production', { params }),
+  filters: (status) => request('GET', 'production/filters', { params: { status } }),
+  setStatus: (id, status) => request('PATCH', `order-items/${id}/production-status`, { body: { status } }),
+};
+
 export const boqApi = {
   get: (itemId) => request('GET', `boq/${itemId}`),
   save: (itemId, lines, status) => request('PUT', `boq/${itemId}`, { body: { lines, status } }),

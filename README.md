@@ -26,6 +26,17 @@ BOQ Master includes Draft/Final filters. Pending BOQ includes untouched and Draf
 Opening Stock, Material In, Issue and Damage use category-filtered material selectors.
 Inventory and Low Stock track one balance per material.
 
+## Production and dispatch
+
+Orders includes **Production In Progress** and **Ready to Dispatch**. Each order item
+appears once after its first saved Material Issue, including existing issued items.
+Production Status defaults to In Progress. Choose Complete to move the item to Ready to
+Dispatch; use the existing Dispatch dialog there, or Move Back to In Progress for corrections.
+Dispatched and cancelled items are excluded. Undoing dispatch restores the saved production
+status. Additional issues do not reset completion. Removing or reassigning issues updates
+view membership from the current issue links. Customer and Area filters are searchable;
+text search and server pagination use 20 items per page. Viewer accounts remain read-only.
+
 ## Upgrade and existing records
 
 The first API request after deployment runs the versioned migration under a database lock.

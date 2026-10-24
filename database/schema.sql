@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   reference_image  VARCHAR(255) NULL COMMENT 'Uploaded file path',
   drawing_file     VARCHAR(255) NULL COMMENT 'Uploaded drawing (PDF or image) path',
   drawing_name     VARCHAR(150) NULL COMMENT 'Original file name of the drawing',
+  production_status VARCHAR(20) NOT NULL DEFAULT 'In Progress' COMMENT 'In Progress, Complete',
   boq_status       VARCHAR(20)  NOT NULL DEFAULT 'Pending' COMMENT 'Pending, Draft, Final',
   boq_draft_json LONGTEXT NULL,
   production_date  DATE         NULL COMMENT 'Production plan date',

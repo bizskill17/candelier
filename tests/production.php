@@ -1,0 +1,82 @@
+<?php
+// Runs within workflow.php's isolated candelier_test fixtures.
+$_GET = [];
+check(item_find($item)['production_status'] === 'In Progress', 'Production migration defaults existing items to In Progress');
+check(array_column(production_list()['data'], 'id') === [$item], 'Saved issue automatically puts item in production');
+reject(fn () => production_set_status($legacyItem, ['status' => 'Complete']), 'Unissued item cannot be marked Complete');
+reject(fn () => production_set_status($item, ['status' => 'Unknown']), 'Invalid production status rejected');
+$moreIssue = $issue;
+$moreIssue['lines'][0]['quantity'] = 0.5;
+$extraIssue = doc_save($issueDef, null, $moreIssue)['data'];
+check(array_column(production_list()['data'], 'id') === [$item], 'Repeated issues produce one production row per item');
+production_set_status($item, ['status' => 'Complete']);
+check(production_list()['total'] === 0, 'Completing item removes it from In Progress');
+$_GET = ['status' => 'Complete'];
+check(array_column(production_list()['data'], 'id') === [$item], 'Completed item appears in Ready to Dispatch');
+doc_save($issueDef, $extraIssue['id'], $moreIssue);
+doc_save($issueDef, null, $moreIssue);
+check(item_find($item)['production_status'] === 'Complete', 'Further issues and edits preserve saved completion status');
+migrate_production_status();
+check(item_find($item)['production_status'] === 'Complete', 'Repeated migration preserves saved production status');
+production_set_status($item, ['status' => 'In Progress']);
+check(production_list()['total'] === 0, 'Correction removes item from Ready to Dispatch');
+$_GET = [];
+check(array_column(production_list()['data'], 'id') === [$item], 'Correction returns item to In Progress');
+// Different items in the same order have independent production status.
+$otherIssue = $issue;
+$otherIssue['order_item_id'] = $legacyItem;
+$otherIssue['lines'] = [['material_id' => $crystal, 'quantity' => 1]];
+$otherIssued = doc_save($issueDef, null, $otherIssue)['data'];
+production_set_status($item, ['status' => 'Complete']);
+check(array_column(production_list()['data'], 'id') === [$legacyItem], 'Sibling item stays In Progress when another item completes');
+$_GET = ['status' => 'Complete', 'customer_id' => $customer, 'area' => 'Living', 'q' => 'ORD-TEST'];
+check(production_list()['total'] === 1, 'Customer, area and text filters combine');
+$_GET['q'] = 'No matching item';
+check(production_list()['total'] === 0, 'Text search excludes nonmatching items');
+$_GET = ['status' => 'Complete', 'customer_id' => $customer + 100000];
+check(production_list()['total'] === 0, 'Customer filter excludes other customers');
+$_GET = ['status' => 'Complete', 'area' => 'Dining'];
+check(production_list()['total'] === 0, 'Area filter excludes other items');
+$_GET = ['status' => 'Complete'];
+$productionFilters = production_filters()['data'];
+check(count($productionFilters['customers']) === 1 && $productionFilters['areas'][0]['name'] === 'Living', 'Filter options reflect eligible production items');
+dispatch_save($item, ['dispatch_date' => date('Y-m-d')]);
+check(production_list()['total'] === 0, 'Dispatch removes completed item from Ready to Dispatch');
+check(in_array($item, array_column(dispatch_list()['data'], 'order_item_id'), true), 'Dispatched item remains in Dispatches');
+reject(fn () => production_set_status($item, ['status' => 'In Progress']), 'Dispatched item cannot move back');
+dispatch_delete($item);
+check(array_column(production_list()['data'], 'id') === [$item], 'Undo dispatch restores completed item to Ready to Dispatch');
+order_set_status($order, ['status' => 'Cancelled']);
+check(production_list()['total'] === 0, 'Cancelled orders excluded from Ready to Dispatch');
+$_GET = [];
+check(production_list()['total'] === 0, 'Cancelled orders excluded from In Progress');
+order_set_status($order, ['status' => 'Reopen']);
+// Deleting the last issue removes an item; editing it onto another item follows the new link.
+doc_delete($issueDef, $otherIssued['id']);
+check(production_list()['total'] === 0, 'Deleting last issue removes item from production');
+$transfer = $moreIssue;
+$transfer['order_item_id'] = $newItemId;
+boq_save($newItemId, ['status' => 'Final', 'lines' => [$line]]);
+doc_save($issueDef, $extraIssue['id'], $transfer);
+check(array_column(production_list()['data'], 'id') === [$newItemId], 'Issue reassignment enters the new linked item into production');
+// Pagination and search cover the entire eligible set, not just the visible page.
+$paginationOrder = order_save(null, ['customer_id' => $customer, 'project_name' => 'Pagination Workshop', 'order_date' => date('Y-m-d'), 'items' => array_map(fn ($n) => ['area' => 'Pagination room ' . $n], range(1, 21))])['data'];
+doc_save($receiptDef, null, ['receipt_date' => date('Y-m-d'), 'receipt_type' => 'Purchase', 'supplier_id' => $supplier, 'lines' => [['material_id' => $wire, 'quantity' => 100]], 'challan_no' => 'PRODUCTION-TEST']);
+foreach ($paginationOrder['items'] as $pi) {
+    boq_save($pi['id'], ['status' => 'Final', 'lines' => [$line]]);
+    doc_save($issueDef, null, array_replace($moreIssue, ['order_item_id' => $pi['id']]));
+}
+$_GET = ['q' => 'Pagination Workshop'];
+$page1 = production_list();
+check($page1['total'] === 21 && count($page1['data']) === 20 && $page1['pages'] === 2, 'Production paginates after 20 order items');
+$_GET['page'] = 2;
+$page2 = production_list();
+check(count($page2['data']) === 1 && !array_intersect(array_column($page1['data'], 'id'), array_column($page2['data'], 'id')), 'Second page has the remaining distinct item');
+$_GET = ['q' => 'Pagination room 21'];
+check(production_list()['total'] === 1, 'Search finds items beyond the first page');
+$_GET = ['q' => 'Pagination Workshop', 'page' => 99];
+check(production_list()['page'] === 2, 'Out-of-range pagination clamps to last page');
+production_set_status($page2['data'][0]['id'], ['status' => 'Complete']);
+check(production_list()['page'] === 1 && production_list()['total'] === 20, 'Completing final page item returns to a valid page');
+$_GET = [];
+echo "Production workflow checks passed.\n";

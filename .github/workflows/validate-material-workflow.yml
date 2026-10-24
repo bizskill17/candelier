@@ -2,7 +2,7 @@ name: Validate Material and BOQ Workflow
 
 on:
   push:
-    branches: [implementation/material-categories-boq]
+    branches: [implementation/material-categories-boq, implementation/order-item-production]
   workflow_dispatch:
 
 permissions:
@@ -61,3 +61,4 @@ jobs:
           npm run dev -- --host 127.0.0.1 > /tmp/candelier-vite.log 2>&1 &
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:5173/ > /dev/null && break || sleep 1; done
           node tests/ui.cjs
+          node tests/production-ui.cjs
