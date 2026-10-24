@@ -101,3 +101,32 @@ function migrate_dispatch_fields(): void
         db()->prepare('INSERT IGNORE INTO app_migrations (version, applied_at) VALUES (:v, :t)')->execute(['v' => $version, 't' => now()]);
     } finally { db_value('SELECT RELEASE_LOCK(:k)', ['k' => $lock]); }
 }
+
+// Additive: client categories master and customers.category_id.
+function migrate_client_categories(): void
+{
+    $pdo = db();
+    $version = '20261024_client_categories';
+    if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version = :v', ['v' => $version])) return;
+    $lock = 'candelier_client_cat_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!(int) db_value('SELECT GET_LOCK(:k, 30)', ['k' => $lock])) throw new ApiError('Database update in progress. Please retry shortly.', 503);
+    try {
+        if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version = :v', ['v' => $version])) return;
+        $pdo->exec("CREATE TABLE IF NOT EXISTS client_categories (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, code VARCHAR(20) NOT NULL, name VARCHAR(60) NOT NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_client_category_code (code)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        if (!db_value('SELECT COUNT(*) FROM client_categories')) {
+            $pdo->exec("INSERT INTO client_categories (code, name) VALUES ('CC-0001', 'Architect'), ('CC-0002', 'Interior Designer'), ('CC-0003', 'Hotel'), ('CC-0004', 'Banquet'), ('CC-0005', 'Residential'), ('CC-0006', 'Dealer')");
+        }
+        if (!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customers' AND COLUMN_NAME = 'category_id'")) {
+            $pdo->exec('ALTER TABLE customers ADD COLUMN category_id INT UNSIGNED NULL AFTER address, ADD KEY idx_customer_city (city), ADD CONSTRAINT fk_customer_category FOREIGN KEY (category_id) REFERENCES client_categories(id)');
+        }
+        $pdo->prepare('INSERT IGNORE INTO app_migrations (version, applied_at) VALUES (:v, :t)')->execute(['v' => $version, 't' => now()]);
+    } finally {
+        db_value('SELECT RELEASE_LOCK(:k)', ['k' => $lock]);
+    }
+}
