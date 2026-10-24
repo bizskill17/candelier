@@ -37,9 +37,6 @@ export default function OpeningStock() {
   if (!lines) return <div className="mx-auto max-w-6xl h-40 animate-pulse rounded-xl bg-gray-100" />;
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-24">
-      <p className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        Enter the stock you have on hand before you start: pick the material, click Specification to fill its values (just like the BOQ), and enter the quantity. Use one line per specification.
-      </p>
       {formError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
       <StockLines title="Opening Stock" lines={lines} onChange={(ls) => { setLines(ls); setErrors({}); }} errors={errors} readOnly={!canEdit} showDate />
       {canEdit && (
