@@ -150,11 +150,6 @@ function BoqEditor({ itemId }) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 pb-24">
-      <div className="print:hidden flex flex-wrap items-center gap-3">
-        <button onClick={() => navigate(`/orders/${data.order_id}`)} className="inline-flex items-center gap-1 rounded-md py-1 pr-2 text-sm font-medium text-gray-600 hover:text-gray-900"><ChevronLeft size={16} /> Order {data.order_no}</button>
-        <span className="flex-1" />
-        {data.dispatched ? <Badge color="green">Dispatched</Badge> : data.order_status === 'Cancelled' ? <Badge>Order cancelled</Badge> : <Badge color={data.boq_status === 'Final' ? 'green' : data.boq_status === 'Draft' ? 'amber' : 'gray'}>BOQ {data.boq_status}</Badge>}
-      </div>
 
       <div className="hidden print:block mb-2">
         <h1 className="text-xl font-semibold">Bill of Quantities</h1>
