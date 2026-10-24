@@ -17,6 +17,7 @@ $pdo = db();
 $schema = file_get_contents("$root/database/schema.sql");
 $pdo->exec($schema);
 // Reconstruct the legacy shape before the migration.
+$pdo->exec('ALTER TABLE dispatches DROP COLUMN dispatch_by, DROP COLUMN dispatch_document, DROP COLUMN dispatch_document_name');
 $pdo->exec('ALTER TABLE materials DROP FOREIGN KEY fk_material_category, DROP COLUMN category_id');
 $pdo->exec('ALTER TABLE order_items DROP COLUMN boq_draft_json, DROP COLUMN production_status');
 $pdo->exec("INSERT INTO customers (code, name) VALUES ('CUS-TEST', 'Test customer')");
@@ -45,6 +46,7 @@ $before = db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id')
 $variantIds = array_column(db_all('SELECT id FROM material_variants ORDER BY id'), 'id');
 migrate_material_categories();
 migrate_production_status();
+migrate_dispatch_fields();
 check($before === db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id'), 'Migration preserves ledger rows and balances');
 check((int) db_value('SELECT COUNT(*) FROM materials') === 3, 'Distinct legacy specifications become separate materials');
 check((int) db_value('SELECT COUNT(*) FROM materials WHERE category_id IS NULL') === 0, 'Existing materials assigned a category');

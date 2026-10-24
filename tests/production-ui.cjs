@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  let savedDispatch = null;
   let role = 'Staff', failStatus = false, failList = false, failFilters = false;
   let rows = Array.from({ length: 41 }, (_, n) => ({
     id: n + 1, order_id: 1, order_no: 'ORD-0001', line_no: n + 1,
@@ -49,7 +50,10 @@ const assert = require('node:assert/strict');
       if (failStatus) { code = 409; payload = { error: 'Production update rejected' }; }
       else { item.production_status = req.postDataJSON().status; payload = { data: item, message: 'Production status saved' }; }
     }
+    if (r === 'masters/transporters' && req.method() === 'POST') payload = { data: { id: 9, name: req.postDataJSON().name, is_active: true }, message: 'Transporter added' };
+    if (r === 'uploads') payload = { data: { path: 'uploads/drawings/2026/10/test-document.pdf', name: 'dispatch.pdf' } };
     if (/^order-items\/\d+\/dispatch$/.test(r)) {
+      savedDispatch = req.postDataJSON();
       rows.find((it) => it.id === Number(r.split('/')[1])).dispatch_id = 1;
       payload = { data: {}, message: 'Item dispatched' };
     }
@@ -110,8 +114,21 @@ const assert = require('node:assert/strict');
   await page.screenshot({ path: '/tmp/candelier-production-ready.png', fullPage: true });
   await page.getByRole('button', { name: 'Dispatch', exact: true }).click();
   await page.locator('#dp-date').waitFor();
+  await page.getByRole('heading', { name: 'Dispatch Form', exact: true }).waitFor();
+  assert.match(await page.getByRole('dialog', { name: 'Dispatch Form', exact: true }).innerText(), /Client Name: Beta Customer/);
+  assert.equal(await page.locator('#dp-by').inputValue(), 'Test User');
+  await page.locator('#dp-by').fill('Dispatch Supervisor');
+  await page.getByRole('button', { name: 'Add transporter', exact: true }).click();
+  await page.getByRole('textbox', { name: 'New transporter name', exact: true }).fill('New Logistics');
+  await page.getByRole('button', { name: 'Save Transporter', exact: true }).click();
+  await page.locator('#dp-transporter').getByText('New Logistics', { exact: true }).waitFor();
+  await page.locator('#dp-document').setInputFiles({ name: 'dispatch.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 mock') });
+  await page.getByRole('button', { name: 'dispatch.pdf', exact: true }).waitFor();
   await page.getByRole('button', { name: 'Dispatch', exact: true }).last().click();
   await page.getByText('No completed items awaiting dispatch.', { exact: true }).waitFor();
+  assert.equal(savedDispatch.dispatch_by, 'Dispatch Supervisor');
+  assert.equal(savedDispatch.transporter_id, 9);
+  assert.equal(savedDispatch.dispatch_document_name, 'dispatch.pdf');
   await page.getByRole('link', { name: 'Dispatches', exact: true }).click();
   await page.getByText('Chandelier 41', { exact: true }).waitFor();
   // Errors are recoverable, and stale rows are hidden while loading/failing.

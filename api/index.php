@@ -38,6 +38,7 @@ $area   = array_shift($parts);
 try {
     migrate_material_categories();
     migrate_production_status();
+    migrate_dispatch_fields();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 
