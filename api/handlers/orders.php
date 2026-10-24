@@ -39,6 +39,9 @@ function order_items_route(string $method, array $parts): void
     $id = isset($parts[0]) ? (int) $parts[0] : null;
     $sub = $parts[1] ?? null;
     if ($id === null && $method === 'GET') { json_out(order_items_lookup()); return; }
+    if ($id !== null && $sub === 'production-status' && $method === 'PATCH') {
+        json_out(production_set_status($id, request_body())); return;
+    }
     if ($id !== null && $sub === 'dispatch') {
         if ($method === 'PUT')    { json_out(dispatch_save($id, request_body())); return; }
         if ($method === 'DELETE') { json_out(dispatch_delete($id)); return; }
@@ -325,7 +328,7 @@ function order_delete(int $id): array
 // ---------------------------------------------------------------------------
 // Order items
 
-const ITEM_SELECT = 'SELECT i.id, i.id AS order_item_id, i.order_id, i.line_no, i.area, i.remarks, i.component_image, i.reference_image, i.drawing_file, i.drawing_name, i.boq_status,
+const ITEM_SELECT = 'SELECT i.id, i.id AS order_item_id, i.order_id, i.line_no, i.area, i.remarks, i.component_image, i.reference_image, i.drawing_file, i.drawing_name, i.boq_status, i.production_status, o.customer_id,
                             o.order_no, o.order_date, o.delivery_date, o.project_name, o.status AS order_status, c.name AS customer_name,
                             d.id AS dispatch_id, d.dispatch_date
                        FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id
@@ -405,6 +408,9 @@ function dispatch_save(int $itemId, array $in): array
     $pdo = db();
     $pdo->beginTransaction();
     try {
+        db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $itemId]);
+        $it = item_find($itemId);
+        if ($it['order_status'] === 'Cancelled') throw new ApiError('This order is cancelled.', 409);
         $h['updated_at'] = now();
         if ($it['dispatch_id']) {
             $set = implode(', ', array_map(fn ($c) => "$c = :$c", array_keys($h)));

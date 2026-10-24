@@ -68,3 +68,22 @@ function migrate_material_categories(): void
         db_value('SELECT RELEASE_LOCK(:k)', ['k' => $lock]);
     }
 }
+
+// Additive migration: existing issued items default to In Progress; no ledger changes.
+function migrate_production_status(): void
+{
+    $pdo = db();
+    $version = '20261024_order_item_production_status';
+    if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version = :v', ['v' => $version])) return;
+    $lock = 'candelier_production_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!(int) db_value('SELECT GET_LOCK(:k, 30)', ['k' => $lock])) throw new ApiError('Database update in progress. Please retry shortly.', 503);
+    try {
+        if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version = :v', ['v' => $version])) return;
+        if (!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_items' AND COLUMN_NAME = 'production_status'")) {
+            $pdo->exec("ALTER TABLE order_items ADD COLUMN production_status VARCHAR(20) NOT NULL DEFAULT 'In Progress'");
+        }
+        $pdo->prepare('INSERT INTO app_migrations (version, applied_at) VALUES (:v, :t)')->execute(['v' => $version, 't' => now()]);
+    } finally {
+        db_value('SELECT RELEASE_LOCK(:k)', ['k' => $lock]);
+    }
+}
