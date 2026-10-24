@@ -129,7 +129,7 @@ const assert = require('node:assert/strict');
   await page.getByText('Chandelier 21', { exact: true }).waitFor();
   await page.getByRole('textbox', { name: 'Remarks for ORD-0001 item 21', exact: true }).fill('Polish checked');
   await page.getByRole('button', { name: 'Update', exact: true }).click();
-  await page.getByRole('button', { name: 'Update', exact: true }).isDisabled();
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).waitFor({ state: 'hidden' });
   await page.waitForFunction(() => document.querySelector('textarea')?.value === 'Polish checked');
   assert.equal(rows[0].remarks, 'Assembly checked');
   assert.equal(rows[20].remarks, 'Polish checked');
