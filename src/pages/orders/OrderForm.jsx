@@ -15,6 +15,8 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { inputCls } from '../../components/table';
 import { today, OrderStatus, ItemStage, fmtDate } from '../../lib/util';
 import DispatchDialog from './DispatchDialog';
+import MasterForm from '../../components/MasterForm';
+import { masters } from '../../config/masters';
 
 let seq = 0;
 const blankItem = (extra = {}) => ({ key: ++seq, id: null, area: '', values: {}, remarks: '', component_image: '', reference_image: '', drawing_file: '', drawing_name: '', production_date: '', ...extra });
@@ -44,6 +46,7 @@ export default function OrderForm({ id, leadId }) {
   const [confirm, setConfirm] = useState(null);
   const [dispatching, setDispatching] = useState(null);
   const [fromLead, setFromLead] = useState(null);
+  const [customerOpen, setCustomerOpen] = useState(false);
 
   useEffect(() => {
     const loadCustomers = () => api.lookup('customers').then((r) => setCustomers(r.data)).catch(() => setCustomers([]));
@@ -136,6 +139,7 @@ export default function OrderForm({ id, leadId }) {
   const userOpts = (users || []).filter((u) => u.is_active || String(u.id) === String(header.order_by_id)).map((u) => ({ value: u.id, label: u.name }));
 
   return (
+    <>
     <form onSubmit={save} noValidate className="mx-auto max-w-6xl space-y-4 pb-24">
       {isEdit && (
         <div className="flex flex-wrap items-center gap-3">
@@ -158,7 +162,10 @@ export default function OrderForm({ id, leadId }) {
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Field label="Customer" required htmlFor="o-customer" error={errors.customer_id} className="sm:col-span-2">
-              <SearchSelect id="o-customer" options={custOpts} value={header.customer_id} onChange={pickCustomer} error={errors.customer_id} disabled={locked || !customers} placeholder={customers ? 'Select customer' : 'Loading…'} />
+              <div className="flex gap-1.5">
+                <SearchSelect id="o-customer" className="min-w-0 flex-1" options={custOpts} value={header.customer_id} onChange={pickCustomer} error={errors.customer_id} disabled={locked || !customers} placeholder={customers ? 'Select customer' : 'Loading…'} />
+                {!locked && <button type="button" onClick={() => setCustomerOpen(true)} title="Add a new customer" aria-label="Add a new customer" className="shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>}
+              </div>
             </Field>
             <Field label="Name of Project" htmlFor="o-project" error={errors.project_name} className="sm:col-span-2">
               <input id="o-project" disabled={locked} value={header.project_name} onChange={(e) => setH('project_name', e.target.value)} className={inputCls(errors.project_name)} placeholder="e.g. Residence of Mr. Bhatiya" />
@@ -266,6 +273,14 @@ export default function OrderForm({ id, leadId }) {
       <ConfirmDialog open={confirm === 'delete'} title="Delete this order?" message={isEdit ? `${order.order_no} and its BOQs will be removed. Orders with bookings or issues can only be cancelled.` : ''} onConfirm={doDelete} onCancel={() => setConfirm(null)} />
       {dispatching && <DispatchDialog item={dispatching} label={`${order.order_no} · #${dispatching.line_no} ${dispatching.item_title}`} onClose={() => setDispatching(null)} onDone={(o) => { setDispatching(null); fill(o); }} />}
     </form>
+    {customerOpen && !locked && <MasterForm entity="customers" def={masters.customers}
+      onClose={() => setCustomerOpen(false)}
+      onSaved={(customer) => {
+        setCustomers((list) => [...(list || []).filter((c) => c.id !== customer.id), customer].sort((a, b) => a.name.localeCompare(b.name)));
+        setH('customer_id', customer.id);
+        setHeader((h) => ({ ...h, shipping_address: h.shipping_address || customer.address || '' }));
+      }} />}
+    </>
   );
 }
 
