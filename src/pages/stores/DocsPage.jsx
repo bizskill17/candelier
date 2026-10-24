@@ -57,7 +57,7 @@ function DocList({ type }) {
   useEffect(() => { setPage(1); }, [q, from, to, supplier, rtype]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const cols = type === 'material-in' ? 7 : type === 'material-issue' ? 8 : 6;
+  const cols = type === 'material-in' ? 7 : type === 'material-issue' ? 10 : 6;
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -77,13 +77,13 @@ function DocList({ type }) {
       </div>
       <div className={tableWrap}>
         <div className="overflow-x-auto">
-          <table className={`w-full ${type === 'material-issue' ? 'min-w-[1100px]' : 'min-w-[820px]'} border-collapse text-sm`}>
+          <table className={`w-full ${type === 'material-issue' ? 'min-w-[1300px]' : 'min-w-[820px]'} border-collapse text-sm`}>
             <thead className={theadCls}>
               <tr>
                 <th className={`${thCls} w-32`}>{cfg.noLabel}</th>
                 <th className={`${thCls} w-28`}>Date</th>
                 {type === 'material-in' && <><th className={`${thCls} w-28`}>Type</th><th className={thCls}>Supplier</th><th className={`${thCls} w-40`}>Challan / Invoice</th></>}
-                {type === 'material-issue' && <><th className={`${thCls} min-w-36`}>Customer Name</th><th className={`${thCls} min-w-36`}>Project Name</th><th className={thCls}>Order Item</th><th className={`${thCls} w-40`}>Issued To</th></>}
+                {type === 'material-issue' && <><th className={`${thCls} w-32`}>Order No.</th><th className={`${thCls} min-w-36`}>Customer Name</th><th className={`${thCls} min-w-36`}>Project Name</th><th className={`${thCls} min-w-28`}>Area</th><th className={thCls}>Order Item</th><th className={`${thCls} w-40`}>Issued To</th></>}
                 {type === 'damage' && <><th className={thCls}>Reported By</th><th className={thCls}>Notes</th></>}
                 <th className={`${thCls} w-24 text-right`}>Lines</th>
                 <th className={`${thCls} w-24 text-center`}>Action</th>
@@ -101,7 +101,7 @@ function DocList({ type }) {
                       <td className={`${tdCls} whitespace-nowrap font-mono text-xs font-medium text-gray-900`}><span className="inline-flex items-center gap-1.5">{isOpen ? <ChevronDown size={14} className="text-brand-600" /> : <ChevronRight size={14} className="text-gray-400" />}{d[cfg.no]}</span></td>
                       <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{fmtDate(d[cfg.date])}</td>
                       {type === 'material-in' && <><td className={tdCls}><Badge color={d.receipt_type === 'Sample' ? 'violet' : 'blue'}>{d.receipt_type}</Badge></td><td className={`${tdCls} font-medium text-gray-900`}>{d.supplier_name}</td><td className={tdCls}>{d.challan_no || <span className="text-gray-300">—</span>}</td></>}
-                      {type === 'material-issue' && <><td className={`${tdCls} break-words`}>{d.customer_name || <span className="text-gray-300">—</span>}</td><td className={`${tdCls} break-words`}>{d.project_name || <span className="text-gray-300">—</span>}</td><td className={tdCls}><span className="font-mono text-xs">{d.order_no} #{d.line_no}</span> <span className="font-medium text-gray-900">{d.item_title}</span></td><td className={tdCls}>{d.issued_to || <span className="text-gray-300">—</span>}</td></>}
+                      {type === 'material-issue' && <><td className={`${tdCls} whitespace-nowrap font-mono text-xs`}>{d.order_no || '—'}</td><td className={`${tdCls} break-words`}>{d.customer_name || <span className="text-gray-300">—</span>}</td><td className={`${tdCls} break-words`}>{d.project_name || <span className="text-gray-300">—</span>}</td><td className={`${tdCls} break-words`}>{d.area || <span className="text-gray-300">—</span>}</td><td className={tdCls}><span className="font-mono text-xs">#{d.line_no}</span> <span className="font-medium text-gray-900">{d.item_info || 'No details'}</span></td><td className={tdCls}>{d.issued_to || <span className="text-gray-300">—</span>}</td></>}
                       {type === 'damage' && <><td className={tdCls}>{d.reported_by || <span className="text-gray-300">—</span>}</td><td className={`${tdCls} text-gray-600`}>{d.notes || <span className="text-gray-300">—</span>}</td></>}
                       <td className={`${tdCls} text-right tabular-nums`}>{d.lines.length}</td>
                       <td className={`${tdCls} text-center`}><button onClick={(e) => { e.stopPropagation(); navigate(`/${type}/${d.id}`); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Pencil size={13} /> {canEdit ? 'Edit' : 'Open'}</button></td>
