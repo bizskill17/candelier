@@ -17,6 +17,8 @@ export default function SearchSelect({
   disabled,
   clearable,
   compact,
+  panelWidth,
+  searchPlaceholder = 'Type to search…',
   className = '',
   'aria-label': ariaLabel,
 }) {
@@ -36,7 +38,7 @@ export default function SearchSelect({
     if (!q) return options;
     const words = q.split(/\s+/);
     return options.filter((o) => {
-      const text = `${o.label} ${o.hint || ''}`.toLowerCase();
+      const text = `${o.label} ${o.hint || ''} ${o.subtitle || ''} ${o.description || ''}`.toLowerCase();
       return words.every((w) => text.includes(w));
     });
   }, [options, query]);
@@ -47,7 +49,7 @@ export default function SearchSelect({
     if (!r) return;
     const spaceBelow = window.innerHeight - r.bottom;
     const up = spaceBelow < 280 && r.top > spaceBelow;
-    const width = Math.min(Math.max(r.width, 260), window.innerWidth - 16);
+    const width = Math.min(Math.max(r.width, panelWidth || 260), window.innerWidth - 16);
     const left = Math.min(r.left, window.innerWidth - width - 8);
     setPos({ left: Math.max(8, left), width, top: up ? undefined : r.bottom + 4, bottom: up ? window.innerHeight - r.top + 4 : undefined });
   };
@@ -62,7 +64,7 @@ export default function SearchSelect({
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', onMove, true);
     };
-  }, [open]);
+  }, [open, panelWidth]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,6 +128,7 @@ export default function SearchSelect({
       >
         <span className={`min-w-0 flex-1 whitespace-normal break-words leading-snug ${selected ? 'text-gray-900' : 'text-gray-400'}`}>
           {selected ? selected.label : placeholder}
+          {selected?.subtitle && <span className="block text-xs text-gray-500">{selected.subtitle}</span>}
           {selected?.hint && <span className="block text-xs text-gray-400">{selected.hint}</span>}
         </span>
         {clearable && selected ? (
@@ -157,12 +160,12 @@ export default function SearchSelect({
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Type to search…"
+              placeholder={searchPlaceholder}
               aria-label="Search options"
               className="w-full bg-transparent text-sm focus:outline-none"
             />
           </div>
-          <ul ref={listRef} role="listbox" className="max-h-60 overflow-y-auto py-1">
+          <ul ref={listRef} role="listbox" className={`${panelWidth ? 'max-h-80' : 'max-h-60'} overflow-y-auto overflow-x-hidden py-1`}>
             {filtered.length === 0 && <li className="px-3 py-2 text-sm text-gray-500">No match for “{query}”</li>}
             {filtered.map((o, i) => {
               const isSel = String(o.value) === String(value);
@@ -176,7 +179,14 @@ export default function SearchSelect({
                   onClick={() => choose(o)}
                   className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-sm ${i === active ? 'bg-brand-50' : ''} ${o.value === '' ? 'text-gray-500' : 'text-gray-900'}`}
                 >
-                  <span className="min-w-0 flex-1 break-words leading-snug">{o.label}</span>
+                  <span className="min-w-0 flex-1 break-words leading-snug">
+                    <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <span className={o.subtitle ? 'font-semibold' : ''}>{o.label}</span>
+                      {o.badge && <span className="shrink-0 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{o.badge}</span>}
+                    </span>
+                    {o.subtitle && <span className="mt-1 block text-gray-600">{o.subtitle}</span>}
+                    {o.description && <span className="mt-1 block text-xs text-gray-500">{o.description}</span>}
+                  </span>
                   {o.hint && <span className="shrink-0 self-start pt-0.5 text-xs text-gray-400">{o.hint}</span>}
                   {isSel && <Check size={15} className="shrink-0 text-brand-600" />}
                 </li>

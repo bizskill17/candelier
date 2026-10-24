@@ -291,7 +291,7 @@ function DocForm({ type, id, presetItem }) {
           {type === 'material-issue' && (
             <>
               <Field label="Order Item" required htmlFor="d-item" error={errors.order_item_id} className="sm:col-span-2">
-                <SearchSelect id="d-item" options={(items || []).map((i) => ({ value: i.id, label: `${i.order_no} · #${i.line_no} ${i.item_title}`, hint: [i.customer_name, i.project_name, i.item_info].filter(Boolean).join(' · ') }))}
+                <SearchSelect id="d-item" panelWidth={680} searchPlaceholder="Search order, customer, project or item…" options={(items || []).map((i) => ({ value: i.id, label: `${i.order_no} · Item #${i.line_no}`, subtitle: [i.customer_name, i.project_name, i.area].filter(Boolean).join(' · '), description: (i.details || []).map((detail) => `${detail.name}: ${detail.value}`).join(' | '), badge: i.boq_status === 'Final' ? 'Final BOQ' : undefined }))}
                   value={header.order_item_id} onChange={(v) => { setH('order_item_id', v); loadPrefill(v, !isEdit); }} error={errors.order_item_id} disabled={readOnly || !items || isEdit} placeholder={items ? 'Select order item' : 'Loading…'} />
               </Field>
               <Field label="Date" required htmlFor="d-date" error={errors[cfg.date]}>
