@@ -117,6 +117,7 @@ export const ordersApi = {
 };
 
 export const productionApi = {
+  updateMany: (changes) => request('PATCH', 'production/bulk', { body: { changes } }),
   list: (params) => request('GET', 'production', { params }),
   filters: (status) => request('GET', 'production/filters', { params: { status } }),
   setStatus: (id, status) => request('PATCH', `order-items/${id}/production-status`, { body: { status } }),

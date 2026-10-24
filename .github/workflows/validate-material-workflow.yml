@@ -2,7 +2,7 @@ name: Validate Material and BOQ Workflow
 
 on:
   push:
-    branches: [implementation/material-categories-boq, implementation/order-item-production]
+    branches: [implementation/material-categories-boq, implementation/order-item-production, implementation/production-bulk]
   workflow_dispatch:
 
 permissions:

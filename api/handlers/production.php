@@ -3,6 +3,7 @@
 // This keeps one row per item and automatically reflects issue edits/deletions.
 function production_route(string $method, array $parts): void
 {
+    if ($method === 'PATCH' && $parts === ['bulk']) { json_out(production_bulk_update(request_body())); return; }
     if ($method === 'GET' && !$parts) { json_out(production_list()); return; }
     if ($method === 'GET' && $parts === ['filters']) { json_out(production_filters()); return; }
     throw new ApiError('Not found.', 404);
@@ -72,4 +73,46 @@ function production_set_status(int $id, array $in): array
         throw $e;
     }
     return ['data' => item_find($id), 'message' => $status === 'Complete' ? 'Item moved to Ready to Dispatch.' : 'Item moved to Production In Progress.'];
+}
+
+// Save the entire edited set atomically. Only changed fields are written.
+function production_bulk_update(array $in): array
+{
+    $changes = $in['changes'] ?? null;
+    if (!is_array($changes) || !$changes || count($changes) > 200) throw new ApiError('Update between 1 and 200 items at a time.', 422);
+    $seen = [];
+    foreach ($changes as $row) {
+        if (!is_array($row) || !ctype_digit((string) ($row['id'] ?? '')) || (int) $row['id'] < 1) throw new ApiError('Choose a valid order item.', 422);
+        $id = (int) $row['id'];
+        if (isset($seen[$id])) throw new ApiError('Each order item can only appear once.', 422);
+        if (!array_key_exists('status', $row) && !array_key_exists('remarks', $row)) throw new ApiError('Choose a status or enter remarks to update.', 422);
+        if (array_key_exists('status', $row)) production_status($row['status']);
+        if (array_key_exists('remarks', $row) && (!is_string($row['remarks']) || mb_strlen($row['remarks']) > 255)) throw new ApiError('Remarks must be text of up to 255 characters.', 422);
+        $seen[$id] = $row;
+    }
+    ksort($seen, SORT_NUMERIC);
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        foreach ($seen as $id => $row) {
+            if (!db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $id])) throw new ApiError('An order item no longer exists. Refresh and try again.', 409);
+            $item = item_find($id);
+            if ($item['dispatch_id'] || $item['order_status'] === 'Cancelled') throw new ApiError("{$item['label']} is dispatched or cancelled. No changes were saved.", 409);
+            if (!db_value('SELECT COUNT(*) FROM material_issues WHERE order_item_id = :i', ['i' => $id])) throw new ApiError('Every updated item must have a saved Material Issue.', 409);
+            foreach (['status' => 'production_status', 'remarks' => 'remarks'] as $field => $column) {
+                if (array_key_exists($field, $row) && array_key_exists('expected_' . $field, $row) && (string) ($item[$column] ?? '') !== (string) $row['expected_' . $field]) throw new ApiError("{$item['label']} was changed by another update. Refresh, discard changes and try again. No changes were saved.", 409);
+            }
+            $sets = ['updated_at = :t'];
+            $params = ['i' => $id, 't' => now()];
+            if (array_key_exists('status', $row)) { $sets[] = 'production_status = :s'; $params['s'] = $row['status']; }
+            if (array_key_exists('remarks', $row)) { $sets[] = 'remarks = :r'; $params['r'] = trim($row['remarks']) === '' ? null : $row['remarks']; }
+            $pdo->prepare('UPDATE order_items SET ' . implode(', ', $sets) . ' WHERE id = :i')->execute($params);
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+    $count = count($seen);
+    return ['updated' => $count, 'message' => $count . ($count === 1 ? ' item updated.' : ' items updated.')];
 }

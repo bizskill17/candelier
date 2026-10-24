@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
     project_name: 'Production Project', area: n < 21 ? 'Dining' : 'Living',
     details: [{ name: 'Size', value: `Chandelier ${String(n + 1).padStart(2, '0')}` }],
     item_title: `Chandelier ${String(n + 1).padStart(2, '0')}`,
-    label: `ORD-0001 item ${n + 1}`, production_status: 'In Progress', dispatch_id: null,
+    label: `ORD-0001 item ${n + 1}`, production_status: 'In Progress', remarks: '', dispatch_id: null,
   }));
   await page.route('**/api/index.php?**', async (route) => {
     const req = route.request(), url = new URL(req.url()), r = url.searchParams.get('r');
@@ -31,6 +31,18 @@ const assert = require('node:assert/strict');
       const pages = Math.max(1, Math.ceil(data.length / 20)), p = Math.min(pages, Number(url.searchParams.get('page') || 1));
       payload = { data: data.slice((p - 1) * 20, p * 20), total: data.length, pages, page: p, per_page: 20 };
       if (failList) { code = 500; payload = { error: 'Production service unavailable' }; }
+    }
+    if (r === 'production/bulk') {
+      if (failStatus) { code = 409; payload = { error: 'Production update rejected' }; }
+      else {
+        const changes = req.postDataJSON().changes;
+        for (const change of changes) {
+          const item = rows.find((it) => it.id === change.id);
+          if ('status' in change) item.production_status = change.status;
+          if ('remarks' in change) item.remarks = change.remarks;
+        }
+        payload = { updated: changes.length, message: 'Production changes saved' };
+      }
     }
     if (/^order-items\/\d+\/production-status$/.test(r)) {
       const item = rows.find((it) => it.id === Number(r.split('/')[1]));
@@ -54,6 +66,7 @@ const assert = require('node:assert/strict');
   await page.getByText('Chandelier 41', { exact: true }).waitFor();
   assert.equal(await page.locator('tbody tr').count(), 1);
   await page.getByRole('combobox').selectOption('Complete');
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
   await page.getByText('40 items', { exact: true }).waitFor();
   await page.getByText('Page 2 of 2', { exact: true }).waitFor();
   assert.equal(await page.locator('tbody tr').count(), 20);
@@ -62,9 +75,11 @@ const assert = require('node:assert/strict');
   assert.equal(await page.locator('tbody tr').count(), 1);
   failStatus = true;
   await page.getByRole('combobox').selectOption('Complete');
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
   await page.getByText('Production update rejected', { exact: true }).waitFor();
   assert.equal(rows[0].production_status, 'In Progress');
   failStatus = false;
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
   await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
   await page.getByText('40 items', { exact: true }).waitFor();
   await page.locator('#production-customer').click();
@@ -82,11 +97,13 @@ const assert = require('node:assert/strict');
   await page.getByRole('link', { name: 'Ready to Dispatch', exact: true }).click();
   await page.getByText('Chandelier 41', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Move Back to In Progress', exact: true }).click();
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
   await page.getByText('No completed items awaiting dispatch.', { exact: true }).waitFor();
   await page.getByRole('link', { name: 'Production In Progress', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search production items' }).fill('Chandelier 41');
   await page.getByText('1 item', { exact: true }).waitFor();
   await page.getByRole('combobox').selectOption('Complete');
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
   await page.getByText('No items match these filters.', { exact: true }).waitFor();
   await page.getByRole('link', { name: 'Ready to Dispatch', exact: true }).click();
   await page.getByText('Chandelier 41', { exact: true }).waitFor();
@@ -105,6 +122,20 @@ const assert = require('node:assert/strict');
   failList = false; failFilters = false;
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
   await page.getByText('40 items', { exact: true }).waitFor();
+  // Edits remain pending across pages and are saved together, not on change.
+  await page.getByRole('textbox', { name: 'Remarks for ORD-0001 item 1', exact: true }).fill('Assembly checked');
+  assert.equal(rows[0].remarks, '');
+  await page.getByRole('button', { name: 'Next page', exact: true }).click();
+  await page.getByText('Chandelier 21', { exact: true }).waitFor();
+  await page.getByRole('textbox', { name: 'Remarks for ORD-0001 item 21', exact: true }).fill('Polish checked');
+  await page.getByRole('button', { name: 'Update', exact: true }).click();
+  await page.getByRole('button', { name: 'Update', exact: true }).isDisabled();
+  await page.waitForFunction(() => document.querySelector('textarea')?.value === 'Polish checked');
+  assert.equal(rows[0].remarks, 'Assembly checked');
+  assert.equal(rows[20].remarks, 'Polish checked');
+  await page.getByRole('textbox', { name: 'Remarks for ORD-0001 item 21', exact: true }).fill('Discard this');
+  await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
+  assert.equal(await page.getByRole('textbox', { name: 'Remarks for ORD-0001 item 21', exact: true }).inputValue(), 'Polish checked');
   // Viewer retains filters/pagination but has no mutation controls.
   role = 'Viewer';
   await page.reload();
@@ -115,6 +146,7 @@ const assert = require('node:assert/strict');
   await page.getByText('Chandelier 01', { exact: true }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Dispatch', exact: true }).count(), 0);
   assert.equal(await page.getByRole('button', { name: 'Move Back to In Progress', exact: true }).count(), 0);
+  assert.equal(await page.getByRole('button', { name: 'Update', exact: true }).count(), 0);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: '/tmp/candelier-production-mobile.png', fullPage: true });
   assert.deepEqual(errors, []);
