@@ -232,7 +232,7 @@ function BoqEditor({ itemId }) {
 
       {!readOnly && (
         <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
-          <button onClick={() => navigate(`/orders/${data.order_id}`)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Back</button>
+          <button onClick={() => navigate('/pending-boq')} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Back</button>
           <span className="flex-1" />
           {dirty && <span className="text-xs text-amber-700">Unsaved changes</span>}
           <button onClick={() => save('Draft')} disabled={saving} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium disabled:opacity-60">{saving ? 'Saving…' : 'Save as Draft'}</button>
