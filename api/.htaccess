@@ -1,0 +1,9 @@
+# Protect API internals; only index.php is reachable from the web.
+Options -Indexes
+
+<FilesMatch "^(config|config\.sample)\.php$">
+  Require all denied
+</FilesMatch>
+
+RewriteEngine On
+RewriteRule ^(lib|handlers)/ - [F,L]

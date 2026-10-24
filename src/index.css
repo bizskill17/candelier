@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+/* Slim scrollbar for the sidebar */
+.sidebar-scroll::-webkit-scrollbar { width: 6px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Date fields: hide the browser's own picker icon; DateInput draws its own calendar icon on the right. */
+.date-input::-webkit-calendar-picker-indicator { display: none; }
+.date-input::-webkit-inner-spin-button { display: none; }
+
+/* Number fields (quantities): no up/down arrows. */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+
+/* Printing (Print / PDF buttons): only the page content, no menu, buttons or filters */
+.print-only { display: none; }
+@media print {
+  aside, header, .print:hidden, .sticky.bottom-0 { display: none !important; }
+  html, body, #root, .h-full { height: auto !important; background: #fff !important; }
+  main { overflow: visible !important; padding: 0 !important; }
+  .print-only { display: block !important; }
+  table { page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  @page { margin: 12mm; }
+}

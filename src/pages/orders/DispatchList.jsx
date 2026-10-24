@@ -1,0 +1,73 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, RefreshCw } from 'lucide-react';
+import { ordersApi } from '../../api/client';
+import DateInput from '../../components/DateInput';
+import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
+import { fmtDate } from '../../lib/util';
+
+// Every dispatched order item.
+export default function DispatchList() {
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [search, setSearch] = useState('');
+  const [q, setQ] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  useEffect(() => { const t = setTimeout(() => setQ(search), 300); return () => clearTimeout(t); }, [search]);
+  const load = useCallback(async () => {
+    setLoading(true); setLoadError('');
+    try { const r = await ordersApi.dispatches({ q, from, to }); setRows(r.data); } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
+  }, [q, from, to]);
+  useEffect(() => { load(); }, [load]);
+  const cols = 8;
+  return (
+    <div className="mx-auto max-w-7xl space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <DateInput compact aria-label="From date" value={from} onChange={setFrom} className="w-40" />
+        <DateInput compact aria-label="To date" min={from} value={to} onChange={setTo} className="w-40" />
+        <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+          <Search size={16} className="text-gray-400" />
+          <input id="search-dispatches" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search dispatch no., order no., customer, docket, vehicle…" className="w-full bg-transparent text-sm focus:outline-none" />
+        </label>
+      </div>
+      <div className={tableWrap}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] border-collapse text-sm">
+            <thead className={theadCls}>
+              <tr>
+                <th className={`${thCls} w-28`}>Dispatch No.</th>
+                <th className={`${thCls} w-28`}>Date</th>
+                <th className={`${thCls} w-36`}>Order / Item</th>
+                <th className={thCls}>Customer / Project</th>
+                <th className={thCls}>Order Item</th>
+                <th className={thCls}>Transporter</th>
+                <th className={`${thCls} w-28`}>Vehicle No.</th>
+                <th className={`${thCls} w-32`}>Docket / LR No.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && rows.length === 0 && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={tdCls}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
+              {!loading && loadError && <tr><td colSpan={cols} className={`${tdCls} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
+              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${tdCls} py-14 text-center text-gray-500`}>{q || from || to ? 'No dispatches match.' : 'Nothing dispatched yet. Dispatch an item from its order.'}</td></tr>}
+              {rows.map((d) => (
+                <tr key={d.id} onClick={() => navigate(`/orders/${d.order_id}`)} className="cursor-pointer hover:bg-gray-50">
+                  <td className={`${tdCls} font-mono text-xs font-medium text-gray-900`}>{d.dispatch_no}</td>
+                  <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{fmtDate(d.dispatch_date)}</td>
+                  <td className={`${tdCls} whitespace-nowrap font-mono text-xs`}>{d.order_no} <span className="text-gray-500">#{d.line_no}</span></td>
+                  <td className={tdCls}>{d.customer_name}{d.project_name && <div className="text-xs text-gray-500">{d.project_name}</div>}</td>
+                  <td className={`${tdCls} font-medium text-gray-900`}>{d.item_title}{d.item_remarks && <div className="text-xs font-normal italic text-gray-500">{d.item_remarks}</div>}</td>
+                  <td className={tdCls}>{d.transporter_name || <span className="text-gray-300">—</span>}</td>
+                  <td className={`${tdCls} font-mono text-xs`}>{d.vehicle_no || <span className="text-gray-300">—</span>}</td>
+                  <td className={tdCls}>{d.docket_no || <span className="text-gray-300">—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
