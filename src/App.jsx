@@ -7,6 +7,7 @@ import MaterialsPage from './pages/materials/MaterialsPage';
 import ItemFieldsPage from './pages/materials/ItemFieldsPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import BoqPage from './pages/boq/BoqPage';
+import BoqMaster from './pages/boq/BoqMaster';
 import DispatchList from './pages/orders/DispatchList';
 import PendingBoq from './pages/orders/PendingBoq';
 import DocsPage from './pages/stores/DocsPage';
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="follow-ups" element={<FollowUps />} />
           <Route path="followup-logs" element={<FollowUpLogs />} />
           <Route path="orders/*" element={<OrdersPage />} />
+          <Route path="boq-master" element={<BoqMaster />} />
           <Route path="boq/*" element={<BoqPage />} />
           <Route path="dispatches" element={<DispatchList />} />
           <Route path="pending-boq" element={<PendingBoq />} />

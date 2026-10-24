@@ -374,6 +374,7 @@ function item_find(int $id): array
 // Open (not dispatched, order not cancelled) items for dropdowns; include one more by id.
 function order_items_lookup(): array
 {
+    if (!empty($_GET['saved_boq'])) return saved_boq();
     if (!empty($_GET['pending_boq'])) return pending_boq();
     $inc = (int) ($_GET['include'] ?? 0);
     $rows = db_all(ITEM_SELECT . " WHERE (o.status <> 'Cancelled' AND d.id IS NULL) OR i.id = :inc ORDER BY o.order_date DESC, o.id DESC, i.line_no", ['inc' => $inc]);
@@ -480,4 +481,18 @@ function dispatch_list(): array
     foreach ($rows as &$r) { $r['id'] = (int) $r['id']; $r['order_id'] = (int) $r['order_id']; $r['order_item_id'] = (int) $r['order_item_id']; $r['line_no'] = (int) $r['line_no']; }
     unset($r);
     return ['data' => $rows, 'total' => count($rows)];
+}
+
+function saved_boq(): array
+{
+    $where = "i.boq_status = 'Saved'";
+    $params = [];
+    $q = trim($_GET['q'] ?? '');
+    if ($q !== '') {
+        $where .= ' AND (o.order_no LIKE :q1 OR c.name LIKE :q2 OR o.project_name LIKE :q3 OR i.area LIKE :q4 OR i.remarks LIKE :q5
+                    OR EXISTS (SELECT 1 FROM order_item_values v WHERE v.order_item_id = i.id AND v.value LIKE :q6))';
+        for ($k = 1; $k <= 6; $k++) $params["q$k"] = "%$q%";
+    }
+    $rows = db_all(ITEM_SELECT . " WHERE $where ORDER BY o.order_date DESC, o.id DESC, i.line_no", $params);
+    return ['data' => items_cast($rows)];
 }

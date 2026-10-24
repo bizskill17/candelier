@@ -108,6 +108,7 @@ export const ordersApi = {
   remove: (id) => request('DELETE', `orders/${id}`),
   users: () => request('GET', 'users-list'),
   openItems: (include) => request('GET', 'order-items', { params: { include } }),
+  boqMaster: (q) => request('GET', 'order-items', { params: { saved_boq: 1, q } }),
   pendingBoq: (q) => request('GET', 'order-items', { params: { pending_boq: 1, q } }),
   setProductionDate: (itemId, date) => request('PATCH', `order-items/${itemId}`, { body: { production_date: date } }),
   dispatch: (itemId, body) => request('PUT', `order-items/${itemId}/dispatch`, { body }),

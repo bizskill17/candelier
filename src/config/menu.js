@@ -20,6 +20,7 @@ export const menu = [
     items: [
       { key: 'orders-add', label: 'Add Order', path: '/orders/new', icon: FilePlus2, description: 'Enter a new order with its items.' },
       { key: 'orders-master', label: 'Order Master', path: '/orders/all', icon: ListOrdered, description: 'Every order; open an item for its BOQ, production date and dispatch.' },
+      { key: 'boq-master', label: 'BOQ Master', path: '/boq-master', icon: ClipboardList, description: 'Saved BOQs for every order item.' },
       { key: 'pending-boq', label: 'Pending BOQ', path: '/pending-boq', icon: ClipboardList, description: 'Order items whose BOQ is not made yet.' },
       { key: 'dispatches', label: 'Dispatches', path: '/dispatches', icon: Truck, description: 'Every dispatched order item.' },
     ],
