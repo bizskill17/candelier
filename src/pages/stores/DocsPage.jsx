@@ -171,7 +171,7 @@ function DocForm({ type, id, presetItem }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (type === 'material-issue') ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
+    if (type === 'material-issue' || type === 'damage') ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
     if (type === 'material-in') api.lookup('suppliers').then((r) => setSuppliers(r.data)).catch(() => setSuppliers([]));
     if (type === 'material-issue') ordersApi.openItems(presetItem || undefined).then((r) => setItems(r.data)).catch(() => setItems([]));
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -313,7 +313,14 @@ function DocForm({ type, id, presetItem }) {
                 <DateInput id="d-date" max={today()} value={header[cfg.date]} onChange={(v) => setH(cfg.date, v)} error={errors[cfg.date]} disabled={readOnly} />
               </Field>
               <Field label="Reported By" htmlFor="d-reported" error={errors.reported_by}>
-                <input id="d-reported" value={header.reported_by} onChange={(e) => setH('reported_by', e.target.value)} disabled={readOnly} className={inputCls(errors.reported_by)} />
+                <SearchSelect id="d-reported"
+                  options={[
+                    ...(users || []).filter((u) => u.is_active || u.name === header.reported_by).map((u) => ({ value: u.name, label: u.name })),
+                    ...(header.reported_by && users && !users.some((u) => u.name === header.reported_by) ? [{ value: header.reported_by, label: header.reported_by }] : []),
+                  ]}
+                  value={header.reported_by} onChange={(v) => setH('reported_by', v)}
+                  disabled={readOnly || !users} error={errors.reported_by}
+                  placeholder={users ? 'Select user' : 'Loading…'} />
               </Field>
             </>
           )}

@@ -140,7 +140,6 @@ function MaterialForm({ material, readOnly, onClose, onSaved }) {
       </div>
       <div className="mt-5">
         <div className="mb-2 text-sm font-medium text-gray-700">Specification fields</div>
-        <p className="mb-2 text-xs text-gray-500">e.g. Shape, Size, Colour, Quality. Values are filled in later; the order here is the order they are joined in.</p>
         <div className="space-y-2">
           {fields.map((f, i) => (
             <div key={f.key}>
