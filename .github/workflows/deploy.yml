@@ -64,9 +64,8 @@ jobs:
               ftp.connect(host, 21, timeout=90)
               ftp.login(os.environ["FTP_USERNAME"], os.environ["FTP_PASSWORD"])
               ftp.set_pasv(True)
-              # The FTP account starts above public_html. Fail rather than upload
-              # into another directory if its configured root is different.
-              ftp.cwd("public_html")
+              # This site-specific Hostinger account is rooted at public_html.
+              ftp.cwd("/")
               root = ftp.pwd()
 
               def enter_directory(relative):
