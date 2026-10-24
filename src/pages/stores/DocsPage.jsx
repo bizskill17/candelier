@@ -288,7 +288,7 @@ function DocForm({ type, id, presetItem }) {
           )}
           {type === 'material-issue' && (
             <>
-              <Field label="Order Item" required htmlFor="d-item" error={errors.order_item_id} className="sm:col-span-2" help={!isEdit && !readOnly ? 'Picking an item fills in what is still to be issued from its BOQ.' : null}>
+              <Field label="Order Item" required htmlFor="d-item" error={errors.order_item_id} className="sm:col-span-2">
                 <SearchSelect id="d-item" options={(items || []).map((i) => ({ value: i.id, label: `${i.order_no} · #${i.line_no} ${i.item_title}`, hint: [i.customer_name, i.project_name, i.item_info].filter(Boolean).join(' · ') }))}
                   value={header.order_item_id} onChange={(v) => { setH('order_item_id', v); loadPrefill(v, !isEdit); }} error={errors.order_item_id} disabled={readOnly || !items || isEdit} placeholder={items ? 'Select order item' : 'Loading…'} />
               </Field>
