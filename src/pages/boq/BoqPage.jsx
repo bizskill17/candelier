@@ -149,7 +149,7 @@ function BoqEditor({ itemId }) {
   const counted = new Set();
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 pb-24">
+    <div className="boq-print-root mx-auto max-w-7xl space-y-4 pb-24">
 
       <div className="hidden print:block mb-2">
         <h1 className="text-xl font-semibold">Bill of Quantities</h1>
@@ -192,7 +192,7 @@ function BoqEditor({ itemId }) {
         <span className="flex-1" />
       </div>
 
-      <section className="overflow-hidden rounded-xl border border-blue-300 bg-white">
+      <section className="boq-screen-table overflow-hidden rounded-xl border border-blue-300 bg-white">
         <div className="overflow-x-auto"><table className={`w-full ${showStockDetails ? 'min-w-[1100px]' : 'min-w-[760px]'} border-collapse text-sm`}>
           <thead className="bg-brand-600 text-xs uppercase text-white"><tr>
             {['#', 'Material Category', 'Material', 'Photo', 'Quantity', 'Unit', 'In Stock', ...(showStockDetails ? ['Booked (All)', 'Available', 'Booked (Item)', 'Remaining to Book', 'Consumed'] : []), 'Action'].map((t, i) => <th key={t} className={`${th} ${i > 5 ? 'print:hidden' : ''}`}>{t}</th>)}
@@ -224,6 +224,28 @@ function BoqEditor({ itemId }) {
             })}
           </tbody></table></div>
           {!readOnly && <div className="print:hidden border-t border-blue-200 px-4 py-3"><button onClick={addRow} className="inline-flex items-center gap-1 text-sm font-medium text-brand-600"><Plus size={15} /> Add Row</button></div>}
+      </section>
+
+      {/* A separate static print table avoids clipped horizontal scrolling and interactive selects. */}
+      <section className="boq-print-table hidden">
+        <table className="w-full border-collapse text-xs">
+          <thead><tr>
+            <th>#</th><th>Material Category</th><th>Material</th><th>Photo</th><th className="text-right">Quantity</th><th>Unit</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r, idx) => {
+              const m = cat.material(r.material_id);
+              return <tr key={r.key}>
+                <td>{idx + 1}</td>
+                <td>{cat.categories.find(c => String(c.id) === String(r.category_id || m?.category_id))?.name || '—'}</td>
+                <td>{[m?.material_code, m?.name].filter(Boolean).join(' · ') || '—'}</td>
+                <td>{m?.photo_path ? <PhotoThumb path={m.photo_path} title={m.name} className="h-12 w-12" /> : '—'}</td>
+                <td className="text-right">{fmtQty(r.qty)}</td>
+                <td>{m?.unit || '—'}</td>
+              </tr>;
+            })}
+          </tbody>
+        </table>
       </section>
 
       {!readOnly && (
