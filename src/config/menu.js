@@ -10,6 +10,7 @@ export const menu = [
     heading: 'Contacts',
     items: [
       { key: 'contacts', label: 'All Contacts', path: '/contacts', icon: Contact, description: 'All relationships and contact follow-ups.' },
+      { key: 'contacts-updated-today', label: 'Updated Today', path: '/contacts/updated-today', icon: Contact, description: 'Contacts added or edited today, latest updates first.' },
       { key: 'contacts-never', label: 'Never Followed Up', path: '/contacts/never', icon: PhoneCall, description: 'Contacts without a follow-up attempt.' },
       { key: 'contacts-today', label: 'Follow-ups Today', path: '/contacts/today', icon: PhoneCall, description: 'General contact follow-ups due today.' },
       { key: 'contacts-overdue', label: 'Overdue Follow-ups', path: '/contacts/overdue', icon: PhoneCall, description: 'General contact follow-ups past their due date.' },

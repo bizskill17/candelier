@@ -27,11 +27,13 @@ function contact_list(): array {
     $today="DATE(c.next_followup_at)=CURRENT_DATE()";
     $filters=['never'=>'c.followup_count=0','today'=>"$open AND $today",'upcoming'=>"$open AND DATE(c.next_followup_at)>CURRENT_DATE()",'overdue'=>"$open AND DATE(c.next_followup_at)<CURRENT_DATE()",'missing'=>"c.followup_count>0 AND c.next_followup_at IS NULL AND (c.further_followup_required=1 OR c.further_followup_required IS NULL)",'closed'=>'c.further_followup_required=0','customers'=>"EXISTS(SELECT 1 FROM orders o WHERE o.customer_id=c.id AND o.status<>'Cancelled' AND ".order_visibility_sql().')'];
     if(isset($filters[$view]))$w[]=$filters[$view];
+    if($view==='updated-today'){$w[]='c.updated_at >= :updated_start AND c.updated_at < :updated_end';$p['updated_start']=date('Y-m-d').' 00:00:00';$p['updated_end']=date('Y-m-d',strtotime('+1 day')).' 00:00:00';}
     foreach(['category_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="c.$k=:$k";$p[$k]=(int)$_GET[$k];}
     if(trim((string)($_GET['city']??''))!==''){$w[]='c.city=:city';$p['city']=trim($_GET['city']);}
     if(($_GET['active']??'')!==''){$w[]='c.is_active=:active';$p['active']=(int)$_GET['active'];}
     crm_where_search($w,$p,['c.name','c.company_name','c.mobile','c.email','c.city','c.source_details']);
-    $result=crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY c.name,c.id',$p);
+    $sort=$view==='updated-today'?'c.updated_at DESC,c.id DESC':'c.name,c.id';
+    $result=crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);
     $result['data']=array_map('crm_visible_contact',$result['data']);return $result;
 }
 function contact_find(int $id): array {
