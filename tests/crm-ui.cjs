@@ -4,24 +4,49 @@ const assert=require('node:assert/strict');
 (async()=>{
  const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
- let role='Sales';let saved;let queried=[];
- const contacts=Array.from({length:21},(_,i)=>({id:i+1,name:`Contact ${String(i+1).padStart(2,'0')}`,contact_no:`CON-${i+1}`,mobile:`98765${String(i).padStart(5,'0')}`,is_active:1,followup_count:0,order_count:0}));
+ let role='Sales';let saved;let savedContact;let queried=[];
+ const contacts=Array.from({length:21},(_,i)=>({id:i+1,name:`Contact ${String(i+1).padStart(2,'0')}`,contact_no:`CON-${i+1}`,mobile:`98765${String(i).padStart(5,'0')}`,city:'Guwahati',is_active:1,followup_count:0,order_count:0}));
  const lead={id:1,lead_no:'LD-001',contact_id:1,display_name:contacts[0].name,display_phone:contacts[0].mobile,enquiry_date:'2026-10-25',project_name:'Hotel',requirement:'Chandeliers',status:'Open',temperature:'Cold',followups:[{id:1,entry_type:'Lead Created',activity_at:'2026-10-25 10:00:00',created_at:'2026-10-25 10:00:00',lead_status:'Open',lead_temperature:'Cold'}],orders:[]};
  await page.route('**/api/index.php?**',async route=>{
-  const u=new URL(route.request().url());const r=u.searchParams.get('r');const method=route.request().method();let payload={data:[]};
+  const u=new URL(route.request().url());const r=u.searchParams.get('r');const method=route.request().method();let payload={data:[]};let status=200;
   if(r==='auth/me')payload={user:{id:1,name:'Test staff',role,username:'staff'},needs_setup:false};
   if(r==='lookup/contacts'||r==='lookup/customers')payload={data:contacts};
+  if(r==='lookup/client_categories')payload={data:[{id:1,name:'Residential',is_active:1}]};
+  if(r==='lookup/states')payload={data:[{id:1,name:'Assam',is_active:1}]};
   if(r==='users-list')payload={data:[{id:1,name:'Test staff'}]};
   if(r==='contacts'){queried.push(Object.fromEntries(u.searchParams));const p=Number(u.searchParams.get('page')||1);payload={data:contacts.slice((p-1)*20,p*20),page:p,pages:2,total:21};}
+  if(r==='contacts'&&method==='POST'){savedContact=route.request().postDataJSON();if(savedContact.email==='taken@example.com'){status=422;payload={error:'Please correct the highlighted fields.',fields:{email:'A contact with this email address already exists. Use the existing contact.'}};}else payload={data:{id:22,...savedContact},message:'Contact saved.'};}
   if(r==='contacts/1')payload={data:{...contacts[0],history:lead.followups,leads:[lead],orders:[]}};
   if(r==='crm-followups'&&method==='POST'){saved=route.request().postDataJSON();payload={data:{id:2,generated_lead_id:2},message:'Follow-up saved and Lead created.'};}
   if(r==='crm-followups'&&method==='GET')payload={data:[{...lead.followups[0],contact_name:'Contact 01',lead_no:'LD-001',recorded_by_name:'Test staff'}],page:1,pages:1,total:1};
   if(r==='leads/1')payload={data:lead};
   if(r==='leads'||r==='follow-ups')payload={data:[lead],page:1,pages:1,total:1};
   if(r==='leads'&&method==='POST'){saved=route.request().postDataJSON();payload={data:lead,message:'Lead saved.'};}
-  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(payload)});
+  await route.fulfill({status,contentType:'application/json',body:JSON.stringify(payload)});
  });
  await page.goto('http://127.0.0.1:5173/contacts');await page.getByText('21 contacts',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Add Contact',exact:true}).click();
+ const dialog=page.getByRole('dialog',{name:'Add Contact',exact:true});
+ assert.equal(await dialog.getByText('Source Details',{exact:true}).count(),0);
+ assert.equal(await dialog.getByText('Alternate Mobile',{exact:true}).count(),0);
+ await dialog.getByRole('button',{name:'Save Contact',exact:true}).click();
+ for(const message of ['Enter the contact name.','Enter the mobile number.','Select a category.','Select a city.'])await dialog.getByText(message,{exact:true}).waitFor();
+ assert.equal(savedContact,undefined);
+ await dialog.getByRole('textbox',{name:'name',exact:true}).fill('New contact');
+ await dialog.getByRole('textbox',{name:'mobile',exact:true}).fill('123');
+ await dialog.getByRole('button',{name:'Save Contact',exact:true}).click();
+ await dialog.getByText('Enter a valid mobile number using 10 to 15 digits.',{exact:true}).waitFor();
+ await dialog.getByRole('textbox',{name:'mobile',exact:true}).fill('9876501234');
+ await dialog.getByRole('button',{name:'Category',exact:true}).click();await page.getByRole('option',{name:'Residential',exact:true}).click();
+ await dialog.getByRole('button',{name:'City',exact:true}).click();await page.getByRole('textbox',{name:'Search options',exact:true}).fill('Guw');await page.getByRole('option',{name:'Guwahati',exact:true}).click();
+ await dialog.getByRole('button',{name:'Add City',exact:true}).click();await dialog.getByRole('textbox',{name:'New city name',exact:true}).fill('Shillong');await dialog.getByRole('button',{name:'Use City',exact:true}).click();
+ await dialog.getByRole('button',{name:'City',exact:true}).getByText('Shillong',{exact:true}).waitFor();
+ const locationFields=await dialog.locator('textarea[aria-label="Address"],button[aria-label="City"],button[aria-label="State"]').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('aria-label')));assert.deepEqual(locationFields,['Address','City','State']);
+ await dialog.getByRole('textbox',{name:'email',exact:true}).fill('taken@example.com');await dialog.getByRole('button',{name:'Save Contact',exact:true}).click();
+ await dialog.getByText('A contact with this email address already exists. Use the existing contact.',{exact:true}).waitFor();
+ assert.equal(await dialog.getByRole('textbox',{name:'email',exact:true}).getAttribute('aria-invalid'),'true');
+ await dialog.getByRole('textbox',{name:'email',exact:true}).fill('new@example.com');await dialog.getByRole('button',{name:'Save Contact',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ assert.equal(savedContact.category_id,1);assert.equal(savedContact.city,'Shillong');assert.equal(savedContact.mobile,'9876501234');assert.equal(savedContact.source_details,undefined);assert.equal(savedContact.alternate_mobile,undefined);
  assert.equal(await page.locator('tbody tr').count(),20);await page.getByRole('button',{name:'Next page',exact:true}).click();await page.getByText('Contact 21',{exact:true}).waitFor();assert.equal(await page.locator('tbody tr').count(),1);
  await page.goto('http://127.0.0.1:5173/contacts/never');await page.getByText('21 contacts',{exact:true}).waitFor();assert(queried.some(q=>q.view==='never'));
  await page.getByRole('button',{name:'Follow up Contact 01',exact:true}).click();await page.getByLabel('Requirement Received',{exact:true}).check();await page.getByLabel('New Lead Project',{exact:true}).fill('Hotel');await page.getByLabel('New Lead Requirement',{exact:true}).fill('Chandeliers');
