@@ -12,6 +12,105 @@ import { fmtDate, fmtQty, round3, Badge } from '../../lib/util';
 import { PhotoThumb } from '../../components/Photo';
 import { DrawingLink } from '../../components/Drawing';
 
+
+/** Download a saved BOQ as an A4 PDF, without invoking the browser print dialog.
+ * Uses per-page JPEG canvas rendering embedded in a minimal PDF container.
+ * Never exports unsaved editor changes.
+ */
+export async function downloadSavedBoqPdf(itemId, catalog) {
+  const response = await boqApi.get(itemId);
+  const d = response.data;
+  if (!d || !['Draft', 'Final'].includes(d.boq_status)) throw new Error('No saved BOQ is available for this item.');
+  const width = 1240, height = 1754, margin = 72;
+  const pages = [];
+  let canvas, ctx, y;
+  const startPage = () => {
+    canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+    ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#111827'; ctx.font = 'bold 33px Arial'; ctx.fillText('Bill of Quantities', margin, 104);
+    ctx.font = '18px Arial'; ctx.fillStyle = '#475569';
+    ctx.fillText('Order ' + (d.order_no || '') + '  |  Item #' + (d.line_no || '') + '  |  ' + d.boq_status, margin, 142);
+    ctx.fillStyle = '#111827'; y = 190;
+  };
+  const savePage = () => { pages.push(canvas.toDataURL('image/jpeg', .88).split(',')[1]); };
+  const textLine = (value, x, limit, size = 20, bold = false) => {
+    ctx.font = (bold ? 'bold ' : '') + size + 'px Arial';
+    const words = String(value ?? '—').split(/\\s+/), lines = []; let line = '';
+    for (const word of words) {
+      const candidate = line ? line + ' ' + word : word;
+      if (line && ctx.measureText(candidate).width > limit) { lines.push(line); line = word; }
+      else line = candidate;
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : ['—'];
+  };
+  const renderCell = (lines, x, top, lineHeight = 26) => lines.forEach((v, i) => ctx.fillText(v, x, top + i * lineHeight));
+  const field = (title, value, x, colWidth) => {
+    ctx.font = '17px Arial'; ctx.fillStyle = '#64748b'; ctx.fillText(title, x, y);
+    ctx.fillStyle = '#111827'; renderCell(textLine(value, x, colWidth - 12, 20), x, y + 31);
+  };
+  startPage();
+  const half = (width - margin * 2) / 2;
+  field('Customer', d.customer_name, margin, half); field('Project', d.project_name, margin + half, half); y += 85;
+  field('Area', d.area, margin, half); field('Delivery Date', d.delivery_date ? fmtDate(d.delivery_date) : '—', margin + half, half); y += 92;
+  const details = (d.details || []).map(v => v.name + ': ' + v.value).join('  |  ');
+  const detailLines = textLine(details || '—', margin, width - 2 * margin, 19);
+  ctx.font = 'bold 19px Arial'; ctx.fillText('Order Item', margin, y); y += 32;
+  ctx.font = '19px Arial'; renderCell(detailLines, margin, y); y += detailLines.length * 26 + 32;
+  if (d.remarks) { ctx.font = '19px Arial'; const ls = textLine('Remarks: ' + d.remarks, margin, width - 2 * margin, 19); renderCell(ls, margin, y); y += ls.length * 26 + 24; }
+  const columns = [margin, margin + 60, margin + 286, margin + 860, margin + 982];
+  const tableWidth = width - 2 * margin;
+  const tableHeader = () => {
+    ctx.fillStyle = '#2951d9'; ctx.fillRect(margin, y - 30, tableWidth, 47);
+    ctx.font = 'bold 18px Arial'; ctx.fillStyle = '#fff';
+    ['SL', 'Category', 'Material', 'Qty', 'Unit'].forEach((h,i) => ctx.fillText(h, columns[i] + 8, y));
+    ctx.fillStyle = '#111827'; y += 30;
+  };
+  tableHeader();
+  for (let i = 0; i < (d.lines || []).length; i++) {
+    const r = d.lines[i];
+    const material = catalog?.material?.(r.material_id);
+    const category = catalog?.categories?.find(c => String(c.id) === String(r.category_id || material?.category_id));
+    const values = [String(i + 1), category?.name || '—', [material?.material_code, material?.name].filter(Boolean).join(' - ') || '—', fmtQty(r.qty_required ?? r.qty ?? 0), material?.unit || '—'];
+    const sizes = [18,18,18,19,18];
+    const limits = [50,215,562,110,110];
+    const lines = values.map((v,k) => textLine(v, columns[k], limits[k], sizes[k]));
+    const rowHeight = Math.max(45, ...lines.map(v => v.length * 25 + 14));
+    if (y + rowHeight > height - 110) { savePage(); startPage(); tableHeader(); }
+    ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(margin, y - 29, tableWidth, rowHeight);
+    ctx.font = '18px Arial';
+    lines.forEach((ls,k) => renderCell(ls, columns[k] + 8, y));
+    y += rowHeight;
+  }
+  savePage();
+  const enc = new TextEncoder();
+  const chunks = [], offsets = [0]; let length = 0;
+  const push = (bytes) => { chunks.push(bytes); length += bytes.length; };
+  const ascii = (v) => push(enc.encode(v));
+  const object = (id, text) => { offsets[id] = length; ascii(id + ' 0 obj\\n' + text + '\\nendobj\\n'); };
+  ascii('%PDF-1.4\\n');
+  const pageIds = pages.map((_,i) => 3 + i * 3);
+  object(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  object(2, '<< /Type /Pages /Kids [' + pageIds.map(id=> id+' 0 R').join(' ') + '] /Count ' + pages.length + ' >>');
+  for (let i=0; i<pages.length; i++) {
+    const id = pageIds[i], jpg = Uint8Array.from(atob(pages[i]), c => c.charCodeAt(0));
+    object(id, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 ' + (id+1) + ' 0 R >> >> /Contents ' + (id+2) + ' 0 R >>');
+    offsets[id+1]=length;
+    ascii((id+1)+' 0 obj\\n<< /Type /XObject /Subtype /Image /Width '+width+' /Height '+height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpg.length+' >>\\nstream\\n');
+    push(jpg); ascii('\\nendstream\\nendobj\\n');
+    const stream = 'q 595 0 0 842 0 0 cm /Im0 Do Q';
+    object(id+2, '<< /Length '+stream.length+' >>\\nstream\\n'+stream+'\\nendstream');
+  }
+  const xref = length, size=3+pages.length*3;
+  ascii('xref\\n0 '+size+'\\n0000000000 65535 f \\n');
+  for(let i=1;i<size;i++) ascii(String(offsets[i]).padStart(10,'0')+' 00000 n \\n');
+  ascii('trailer\\n<< /Size '+size+' /Root 1 0 R >>\\nstartxref\\n'+xref+'\\n%%EOF');
+  const pdf = new Blob(chunks,{type:'application/pdf'});
+  const url=URL.createObjectURL(pdf), a=document.createElement('a');
+  a.href=url; a.download='BOQ-'+String(d.order_no || itemId).replace(/[^a-zA-Z0-9_-]/g,'-')+'-Item-'+(d.line_no || itemId)+'.pdf';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+
 let seq = 0;
 const row = (r) => ({ key: ++seq, material_id: r.material_id || '', category_id: r.category_id || '', values: { ...(r.values || {}) }, qty: r.qty_required ?? '', extra: !!r.extra });
 
