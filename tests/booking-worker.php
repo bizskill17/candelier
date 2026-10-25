@@ -5,7 +5,7 @@ $GLOBALS['CONFIG']=['db'=>['dsn'=>$dsn,'user'=>'root','password'=>'']];date_defa
 $root=dirname(__DIR__);
 foreach(['lib/http','lib/db','lib/stock','lib/permissions','entities','handlers/auth','handlers/items','handlers/materials','handlers/orders','handlers/boq','handlers/stores']as$f)require "$root/api/$f.php";
 session_begin();$_SESSION['uid']=(int)$argv[5];
-echo "READY\n";flush();
+fwrite(STDOUT,"READY\n");fflush(STDOUT);
 try {
     [$action,$item,$variant,$qty]=array_slice($argv,1,4);$item=(int)$item;$variant=(int)$variant;
     if($action==='book')boq_book($item,['variant_id'=>$variant,'quantity'=>$qty]);

@@ -53,7 +53,7 @@ function booking_race(array $requests,int $variant): array {
         foreach($requests as[$action,$item,$qty,$actor]){
             $pipes=[];$proc=proc_open([PHP_BINARY,__DIR__.'/booking-worker.php',$action,(string)$item,(string)$variant,(string)$qty,(string)$actor],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
             if(!is_resource($proc))throw new RuntimeException('Cannot start booking worker');
-            fclose($pipes[0]);stream_set_blocking($pipes[1],false);$workers[]=['proc'=>$proc,'out'=>$pipes[1],'err'=>$pipes[2],'ready'=>false,'prefix'=>''];
+            fclose($pipes[0]);stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);$workers[]=['proc'=>$proc,'out'=>$pipes[1],'err'=>$pipes[2],'ready'=>false,'prefix'=>''];
         }
         $deadline=microtime(true)+8;$blocked=false;
         while(microtime(true)<$deadline){
@@ -62,7 +62,7 @@ function booking_race(array $requests,int $variant): array {
             if(count(array_filter($workers,fn($w)=>$w['ready']))===count($workers)&&$waits>=count($workers)){$blocked=true;break;}
             usleep(25000);
         }
-        if(!$blocked)throw new RuntimeException('Competing booking requests did not reach their locks.');
+        if(!$blocked){$diagnostics=[];foreach($workers as$w)$diagnostics[]=['ready'=>$w['ready'],'output'=>$w['prefix'].stream_get_contents($w['out']),'error'=>stream_get_contents($w['err']),'status'=>proc_get_status($w['proc'])];throw new RuntimeException('Competing booking requests did not reach their locks: '.json_encode($diagnostics));}
         $hold->commit();$results=[];
         foreach($workers as$w){stream_set_blocking($w['out'],true);$output=$w['prefix'].stream_get_contents($w['out']);$err=stream_get_contents($w['err']);fclose($w['out']);fclose($w['err']);$code=proc_close($w['proc']);if($code!==0)throw new RuntimeException('Booking worker failed: '.$err);$results[]=json_decode(substr($output,strpos($output,"READY\n")+6),true,512,JSON_THROW_ON_ERROR);}
         return $results;
