@@ -26,6 +26,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [materialId, setMaterialId] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [detail, setDetail] = useState(null);
@@ -37,25 +38,29 @@ export default function InventoryPage() {
   }, [materialId, q]);
   useEffect(() => { load(); }, [load]);
 
-  const pagination = usePagination(rows, JSON.stringify([materialId, q]));
+  const materialCategory = (materialId) => cat.materials.find(m => String(m.id) === String(materialId))?.category_id;
+  const categoryName = (materialId) => cat.categories.find(c => String(c.id) === String(materialCategory(materialId)))?.name || '—';
+  const filteredRows = categoryId ? rows.filter(r => String(materialCategory(r.material_id)) === String(categoryId)) : rows;
+  const pagination = usePagination(filteredRows, JSON.stringify([materialId, categoryId, q]));
   const groups = [];
   pagination.rows.forEach((r) => {
     const g = groups.find((x) => x.material_id === r.material_id);
     if (g) g.rows.push(r); else groups.push({ material_id: r.material_id, name: r.material_name, rows: [r] });
   });
-  const cols = 11;
+  const cols = 12;
 
   return (
     <div className="mx-auto max-w-[90rem] space-y-4">
       <div className="print:hidden flex flex-wrap gap-2">
-        <SearchSelect id="filter-material" className="w-full sm:w-52" options={[{ value: '', label: 'All materials' }, ...cat.materials.map((m) => ({ value: m.id, label: m.name }))]} value={materialId} onChange={setMaterialId} placeholder="All materials" clearable />
+        <SearchSelect id="filter-category" className="w-full sm:w-52" options={[{ value: '', label: 'All categories' }, ...cat.categories.map(c => ({ value: c.id, label: c.name }))]} value={categoryId} onChange={v => { setCategoryId(v); setMaterialId(''); }} placeholder="All categories" clearable />
+        <SearchSelect id="filter-material" className="w-full sm:w-52" options={[{ value: '', label: 'All materials' }, ...cat.materials.filter(m => !categoryId || String(m.category_id) === String(categoryId)).map((m) => ({ value: m.id, label: m.name }))]} value={materialId} onChange={setMaterialId} placeholder="All materials" clearable />
         <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
           <Search size={16} className="text-gray-400" />
           <input id="search-inventory" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search materials…" className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Printer size={15} /> Print / PDF</button>
       </div>
-      <div className="print:hidden text-sm text-gray-600"><b className="text-gray-900">{rows.length}</b> materials in stock</div>
+      <div className="print:hidden text-sm text-gray-600"><b className="text-gray-900">{filteredRows.length}</b> materials in stock</div>
       <div className="hidden print:block"><h1 className="text-xl font-semibold">Inventory</h1><p className="text-sm text-gray-600">As on {fmtDate(today())}</p></div>
 
       <div className={tableWrap}>
@@ -63,6 +68,7 @@ export default function InventoryPage() {
           <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: 1040 }}>
             <thead className={theadCls}>
               <tr>
+                <th className={`${th} w-40`}>Material Category</th>
                 <th className={th}>Material</th>
                 <th className={`${th} w-12`}>Unit</th>
                 <th className={`${th} w-20 text-right`}>Opening</th>
@@ -79,12 +85,13 @@ export default function InventoryPage() {
             <tbody>
               {loading && rows.length === 0 && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={td}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {!loading && loadError && <tr><td colSpan={cols} className={`${td} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
-              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${td} py-14 text-center text-gray-500`}>{q || materialId ? 'No in-stock materials match.' : 'No materials currently have positive stock.'}</td></tr>}
+              {!loading && !loadError && filteredRows.length === 0 && <tr><td colSpan={cols} className={`${td} py-14 text-center text-gray-500`}>{q || materialId || categoryId ? 'No in-stock materials match.' : 'No materials currently have positive stock.'}</td></tr>}
               {groups.map((g) => (
                 <Fragment key={g.material_id}>
 
                   {g.rows.map((r) => (
                     <tr key={r.id} className={loading ? 'opacity-60' : ''}>
+                      <td className={td}>{categoryName(r.material_id)}</td>
                       <td className={`${td} pl-5`}>{r.material_name}</td>
                       <td className={td}>{r.unit}</td>
                       <td className={num}>{fmtQty(r.opening)}</td>
