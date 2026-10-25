@@ -64,7 +64,7 @@ export const masters = {
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Assam' }],
   },
   lead_sources: {
-    singular: 'Source', plural: 'sources', hideCode: true,
+    singular: 'Lead Source', plural: 'lead sources', hideCode: true,
     columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }],
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Instagram Ads' }],
   },

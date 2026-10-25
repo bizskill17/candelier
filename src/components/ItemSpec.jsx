@@ -45,7 +45,7 @@ function ItemSpecBox({ fields, values, suggestions, onChange, onClose, anchor, t
       className="z-50 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
       <h3 className="mb-3 text-sm font-semibold text-gray-900">{title}</h3>
       {fields.length === 0 ? (
-        <p className="text-sm text-gray-500">No item fields yet. Add them in Masters → Item Fields.</p>
+        <p className="text-sm text-gray-500">No item fields yet. Add them in Orders → Order Item Fields.</p>
       ) : (
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
           {fields.map((f, i) => (

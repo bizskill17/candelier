@@ -252,7 +252,7 @@ export default function OrderForm({ id, leadId }) {
               </tbody>
             </table>
           </div>
-          {itemFields.loaded && itemFields.fields.length === 0 && <p className="border-t border-blue-200 px-5 py-3 text-xs text-gray-500">Add your item fields (Size, Glass Colour…) in Masters → Item Fields.</p>}
+          {itemFields.loaded && itemFields.fields.length === 0 && <p className="border-t border-blue-200 px-5 py-3 text-xs text-gray-500">Add your item fields (Size, Glass Colour…) in Orders → Order Item Fields.</p>}
           {errors.items && <div className="border-t border-blue-200 px-5 py-3 text-sm text-red-600">{errors.items}</div>}
         </section>
       </div>
