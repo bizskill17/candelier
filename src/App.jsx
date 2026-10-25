@@ -14,7 +14,6 @@ import ProductionPage from './pages/orders/ProductionPage';
 import DocsPage from './pages/stores/DocsPage';
 import OpeningStock from './pages/stores/OpeningStock';
 import InventoryPage from './pages/stores/InventoryPage';
-import LowStock from './pages/stores/LowStock';
 import LeadsPage from './pages/crm/LeadsPage';
 import ContactsPage from './pages/crm/ContactsPage';
 import FollowUps from './pages/crm/FollowUps';
@@ -50,7 +49,6 @@ export default function App() {
           <Route path="material-issue/*" element={<DocsPage key="material-issue" type="material-issue" />} />
           <Route path="damage/*" element={<DocsPage key="damage" type="damage" />} />
           <Route path="inventory" element={<InventoryPage />} />
-          <Route path="low-stock" element={<LowStock />} />
           <Route path="material-categories" element={<MasterPage key="material_categories" module={mod('material_categories')} />} />
           <Route path="materials" element={<MaterialsPage />} />
           <Route path="item-fields" element={<ItemFieldsPage />} />
