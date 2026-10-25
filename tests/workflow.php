@@ -48,6 +48,7 @@ foreach (['Clear', 'Amber'] as $i => $colour) {
     $vid = (int) $pdo->lastInsertId();
     $pdo->prepare('INSERT INTO material_variant_values (variant_id, spec_field_id, value) VALUES (:v, :f, :t)')->execute(['v' => $vid, 'f' => $field, 't' => $colour]);
     $pdo->prepare('INSERT INTO boq_lines (order_item_id, line_no, material_id, variant_id, qty_required) VALUES (:i, :n, :m, :v, 5)')->execute(['i' => $legacyItem, 'n' => $i + 1, 'm' => $crystal, 'v' => $vid]);
+    $pdo->prepare('INSERT INTO opening_stock(id,entry_date,variant_id,quantity) VALUES(:i,:d,:v,:q)')->execute(['i'=>$i+1,'d'=>date('Y-m-d'),'v'=>$vid,'q'=>$i?20:10]);
     $pdo->prepare("INSERT INTO stock_moves (move_date, variant_id, quantity, ref_type, ref_id, ref_no) VALUES (:d, :v, :q, 'opening', :i, 'OPEN-TEST')")->execute(['d' => date('Y-m-d'), 'v' => $vid, 'q' => $i ? 20 : 10, 'i' => $i + 1]);
 }
 $before = db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id');
