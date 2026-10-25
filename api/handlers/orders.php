@@ -151,7 +151,7 @@ function order_validate(?array $existing, array $in): array
         if($assignee && $assignee!==(int)current_user()['id'])throw new ApiError('Sales may create Orders only for themselves.',403);
         $assignee=(int)current_user()['id'];
     }
-    if((!$existing || $assignee) && !db_value("SELECT COUNT(*) FROM users WHERE id=:id AND role='Sales' AND is_active=1",['id'=>$assignee]))throw new ApiError('Choose an active Assigned Salesperson.',422,['assigned_salesperson_id'=>'Choose an active Sales user.']);
+    if($assignee && !db_value("SELECT COUNT(*) FROM users WHERE id=:id AND role='Sales' AND is_active=1",['id'=>$assignee]))throw new ApiError('Choose an active Assigned Salesperson.',422,['assigned_salesperson_id'=>'Choose an active Sales user.']);
     $errors = [];
     $h = [];
     $cid = (int) ($in['customer_id'] ?? 0);
@@ -166,9 +166,9 @@ function order_validate(?array $existing, array $in): array
     $h['order_date'] = trim((string) ($in['order_date'] ?? ''));
     if (!valid_date($h['order_date'])) $errors['order_date'] = 'Enter the order date.';
     $dd = trim((string) ($in['delivery_date'] ?? ''));
-    if ($dd === '') $errors['delivery_date'] = 'Enter the delivery date.';
+    if ($dd === '') $errors['delivery_date'] = 'Enter the target delivery date.';
     elseif (!valid_date($dd)) $errors['delivery_date'] = 'Enter a valid date.';
-    elseif (!isset($errors['order_date']) && $dd < $h['order_date']) $errors['delivery_date'] = 'Delivery date cannot be before the order date.';
+    elseif (!isset($errors['order_date']) && $dd < $h['order_date']) $errors['delivery_date'] = 'Target delivery date cannot be before the order date.';
     else $h['delivery_date'] = $dd;
     $ob = (int) ($in['order_by_id'] ?? 0);
     if ($ob && !db_value('SELECT COUNT(*) FROM users WHERE id = :id', ['id' => $ob])) $errors['order_by_id'] = 'Choose a valid user.';

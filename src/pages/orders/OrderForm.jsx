@@ -20,7 +20,7 @@ import { masters } from '../../config/masters';
 
 let seq = 0;
 const blankItem = (extra = {}) => ({ key: ++seq, id: null, area: '', values: {}, remarks: '', component_image: '', reference_image: '', drawing_file: '', drawing_name: '', ...extra });
-const blankOrder = (userId) => ({ customer_id: '', project_name: '', order_date: today(), delivery_date: '', order_by_id: userId || '', assigned_salesperson_id: '', shipping_address: '' });
+const blankOrder = (userId) => ({ customer_id: '', project_name: '', order_date: today(), delivery_date: '', order_by_id: userId || '', shipping_address: '' });
 const cleanValues = (v) => Object.fromEntries(Object.entries(v || {}).map(([k, x]) => [k, String(x ?? '').trim()]).filter(([, x]) => x));
 const itemBody = ({ id, area, values, remarks, component_image, reference_image, drawing_file, drawing_name }) => ({ id, area: (area || '').trim(), values: cleanValues(values), remarks: remarks || '', component_image: component_image || '', reference_image: reference_image || '', drawing_file: drawing_file || '', drawing_name: drawing_file ? drawing_name || '' : '' });
 const snapshot = (h, items) => JSON.stringify({ h, items: items.map(itemBody) });
@@ -65,7 +65,7 @@ export default function OrderForm({ id, leadId }) {
 
   const fill = (o) => {
     setOrder(o);
-    const h = { customer_id: o.customer_id, project_name: o.project_name || '', order_date: o.order_date, delivery_date: o.delivery_date || '', order_by_id: o.order_by_id || '', assigned_salesperson_id: o.assigned_salesperson_id || '', shipping_address: o.shipping_address || '' };
+    const h = { customer_id: o.customer_id, project_name: o.project_name || '', order_date: o.order_date, delivery_date: o.delivery_date || '', order_by_id: o.order_by_id || '', shipping_address: o.shipping_address || '' };
     const its = o.items.map((i) => ({ key: ++seq, id: i.id, area: i.area || '', values: { ...(i.values || {}) }, remarks: i.remarks || '', component_image: i.component_image || '', reference_image: i.reference_image || '', drawing_file: i.drawing_file || '', drawing_name: i.drawing_name || '' }));
     setHeader(h);
     setItems(its);
@@ -90,7 +90,7 @@ export default function OrderForm({ id, leadId }) {
 
   const save = async (e) => {
     e?.preventDefault();
-    if (!header.delivery_date) { setErrors((prev) => ({ ...prev, delivery_date: 'Enter the delivery date.' })); return; }
+    if (!header.delivery_date) { setErrors((prev) => ({ ...prev, delivery_date: 'Enter the target delivery date.' })); return; }
     setSaving(true);
     setFormError('');
     const body = { ...header, items: items.map(itemBody), lead_id: !isEdit && fromLead ? fromLead.id : undefined };
@@ -163,26 +163,23 @@ export default function OrderForm({ id, leadId }) {
       <div className="space-y-4">
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Assigned Salesperson" required htmlFor="o-assignee" error={errors.assigned_salesperson_id}>
-              <SearchSelect id="o-assignee" options={(users||[]).filter(u=>(u.role==='Sales'&&u.is_active)||String(u.id)===String(header.assigned_salesperson_id)).map(u=>({value:u.id,label:u.name}))} value={user?.role==='Sales'&&!isEdit?user.id:header.assigned_salesperson_id} onChange={v=>setH('assigned_salesperson_id',v)} disabled={locked||user?.role!=='Admin'||!users} placeholder="Select Salesperson"/>
-            </Field>
-            <Field label="Customer / Contact" required htmlFor="o-customer" error={errors.customer_id} className="sm:col-span-2">
-              <div className="flex gap-1.5">
-                <SearchSelect id="o-customer" className="min-w-0 flex-1" options={custOpts} value={header.customer_id} onChange={pickCustomer} error={errors.customer_id} disabled={locked || !customers} placeholder={customers ? 'Select contact' : 'Loading…'} />
-                {!locked && <button type="button" onClick={() => setCustomerOpen(true)} title="Add a new contact" aria-label="Add a new contact" className="shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>}
-              </div>
-            </Field>
-            <Field label="Name of Project" htmlFor="o-project" error={errors.project_name} className="sm:col-span-2">
-              <input id="o-project" disabled={locked} value={header.project_name} onChange={(e) => setH('project_name', e.target.value)} className={inputCls(errors.project_name)} placeholder="e.g. Residence of Mr. Bhatiya" />
-            </Field>
             <Field label="Order Date" required htmlFor="o-date" error={errors.order_date}>
               <DateInput id="o-date" value={header.order_date} onChange={(v) => setH('order_date', v)} error={errors.order_date} disabled={locked} />
             </Field>
-            <Field label="Delivery Date" required htmlFor="o-delivery" error={errors.delivery_date}>
-              <DateInput id="o-delivery" min={header.order_date} value={header.delivery_date} onChange={(v) => setH('delivery_date', v)} error={errors.delivery_date} disabled={locked} />
-            </Field>
             <Field label="Order By" htmlFor="o-by" error={errors.order_by_id}>
               <SearchSelect id="o-by" options={userOpts} value={header.order_by_id} onChange={(v) => setH('order_by_id', v)} disabled={locked || !users || user?.role!=='Admin'} placeholder="Select user" clearable />
+            </Field>
+            <Field label="Customer" required htmlFor="o-customer" error={errors.customer_id} className="sm:col-span-2">
+              <div className="flex gap-1.5">
+                <SearchSelect id="o-customer" className="min-w-0 flex-1" options={custOpts} value={header.customer_id} onChange={pickCustomer} error={errors.customer_id} disabled={locked || !customers} placeholder={customers ? 'Select customer' : 'Loading…'} />
+                {!locked && <button type="button" onClick={() => setCustomerOpen(true)} title="Add a new contact" aria-label="Add a new contact" className="shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>}
+              </div>
+            </Field>
+            <Field label="Project Name" htmlFor="o-project" error={errors.project_name} className="sm:col-span-2">
+              <input id="o-project" disabled={locked} value={header.project_name} onChange={(e) => setH('project_name', e.target.value)} className={inputCls(errors.project_name)} placeholder="e.g. Residence of Mr. Bhatiya" />
+            </Field>
+            <Field label="Target Delivery Date" required htmlFor="o-delivery" error={errors.delivery_date}>
+              <DateInput id="o-delivery" min={header.order_date} value={header.delivery_date} onChange={(v) => setH('delivery_date', v)} error={errors.delivery_date} disabled={locked} />
             </Field>
             <Field label="Shipping Address" htmlFor="o-address" error={errors.shipping_address} className="sm:col-span-2 lg:col-span-4">
               <textarea id="o-address" rows={1} disabled={locked} value={header.shipping_address} onChange={(e) => setH('shipping_address', e.target.value)} className={inputCls(errors.shipping_address)} placeholder="Filled from the customer" />
