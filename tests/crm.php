@@ -73,3 +73,13 @@ check((int)$updated[0]['id']===$cid&&(int)$updated[1]['id']===(int)$todayContact
 $_GET=['view'=>'updated-today','city'=>'Not matching'];check(contact_list()['total']===0,'Updated Today supports normal contact filters');
 $_GET=['view'=>'updated-today','q'=>'Updated today edited'];check(contact_list()['total']===1,'Updated Today supports contact search');
 $_GET=[];
+
+
+$_GET=['from'=>date('Y-m-d'),'to'=>date('Y-m-d')];
+$logs=followup_logs();
+$expected=(int)db_value("SELECT COUNT(*) FROM followups WHERE entry_type='Follow-up' AND activity_at>=:start AND activity_at<=:end",['start'=>date('Y-m-d').' 00:00:00','end'=>date('Y-m-d').' 23:59:59']);
+check($logs['followup_total']===$expected&&array_sum(array_column($logs['person_counts'],'count'))===$expected,'Follow-up person totals count actual attempts across the selected dates');
+$_GET['recorded_by']=$crmActor;$own=followup_logs();
+check(count(array_filter($own['person_counts'],fn($p)=>$p['recorded_by']!==$crmActor))===0,'Person counts respect Recorded By filter');
+$_GET=['entry_type'=>'Lead Created'];check(followup_logs()['followup_total']===0,'System Lead Created entries do not count as follow-up attempts');
+$_GET=[];
