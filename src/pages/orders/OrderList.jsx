@@ -119,7 +119,7 @@ export default function OrderList() {
               <tr>
                 <th className={`${thCls} w-32`}>Order No.</th>
                 <th className={`${thCls} w-28`}>Date</th>
-                <th className={thCls}>Customer / Project</th>
+                <th className={thCls}>Customer / Project</th><th className={thCls}>Assigned Salesperson</th>
                 <th className={`${thCls} w-20 text-right`}>Items</th>
                 <th className={`${thCls} w-24 text-right`}>BOQ Final</th>
                 <th className={`${thCls} w-28`}>Delivery Date</th>
@@ -141,7 +141,7 @@ export default function OrderList() {
                         <span className="inline-flex items-center gap-1.5">{isOpen ? <ChevronDown size={14} className="text-brand-600" /> : <ChevronRight size={14} className="text-gray-400" />}{o.order_no}</span>
                       </td>
                       <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{fmtDate(o.order_date)}</td>
-                      <td className={tdCls}><div className="font-medium text-gray-900">{o.customer_name}</div><div className="text-xs text-gray-500">{[o.project_name, o.customer_city].filter(Boolean).join(' · ')}</div></td>
+                      <td className={tdCls}><div className="font-medium text-gray-900">{o.customer_name}</div><div className="text-xs text-gray-500">{[o.project_name, o.customer_city].filter(Boolean).join(' · ')}</div></td><td className={tdCls}>{o.assigned_salesperson_name||<span className="text-amber-700">Unassigned</span>}</td>
                       <td className={`${tdCls} text-right tabular-nums`}>{o.item_count}</td>
                       <td className={`${tdCls} text-right tabular-nums ${o.boq_count < o.item_count ? 'text-amber-700' : 'text-green-700'}`}>{o.boq_count} / {o.item_count}</td>
                       <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{o.delivery_date ? <span className={late ? 'inline-flex items-center gap-1 font-medium text-red-600' : ''}>{late && <AlertTriangle size={13} />}{fmtDate(o.delivery_date)}</span> : <span className="text-gray-300">—</span>}</td>

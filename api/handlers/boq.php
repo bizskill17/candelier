@@ -77,6 +77,7 @@ function boq_save(int $id, array $in): array
     if (!in_array($status, ['Draft', 'Final'], true)) throw new ApiError('Choose Save as Draft or Save as Final.', 422);
     $pdo = db(); $pdo->beginTransaction();
     try {
+        if(app_role()==='Sales'&&!db_one('SELECT o.id FROM orders o JOIN order_items i ON i.order_id=o.id WHERE i.id=:i AND '.order_visibility_sql().' FOR UPDATE',['i'=>$id]))throw new ApiError('Order item is no longer assigned to you.',404);
         // Serialize changes to this BOQ with material issues for the same item.
         db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $id]);
         $item = boq_item($id);

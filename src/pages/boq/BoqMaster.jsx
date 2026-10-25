@@ -78,7 +78,7 @@ export default function BoqMaster({pendingIssue=false}) {
                     <td className={`${td} min-w-[14rem]`}><ItemDetailLines details={it.details} empty={DASH} /></td>
                     <td className={`${td} min-w-[10rem] text-gray-700`}>{it.remarks || DASH}</td>
                     <td className={`${td} whitespace-nowrap tabular-nums`}>{it.delivery_date ? <span className={late ? 'inline-flex items-center gap-1 font-medium text-red-600' : ''}>{late && <AlertTriangle size={12} />}{fmtDate(it.delivery_date)}</span> : DASH}</td>
-                    <td className={td}><Badge color={it.boq_status === 'Final' ? 'green' : 'amber'}>{pendingIssue?it.issue_status:it.boq_status}</Badge></td>
+                    <td className={td}><Badge color={!pendingIssue&&it.boq_status === 'Final' ? 'green' : 'amber'}>{pendingIssue?it.issue_status:it.boq_status}</Badge></td>
                     <td className={`${td} text-center`}>
                       <button onClick={() => navigate(pendingIssue&&canCreateStock?`/material-issue/new/item/${it.id}`:`/boq/${it.id}`)} className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700"><ClipboardList size={13} /> {pendingIssue&&canCreateStock?'Issue Material':'Open BOQ'}</button>
                     </td>

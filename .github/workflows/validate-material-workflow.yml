@@ -66,3 +66,4 @@ jobs:
           node tests/production-ui.cjs
           node tests/crm-ui.cjs
           node tests/material-media-ui.cjs
+          node tests/permissions-ui.cjs
