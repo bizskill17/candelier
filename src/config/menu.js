@@ -24,12 +24,10 @@ export const menu = [
       { key: 'followup-logs', label: 'Follow Up Logs', path: '/followup-logs', icon: ScrollText, description: 'Every follow-up entered, with filters.' },
     ],
   },
-  { items: [
-      { key: 'customers', label: 'Customers', path: '/customers', icon: Handshake, description: 'Contacts with confirmed non-cancelled orders.' },
-  ] },
   {
     heading: 'Orders',
     items: [
+      { key: 'customers', label: 'Customers', path: '/customers', icon: Handshake, description: 'Contacts with confirmed non-cancelled orders.' },
       { key: 'orders-add', label: 'Add Order', path: '/orders/new', icon: FilePlus2, description: 'Enter a new order with its items.' },
       { key: 'orders-master', label: 'Order Master', path: '/orders/all', icon: ListOrdered, description: 'Every order; open an item for its BOQ and dispatch.' },
       { key: 'boq-master', label: 'Orders with BOQ', path: '/boq-master', icon: ClipboardList, description: 'Draft and Final BOQs for every order item.' },
