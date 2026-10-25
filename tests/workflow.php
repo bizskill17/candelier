@@ -158,3 +158,5 @@ echo "All migration and workflow integration checks passed.\n";
 reject(fn () => order_save(null, ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'order_date' => date('Y-m-d'), 'items' => [['area' => 'Missing delivery']]]), 'Order requires Delivery Date');
 
 require __DIR__ . '/permissions.php';
+
+require __DIR__ . '/booking.php';
