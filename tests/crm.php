@@ -114,3 +114,15 @@ $pdo->prepare('UPDATE leads SET updated_at=:t WHERE id=:id')->execute(['t'=>now(
 $_GET=['view'=>'updated-today','contact_id'=>$viewContact];check(array_map('intval',array_column(lead_list()['data'],'id'))===[$viewIds['today']],'Lead Updated Today excludes previous dates');
 $_GET=['view'=>'all','contact_id'=>$viewContact];check(lead_list()['total']===6,'All Leads includes every lifecycle view');
 $_GET=[];
+
+// Counts use the same predicates and search scope as the tab lists, across all pages.
+foreach([[],['q'=>'CRM'],['city'=>'No matching city']] as $scope){
+    $_GET=$scope;$counts=contact_list()['view_counts'];
+    foreach($counts as $view=>$count){$_GET=$scope+['view'=>$view];check(contact_list()['total']===$count,'Contact tab count matches '.$view.' with filters');}
+}
+foreach([['contact_id'=>$viewContact],['q'=>'View today'],['temperature'=>'Hot']] as $scope){
+    $_GET=$scope;$counts=lead_list()['view_counts'];
+    foreach($counts as $view=>$count){$_GET=$scope+['view'=>$view];check(lead_list()['total']===$count,'Lead tab count matches '.$view.' with filters');}
+}
+$_GET=['view'=>'success','contact_id'=>$viewContact];$counts=lead_list()['view_counts'];check($counts['all']===6&&$counts['success']===1&&$counts['overdue']===1,'Selecting a tab does not restrict other tab counts');
+$_GET=[];
