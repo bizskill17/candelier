@@ -74,6 +74,8 @@ dispatch_delete($mineItem);
 doc_save(doc_def('material-issue'),(int)$storeIssue['id'],array_replace($storeIssueBody,['lines'=>[['material_id'=>$wire,'quantity'=>2]]]));
 check(!in_array($mineItem,array_map('intval',array_column(pending_material_issue()['data'],'id')),true),'Fully issued BOQs leave Pending Material Issue');
 // Admin assigns and corrects, including a previously Final BOQ.
+$unassigned=order_save(null,['customer_id'=>$permContact['id'],'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'Admin no assignment']]])['data'];
+check(empty($unassigned['assigned_salesperson_id']),'Admin can create Order without an Assigned Salesperson field');
 $edited=order_save($mine['id'],['customer_id'=>$permContact['id'],'assigned_salesperson_id'=>$salesTwo,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['id'=>$mineItem,'area'=>'Admin corrected room']]])['data'];
 check((int)$edited['assigned_salesperson_id']===$salesTwo,'Admin can reassign an Order');
 boq_save($mineItem,['status'=>'Final','lines'=>[['category_id'=>$category,'material_id'=>$wire,'qty_required'=>3]]]);
