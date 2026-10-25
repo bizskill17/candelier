@@ -10,9 +10,7 @@ export const menu = [
     heading: 'Contacts',
     items: [
       { key: 'contacts', label: 'All Contacts', path: '/contacts', icon: Contact, description: 'All relationships and contact follow-ups.' },
-      { key: 'contacts-never', label: 'Never Followed Up', path: '/contacts/never', icon: PhoneCall, description: 'Contacts without a follow-up attempt.' },
-      { key: 'contacts-today', label: 'Follow-ups Today', path: '/contacts/today', icon: PhoneCall, description: 'General contact follow-ups due today.' },
-      { key: 'contacts-overdue', label: 'Overdue Follow-ups', path: '/contacts/overdue', icon: PhoneCall, description: 'General contact follow-ups past their due date.' },
+      { key: 'followup-logs', label: 'Follow Up Log', path: '/followup-logs', icon: ScrollText, description: 'Every follow-up entered, with filters.' },
     ],
   },
   {
@@ -21,7 +19,6 @@ export const menu = [
       { key: 'leads-add', label: 'Add Lead', path: '/leads/new', icon: UserPlus, description: 'A specific requirement linked to a Contact.' },
       { key: 'leads', label: 'All Leads', path: '/leads/all', icon: Contact, description: 'Requirements with Hot, Warm or Cold temperature from history.' },
       { key: 'follow-ups', label: 'Lead Follow-ups', path: '/follow-ups', icon: PhoneCall, description: 'Follow-ups for all open Leads, including Hot, Warm and Cold.' },
-      { key: 'followup-logs', label: 'Follow Up Logs', path: '/followup-logs', icon: ScrollText, description: 'Every follow-up entered, with filters.' },
     ],
   },
   {

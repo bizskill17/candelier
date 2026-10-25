@@ -16,8 +16,9 @@ export default function Topbar({ onOpenMobile }) {
 
   const all = menu.flatMap((g) => g.items.map((i) => ({ ...i, heading: g.heading })));
   const current =
-    all.find((i) => i.path !== '/' && pathname.startsWith(i.path)) ||
+    (pathname === '/contacts/updated-today' ? { heading: 'Contacts', label: 'Updated Today' } : null) ||
     all.find((i) => i.path === pathname) ||
+    all.find((i) => i.path !== '/' && pathname.startsWith(i.path + '/')) ||
     (pathname.startsWith('/orders') ? { heading: 'Orders', label: 'Order' }
       : pathname.startsWith('/boq') ? { heading: 'Orders', label: 'Order Item BOQ' }
         : pathname.startsWith('/leads') ? { heading: 'CRM', label: 'Lead' } : null);

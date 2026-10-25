@@ -59,3 +59,17 @@ catch(ApiError$e){check(isset($e->fields['mobile']),'Contact rejects malformed m
 $pdo->prepare("UPDATE contacts SET source_details='Legacy source note',alternate_mobile='9876501242' WHERE id=:id")->execute(['id'=>$cid]);
 contact_save($cid,$contactRequired+['name'=>'CRM integration contact','mobile'=>'9876501234','email'=>'crm-test@example.test']);
 check(db_value('SELECT source_details FROM contacts WHERE id='.$cid)==='Legacy source note'&&db_value('SELECT alternate_mobile FROM contacts WHERE id='.$cid)==='9876501242','Editing contact preserves removed legacy fields');
+
+
+// Updated Today uses IST day bounds and latest saved contact order.
+$pdo->exec("UPDATE contacts SET updated_at=DATE_SUB(CURRENT_DATE(),INTERVAL 2 DAY)");
+$todayContact=contact_save(null,$contactRequired+['name'=>'Updated today new','mobile'=>'9876501250'])['data'];
+$_GET=['view'=>'updated-today'];
+check(array_map('intval',array_column(contact_list()['data'],'id'))===[(int)$todayContact['id']],'New contact appears in Updated Today and older records are excluded');
+$pdo->prepare('UPDATE contacts SET updated_at=:t WHERE id=:i')->execute(['t'=>date('Y-m-d').' 00:00:00','i'=>$todayContact['id']]);
+contact_save($cid,$contactRequired+['name'=>'Updated today edited','mobile'=>'9876501234','email'=>'crm-test@example.test']);
+$updated=contact_list()['data'];
+check((int)$updated[0]['id']===$cid&&(int)$updated[1]['id']===(int)$todayContact['id'],'Edited contact is first in Updated Today');
+$_GET=['view'=>'updated-today','city'=>'Not matching'];check(contact_list()['total']===0,'Updated Today supports normal contact filters');
+$_GET=['view'=>'updated-today','q'=>'Updated today edited'];check(contact_list()['total']===1,'Updated Today supports contact search');
+$_GET=[];

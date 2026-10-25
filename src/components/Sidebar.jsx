@@ -109,7 +109,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                         <li key={item.key}>
                           <NavLink
                             to={item.path}
-                            end={item.path === '/'}
+                            end={item.path === '/' || item.path === '/contacts'}
                             onClick={onCloseMobile}
                             title={narrow ? item.label : undefined}
                             className={({ isActive }) =>

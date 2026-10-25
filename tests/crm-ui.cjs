@@ -17,6 +17,7 @@ const assert=require('node:assert/strict');
   if(r==='contacts'){queried.push(Object.fromEntries(u.searchParams));const p=Number(u.searchParams.get('page')||1);payload={data:contacts.slice((p-1)*20,p*20),page:p,pages:2,total:21};}
   if(r==='contacts'&&method==='POST'){savedContact=route.request().postDataJSON();if(savedContact.email==='taken@example.com'){status=422;payload={error:'Please correct the highlighted fields.',fields:{email:'A contact with this email address already exists. Use the existing contact.'}};}else payload={data:{id:22,...savedContact},message:'Contact saved.'};}
   if(r==='contacts/1')payload={data:{...contacts[0],history:lead.followups,leads:[lead],orders:[]}};
+  if(r==='contacts/1'&&method==='PUT'){savedContact=route.request().postDataJSON();payload={data:{...contacts[0],...savedContact},message:'Contact saved.'};}
   if(r==='crm-followups'&&method==='POST'){saved=route.request().postDataJSON();payload={data:{id:2,generated_lead_id:2},message:'Follow-up saved and Lead created.'};}
   if(r==='crm-followups'&&method==='GET')payload={data:[{...lead.followups[0],contact_name:'Contact 01',lead_no:'LD-001',recorded_by_name:'Test staff'}],page:1,pages:1,total:1};
   if(r==='leads/1')payload={data:lead};
@@ -46,6 +47,9 @@ const assert=require('node:assert/strict');
  await dialog.getByText('A contact with this email address already exists. Use the existing contact.',{exact:true}).waitFor();
  assert.equal(await dialog.getByRole('textbox',{name:'email',exact:true}).getAttribute('aria-invalid'),'true');
  await dialog.getByRole('textbox',{name:'email',exact:true}).fill('new@example.com');await dialog.getByRole('button',{name:'Save Contact',exact:true}).click();await dialog.waitFor({state:'hidden'});
+ await page.waitForURL('**/contacts/updated-today');await page.getByRole('heading',{name:'Updated Today',exact:true}).waitFor();
+ await page.waitForFunction(()=>document.querySelector('a[href="/contacts/updated-today"][class*="bg-brand-50"]'));
+ assert(queried.some(q=>q.view==='updated-today'&&q.page==='1'&&!q.q&&!q.city));
  assert.equal(savedContact.category_id,1);assert.equal(savedContact.city,'Shillong');assert.equal(savedContact.mobile,'9876501234');assert.equal(savedContact.source_details,undefined);assert.equal(savedContact.alternate_mobile,undefined);
  assert.equal(await page.locator('tbody tr').count(),20);await page.getByRole('button',{name:'Next page',exact:true}).click();await page.getByText('Contact 21',{exact:true}).waitFor();assert.equal(await page.locator('tbody tr').count(),1);
  await page.goto('http://127.0.0.1:5173/contacts/never');await page.getByText('21 contacts',{exact:true}).waitFor();assert(queried.some(q=>q.view==='never'));
@@ -56,6 +60,11 @@ const assert=require('node:assert/strict');
  assert.equal(await page.getByRole('button',{name:'Lead Status',exact:true}).count(),0);await page.getByLabel('Requirement',{exact:true}).fill('New requirement');await page.getByRole('button',{name:'Save Lead',exact:true}).click();await page.getByText('Lead History',{exact:true}).waitFor();assert.equal(saved.contact_id,1);assert.equal(saved.customer_type,undefined);
  await page.getByRole('button',{name:'Follow Up',exact:true}).click();await page.getByRole('button',{name:'Lead Temperature',exact:true}).getByText('Cold',{exact:true}).waitFor();await page.getByRole('button',{name:'Cancel',exact:true}).click();
  await page.goto('http://127.0.0.1:5173/followup-logs');await page.getByRole('columnheader',{name:'Contact',exact:true}).waitFor();await page.locator('tbody').getByText('Contact 01',{exact:true}).waitFor();
+ role='Admin';await page.goto('http://127.0.0.1:5173/contacts/1');await page.getByRole('button',{name:'Edit Contact',exact:true}).click();
+ const editDialog=page.getByRole('dialog',{name:'Edit Contact',exact:true});
+ await editDialog.getByRole('button',{name:'Category',exact:true}).click();await page.getByRole('option',{name:'Residential',exact:true}).click();
+ await editDialog.getByRole('textbox',{name:'name',exact:true}).fill('Edited contact');
+ await editDialog.getByRole('button',{name:'Save Contact',exact:true}).click();await editDialog.waitFor({state:'hidden'});await page.waitForURL('**/contacts/updated-today');assert.equal(savedContact.name,'Edited contact');
  role='Store';await page.goto('http://127.0.0.1:5173/contacts');await page.getByText('21 contacts',{exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'Add Contact',exact:true}).count(),0);assert.equal(await page.getByRole('button',{name:'Follow up Contact 01',exact:true}).count(),0);
  assert.deepEqual(errors,[]);await browser.close();console.log('CRM browser checks passed: pagination, shared follow-ups, Requirement Received, canonical Lead form, log targets and Viewer permissions.');
 })().catch(e=>{console.error(e);process.exit(1);});
