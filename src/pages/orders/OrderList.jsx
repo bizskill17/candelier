@@ -7,6 +7,7 @@ import SearchSelect from '../../components/SearchSelect';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate, today, ItemStage, ORDER_STATUSES } from '../../lib/util';
 import DispatchDialog from './DispatchDialog';
+import { PhotoThumb } from '../../components/Photo';
 import { ItemText } from '../../lib/items';
 import { FileDown } from 'lucide-react';
 import { useCatalog } from '../../lib/catalog';
@@ -70,7 +71,7 @@ export default function OrderList() {
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const currentPage = Math.min(page, pages);
   const visibleRows = rows.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
-  const columns = 12;
+  const columns = 13;
   const orderByName = (o) => o.order_by_name || users.find(u => String(u.id) === String(o.order_by_id))?.name || '—';
 
   return (
@@ -91,7 +92,7 @@ export default function OrderList() {
           <table className="w-full min-w-[1280px] border-collapse text-sm">
             <thead className={theadCls}>
               <tr>
-                {['Order No.', 'Item', 'Order Date', 'Customer', 'Project', 'Area', 'Order Item', 'Remarks', 'Order By', 'Delivery Date', 'Stage', 'Action'].map(label =>
+                {['Order No.', 'Item', 'Order Date', 'Customer', 'Project', 'Area', 'Order Item', 'Reference Image', 'Remarks', 'Order By', 'Delivery Date', 'Stage', 'Action'].map(label =>
                   <th key={label} className={thCls}>{label}</th>
                 )}
               </tr>
@@ -111,6 +112,7 @@ export default function OrderList() {
                   <td className={tdCls}>{o.project_name || '—'}</td>
                   <td className={tdCls}>{it.area || '—'}</td>
                   <td className={`${tdCls} min-w-[215px]`}><ItemText item={it}/></td>
+                  <td className={tdCls}>{it.reference_image ? <PhotoThumb path={it.reference_image} title={`Reference Image — ${o.order_no} item ${it.line_no}`} /> : <span className="text-gray-300">—</span>}</td>
                   <td className={`${tdCls} min-w-[120px] whitespace-pre-wrap`}>{it.remarks || '—'}</td>
                   <td className={tdCls}>{orderByName(o)}</td>
                   <td className={`${tdCls} whitespace-nowrap`}>{late && <AlertTriangle size={13} className="mr-1 inline text-red-600"/>}{fmtDate(o.delivery_date)}</td>

@@ -9,7 +9,6 @@ import DateInput from '../../components/DateInput';
 import AutoTextarea from '../../components/AutoTextarea';
 import ItemSpecCell from '../../components/ItemSpec';
 import { PhotoSlot } from '../../components/Photo';
-import { DrawingSlot } from '../../components/Drawing';
 import { useItemFields } from '../../lib/items';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { inputCls } from '../../components/table';
@@ -193,14 +192,14 @@ export default function OrderForm({ id, leadId }) {
             <span className="text-xs text-gray-500">Each item is one piece · {items.filter((it) => !isBlank(it)).length} items</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: isEdit ? 1500 : 760 }}>
+            <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: isEdit ? 1500 : 920 }}>
               <thead className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                 <tr>
                   <th className={`${th} w-10 border-l-0 text-center`}>#</th>
                   <th className={`${th} ${isEdit ? 'w-48' : 'w-[20%]'}`}>Area</th>
                   <th className={th}>Order Item</th>
                   <th className={`${th} ${isEdit ? 'w-60' : 'w-[26%]'}`}>Remarks</th>
-                  {isEdit && <th className={`${th} w-40`}>Photos / Drawing</th>}
+                  <th className={`${th} w-32`}>Reference Image</th>
                   {isEdit && <th className={`${th} w-28`}>Stage</th>}
                   {isEdit && <th className={`${th} w-[10.5rem] text-center`}>BOQ / Dispatch</th>}
                   {!locked && <th className={`${th} w-24 border-r-0 text-center`}>Action</th>}
@@ -219,13 +218,9 @@ export default function OrderForm({ id, leadId }) {
                         {errors[`items.${i}.values`] && <p className="mt-1 text-xs text-red-600">{errors[`items.${i}.values`]}</p>}
                       </td>
                       <td className={td}><AutoTextarea aria-label={`Remarks, item ${n}`} disabled={locked} value={it.remarks} onChange={(v) => setItem(i, 'remarks', v)} placeholder="e.g. Hang height 14 ft" className={inputCls(errors[`items.${i}.remarks`])} /></td>
-                      {isEdit && <td className={td}>
-                        <div className="flex gap-1.5">
-                          <PhotoSlot compact id={`o-item-${i}-component`} label="Component Picture" value={it.component_image} onChange={(v) => setItem(i, 'component_image', v)} disabled={locked} error={errors[`items.${i}.component_image`]} />
-                          <PhotoSlot compact id={`o-item-${i}-reference`} label="Reference Image" value={it.reference_image} onChange={(v) => setItem(i, 'reference_image', v)} disabled={locked} error={errors[`items.${i}.reference_image`]} />
-                        </div>
-                        <div className="mt-1.5"><DrawingSlot id={`o-item-${i}-drawing`} title={`Item ${n}`} path={it.drawing_file} name={it.drawing_name} onChange={(p, nm) => { setItem(i, 'drawing_file', p); setItem(i, 'drawing_name', nm); }} disabled={locked} error={errors[`items.${i}.drawing_file`]} /></div>
-                      </td>}
+                      <td className={td}>
+                        <PhotoSlot id={`o-item-${i}-reference`} label="Reference Image" value={it.reference_image} onChange={(v) => setItem(i, 'reference_image', v)} disabled={locked} error={errors[`items.${i}.reference_image`]} />
+                      </td>
                       {isEdit && <td className={`${td} px-3 py-3`}>{s ? <><ItemStage stage={s.stage} />{s.dispatch && <div className="mt-1 text-xs text-gray-500">{fmtDate(s.dispatch.dispatch_date)}</div>}</> : <span className="text-xs text-gray-400">New</span>}</td>}
                       {isEdit && (
                         <td className={`${td} py-2.5 text-center`}>
