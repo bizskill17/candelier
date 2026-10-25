@@ -1,3 +1,4 @@
+import { useAuth } from '../../auth/AuthContext';
 import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -10,20 +11,21 @@ import { Badge } from '../../lib/util';
 import { ItemDetailLines } from '../../lib/items';
 
 // Order items whose BOQ is not made yet (open orders, not dispatched), earliest delivery first.
-export default function BoqMaster() {
+export default function BoqMaster({pendingIssue=false}) {
+  const {canCreateStock}=useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
-  const list = (rows || []).filter((it) => !status || it.boq_status === status);
+  const list = (rows || []).filter((it) => !status || (pendingIssue?it.issue_status:it.boq_status) === status);
 
   useEffect(() => { const t = setTimeout(() => setQ(search), 300); return () => clearTimeout(t); }, [search]);
   const load = useCallback(() => {
     setLoadError('');
-    ordersApi.boqMaster(q).then((r) => setRows(r.data)).catch((e) => setLoadError(e.message));
-  }, [q]);
+    (pendingIssue?ordersApi.pendingIssue(q):ordersApi.boqMaster(q)).then((r) => setRows(r.data)).catch((e) => setLoadError(e.message));
+  }, [q,pendingIssue]);
   useEffect(() => { load(); }, [load]);
 
   const pagination = usePagination(list, JSON.stringify([q, status]));
@@ -34,12 +36,12 @@ export default function BoqMaster() {
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <SearchSelect id="boq-status" className="w-44" options={[{ value: '', label: 'All statuses' }, { value: 'Draft', label: 'Draft' }, { value: 'Final', label: 'Final' }]} value={status} onChange={setStatus} placeholder="All statuses" />
+        <SearchSelect id="boq-status" className="w-44" options={[{ value: '', label: 'All statuses' }, ...(pendingIssue?[{value:'Not Issued',label:'Not Issued'},{value:'Partially Issued',label:'Partially Issued'}]:[{ value: 'Draft', label: 'Draft' }, { value: 'Final', label: 'Final' }])]} value={status} onChange={setStatus} placeholder="All statuses" />
         <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
           <Search size={16} className="text-gray-400" />
           <input id="search-boq-master" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search order no., customer, project, area, item…" className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
-        {rows && <span className="text-sm text-gray-500">{list.length} {list.length === 1 ? 'item' : 'items'} with saved BOQ</span>}
+        {rows && <span className="text-sm text-gray-500">{list.length} {list.length === 1 ? 'item' : 'items'} {pendingIssue?'pending material issue':'with saved BOQ'}</span>}
       </div>
       <div className={tableWrap}>
         <div className="overflow-x-auto">
@@ -55,7 +57,7 @@ export default function BoqMaster() {
                 <th className={th}>Order Item</th>
                 <th className={th}>Remarks</th>
                 <th className={th}>Delivery Date</th>
-                <th className={th}>BOQ Status</th>
+                <th className={th}>{pendingIssue?'Issue Status':'BOQ Status'}</th>
                 <th className={`${th} text-center`}>Action</th>
               </tr>
             </thead>
@@ -76,9 +78,9 @@ export default function BoqMaster() {
                     <td className={`${td} min-w-[14rem]`}><ItemDetailLines details={it.details} empty={DASH} /></td>
                     <td className={`${td} min-w-[10rem] text-gray-700`}>{it.remarks || DASH}</td>
                     <td className={`${td} whitespace-nowrap tabular-nums`}>{it.delivery_date ? <span className={late ? 'inline-flex items-center gap-1 font-medium text-red-600' : ''}>{late && <AlertTriangle size={12} />}{fmtDate(it.delivery_date)}</span> : DASH}</td>
-                    <td className={td}><Badge color={it.boq_status === 'Final' ? 'green' : 'amber'}>{it.boq_status}</Badge></td>
+                    <td className={td}><Badge color={it.boq_status === 'Final' ? 'green' : 'amber'}>{pendingIssue?it.issue_status:it.boq_status}</Badge></td>
                     <td className={`${td} text-center`}>
-                      <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700"><ClipboardList size={13} /> Open BOQ</button>
+                      <button onClick={() => navigate(pendingIssue&&canCreateStock?`/material-issue/new/item/${it.id}`:`/boq/${it.id}`)} className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700"><ClipboardList size={13} /> {pendingIssue&&canCreateStock?'Issue Material':'Open BOQ'}</button>
                     </td>
                   </tr>
                 );

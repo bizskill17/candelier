@@ -16,7 +16,7 @@ import { parseMaterialCsv } from '../../lib/materialCsv';
 
 const UNITS = ['Nos', 'Pcs', 'Set', 'Pair', 'Mtr', 'Ft', 'Kg', 'g', 'Box', 'Roll', 'Coil', 'Ltr'];
 export default function MaterialsPage() {
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateStock } = useAuth();
   const toast = useToast();
   const cat = useCatalog();
   const file = useRef(null);
@@ -52,7 +52,7 @@ export default function MaterialsPage() {
   return <div className="mx-auto max-w-6xl space-y-4">
     <div className="flex flex-wrap gap-2">
       <label className="flex min-w-52 flex-1 items-center gap-2 rounded-lg border bg-white px-3 py-2"><Search size={16} /><input aria-label="Search materials" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search code, material or category…" className="w-full text-sm outline-none" /></label>
-      {canEdit && <><button onClick={template} className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Download size={15} /> Template</button><button onClick={() => file.current.click()} className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Upload size={15} /> Bulk Upload</button><input ref={file} type="file" accept=".csv,text/csv" hidden onChange={readUpload} /><button onClick={() => setEditing({})} className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm text-white"><Plus size={16} /> Add</button></>}
+      {canCreateStock && <><button onClick={template} className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Download size={15} /> Template</button><button onClick={() => file.current.click()} className="flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Upload size={15} /> Bulk Upload</button><input ref={file} type="file" accept=".csv,text/csv" hidden onChange={readUpload} /><button onClick={() => setEditing({})} className="flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm text-white"><Plus size={16} /> Add</button></>}
     </div>
     <div className={tableWrap}><div className="overflow-x-auto"><table className="w-full min-w-[620px] border-collapse text-sm"><thead className={theadCls}><tr>{['Material Code', 'Photo', 'Material Category', 'Material', 'Unit', 'Status', 'Action'].map((t) => <th key={t} className={thCls}>{t}</th>)}</tr></thead><tbody>
       {error && <tr><td colSpan={7} className={`${tdCls} text-red-600`}>{error} <button onClick={load}>Retry</button></td></tr>}
@@ -60,7 +60,7 @@ export default function MaterialsPage() {
       {rows && !list.length && <tr><td colSpan={7} className={`${tdCls} py-10 text-center text-gray-500`}>No materials found.</td></tr>}
       {pagination.rows.map((m) => <tr key={m.id}><td className={tdCls}>{m.material_code || <span className="text-xs text-amber-700">Code required</span>}</td><td className={tdCls}>{m.photo_path ? <PhotoThumb path={m.photo_path} title={m.name}/> : <span className="text-xs text-amber-700">Photo pending</span>}</td><td className={tdCls}>{m.category_name}</td><td className={`${tdCls} font-medium`}>{m.name}</td><td className={tdCls}>{m.unit}</td><td className={tdCls}><Toggle checked={m.is_active} onChange={() => toggle(m)} disabled={!canEdit} label={m.is_active ? 'Active' : 'Inactive'} /></td><td className={tdCls}><button onClick={() => setEditing(m)} className="inline-flex items-center gap-1 text-brand-600"><Pencil size={14} /> {canEdit ? 'Edit' : 'Open'}</button></td></tr>)}
     </tbody></table></div><Pagination {...pagination} /></div>
-    {editing && <MaterialForm material={editing} readOnly={!canEdit} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
+    {editing && <MaterialForm material={editing} readOnly={editing.id ? !canEdit : !canCreateStock} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
     {upload && <Modal open wide title="Import Materials" onClose={() => !busy && setUpload(null)} footer={<><button disabled={busy} onClick={() => setUpload(null)} className="px-3 py-2">Cancel</button><button disabled={busy} onClick={importRows} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy ? 'Importing…' : `Import ${upload.rows.length} materials`}</button></>}>
       <p className="mb-3 text-sm text-gray-600">Create the categories first. Unit must be one of: {UNITS.join(', ')}. Up to 500 rows per upload. Every row requires a unique Material Code. Photos can be added later by editing the material.</p>
       {Object.entries(upload.errors).map(([row, message]) => <p key={row} className="text-sm text-red-600">{row}: {message}</p>)}

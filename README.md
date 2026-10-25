@@ -60,7 +60,7 @@ Do not manually merge or delete stock identities.
 
 React 18 + Vite + Tailwind; PHP 8 + MySQL/MariaDB. Import `database/schema.sql` into an empty
 database. Configure `api/config.php` using `api/config.sample.php`. First sign-in creates an Admin.
-Admin manages Users; Staff manages operations; Viewer is read-only.
+Admin manages Users and corrections; Sales manages shared CRM and assigned Orders/BOQs; Store manages stock, production completion and dispatch.
 
 Build with `npm install` and `npm run build`. Upload `dist/` contents and `api/` to `public_html`.
 Preserve `api/config.php` and `uploads/`. GitHub Actions deploys main after build, syntax,
@@ -105,3 +105,31 @@ schema on both fresh installations and upgrades. Do not reimport it over an upgr
 identity, schedules, atomic Lead creation, retry protection and Customer membership
 are tested by `tests/crm.php` inside `tests/workflow.php`. The validation workflow
 also exercises the CRM browser screens alongside operational UI checks.
+
+## Roles and Order assignment
+
+Only Admin edits, deletes or cancels saved records. Sales may create Contacts,
+Leads, follow-ups and Orders. All Sales users share CRM visibility; only assigned
+Orders and their BOQs are visible to each salesperson. Sales-created Orders are
+assigned to the signed-in Sales user; Admin selects or reassigns an active Sales
+user through Assigned Salesperson. Sales may continue a Pending/Draft BOQ and
+finalise it. Once Final, only Admin may correct it.
+
+Store views all Orders and Final BOQs, creates material receipts/issues/damage,
+new materials and selected store masters, appends new opening-stock rows, completes
+production and records dispatch. Only Admin changes existing entries, Order
+remarks, reverses completion, edits dispatch or undoes it. Store dispatch requires
+completed production. Sales can read stock availability but not the stock ledger.
+All permissions and ownership restrictions are enforced in PHP, including details,
+counts, dropdowns, BOQ copy sources, CRM Order links, item suggestions and exports.
+
+The migration preserves user IDs and snapshots original users in backup_roles_users.
+Staff becomes Sales. Former Viewer accounts become inactive Sales pending Admin
+review, so read-only users never silently gain write access. Existing Orders are
+assigned only when their existing Order By user is Sales; remaining unassigned
+Orders stay visible to Admin/Store until Admin assigns them. No new users are created.
+
+BOQ Master is labelled Orders with BOQ; its old URL remains valid. Orders Pending
+Material Issue lists Final BOQ items with remaining quantities, including partial
+issues; cancelled/dispatched items are excluded. It is scoped to assigned Orders
+for Sales and provides Issue Material for Store/Admin. Lists paginate after 20 rows.

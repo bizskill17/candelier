@@ -14,7 +14,7 @@ import { today } from '../../lib/util';
 //   item: { id, line_no, item_title, dispatch }   label: shown in the title
 export default function DispatchDialog({ item, label, onClose, onDone }) {
   const toast = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const d = item.dispatch;
   const [form, setForm] = useState({
     dispatch_by: d?.dispatch_by || user?.name || '', dispatch_document: d?.dispatch_document || '', dispatch_document_name: d?.dispatch_document_name || '',
@@ -72,7 +72,7 @@ export default function DispatchDialog({ item, label, onClose, onDone }) {
   return (
     <Modal open wide title="Dispatch Form" onClose={onClose}
       footer={<>
-        {d && <button onClick={undo} disabled={busy || uploading || addingBusy} className="mr-auto rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Undo dispatch</button>}
+        {d && isAdmin && <button onClick={undo} disabled={busy || uploading || addingBusy} className="mr-auto rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Undo dispatch</button>}
         <button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
         <button onClick={save} disabled={busy || uploading || addingBusy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : d ? 'Save' : 'Dispatch'}</button>
       </>}>

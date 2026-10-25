@@ -28,7 +28,7 @@ export default function MasterPage({ module }) {
   const entity = module.key;
   const def = masters[entity];
   const toast = useToast();
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateMaster } = useAuth();
 
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
@@ -189,7 +189,7 @@ export default function MasterPage({ module }) {
             >
               <Download size={16} /> {exporting ? 'Preparing…' : 'Excel'}
             </button>}
-            {canEdit && <button
+            {canCreateMaster(entity) && <button
               onClick={() => setEditing('new')}
               aria-label={`Add ${def.singular}`}
               className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"

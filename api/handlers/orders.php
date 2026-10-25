@@ -51,15 +51,15 @@ function order_items_route(string $method, array $parts): void
 
 // ---------------------------------------------------------------------------
 
-const ORDER_SELECT = 'SELECT o.*, c.name AS customer_name, c.city AS customer_city, ub.name AS order_by_name,
+const ORDER_SELECT = 'SELECT o.*, c.name AS customer_name, c.city AS customer_city, ub.name AS order_by_name, assignee.name AS assigned_salesperson_name,
                              (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id) AS item_count,
                              (SELECT COUNT(*) FROM order_items i JOIN dispatches d ON d.order_item_id = i.id WHERE i.order_id = o.id) AS dispatched_count,
                              (SELECT COUNT(*) FROM order_items i WHERE i.order_id = o.id AND i.boq_status = \'Final\') AS boq_count
-                        FROM orders o JOIN customers c ON c.id = o.customer_id LEFT JOIN users ub ON ub.id = o.order_by_id';
+                        FROM orders o JOIN customers c ON c.id = o.customer_id LEFT JOIN users ub ON ub.id = o.order_by_id LEFT JOIN users assignee ON assignee.id=o.assigned_salesperson_id';
 
 function order_cast(array $r): array
 {
-    foreach (['id', 'customer_id', 'item_count', 'dispatched_count', 'boq_count'] as $k) {
+    foreach (['id', 'assigned_salesperson_id', 'customer_id', 'item_count', 'dispatched_count', 'boq_count'] as $k) {
         if (isset($r[$k])) $r[$k] = (int) $r[$k];
     }
     $r['order_by_id'] = $r['order_by_id'] === null ? null : (int) $r['order_by_id'];
@@ -68,7 +68,7 @@ function order_cast(array $r): array
 
 function order_list(): array
 {
-    $where = [];
+    $where = [order_visibility_sql()];
     $params = [];
     $status = $_GET['status'] ?? '';
     if ($status === 'open') $where[] = "o.status IN ('Open', 'Partly Dispatched')";
@@ -86,7 +86,7 @@ function order_list(): array
     $total = (int) db_value('SELECT COUNT(*) FROM (' . ORDER_SELECT . "$whereSql) x", $params);
     $rows = db_all(ORDER_SELECT . "$whereSql ORDER BY o.order_date DESC, o.id DESC LIMIT $perPage OFFSET $offset", $params);
     $counts = array_fill_keys(ORDER_STATUSES, 0);
-    foreach (db_all('SELECT status, COUNT(*) AS n FROM orders GROUP BY status') as $r) $counts[$r['status']] = (int) $r['n'];
+    foreach (db_all('SELECT o.status, COUNT(*) AS n FROM orders o WHERE '.order_visibility_sql().' GROUP BY o.status') as $r) $counts[$r['status']] = (int) $r['n'];
     return ['data' => array_map('order_cast', $rows), 'total' => $total, 'page' => $page, 'per_page' => $perPage, 'counts' => $counts];
 }
 
@@ -99,6 +99,7 @@ function item_stage(array $it): string
 
 function order_items_of(int $orderId): array
 {
+    require_order_access($orderId);
     $items = db_all(
         'SELECT i.*, i.id AS order_item_id,
                 d.id AS dispatch_id, d.dispatch_no, d.dispatch_date, d.transporter_id, t.name AS transporter_name, d.vehicle_no, d.docket_no, d.dispatch_by, d.dispatch_document, d.dispatch_document_name, d.remarks AS dispatch_remarks,
@@ -117,7 +118,7 @@ function order_items_of(int $orderId): array
             'item_title' => $i['item_title'], 'item_info' => $i['item_info'], 'remarks' => $i['remarks'],
             'component_image' => $i['component_image'], 'reference_image' => $i['reference_image'],
             'drawing_file' => $i['drawing_file'], 'drawing_name' => $i['drawing_name'],
-            'boq_status' => $i['boq_status'], 'boq_lines' => (int) $i['boq_lines'],
+            'boq_status' => $i['boq_status'], 'production_status'=>$i['production_status'], 'boq_lines' => (int) $i['boq_lines'],
             'issue_count' => (int) $i['issue_count'],
             'booked_lines' => count(array_filter($bf['items'][(int) $i['id']] ?? [], fn ($f) => $f['open'] > 0)),
             'dispatch' => $i['dispatch_id'] ? [
@@ -133,6 +134,7 @@ function order_items_of(int $orderId): array
 
 function order_find(int $id): array
 {
+    require_order_access($id);
     $o = db_one(ORDER_SELECT . ' WHERE o.id = :id', ['id' => $id]);
     if (!$o) throw new ApiError('Order not found. It may have been deleted.', 404);
     $o = order_cast($o);
@@ -144,6 +146,12 @@ function order_find(int $id): array
 
 function order_validate(?array $existing, array $in): array
 {
+    $assignee=(int)($in['assigned_salesperson_id']??($existing['assigned_salesperson_id']??0));
+    if(app_role()==='Sales') {
+        if($assignee && $assignee!==(int)current_user()['id'])throw new ApiError('Sales may create Orders only for themselves.',403);
+        $assignee=(int)current_user()['id'];
+    }
+    if((!$existing || $assignee) && !db_value("SELECT COUNT(*) FROM users WHERE id=:id AND role='Sales' AND is_active=1",['id'=>$assignee]))throw new ApiError('Choose an active Assigned Salesperson.',422,['assigned_salesperson_id'=>'Choose an active Sales user.']);
     $errors = [];
     $h = [];
     $cid = (int) ($in['customer_id'] ?? 0);
@@ -151,6 +159,7 @@ function order_validate(?array $existing, array $in): array
     if (!$c) $errors['customer_id'] = 'Choose a customer.';
     elseif (!$c['is_active'] && (!$existing || $existing['customer_id'] !== $cid)) $errors['customer_id'] = "{$c['name']} is inactive.";
     $h['customer_id'] = $cid;
+    $h['assigned_salesperson_id']=$assignee?:null;
     $pn = preg_replace('/\s+/', ' ', trim((string) ($in['project_name'] ?? '')));
     if (mb_strlen($pn) > 150) $errors['project_name'] = 'Keep this under 150 characters.';
     $h['project_name'] = $pn === '' ? null : $pn;
@@ -220,6 +229,8 @@ function order_validate(?array $existing, array $in): array
 
 function order_save(?int $id, array $in): array
 {
+    if($id)require_admin();else require_roles(['Admin','Sales']);
+    if(!$id&&app_role()==='Sales')$in['order_by_id']=current_user()['id'];
     $existing = $id !== null ? order_find($id) : null;
     if ($existing && $existing['status'] === 'Cancelled') throw new ApiError("Order {$existing['order_no']} is cancelled. Reopen it to make changes.", 409);
     [$h, $items] = order_validate($existing, $in);
@@ -293,6 +304,7 @@ function order_refresh_status(int $orderId): void
 
 function order_set_status(int $id, array $in): array
 {
+    require_admin();
     $o = order_find($id);
     $action = $in['status'] ?? '';
     if ($action === 'Cancelled') {
@@ -310,6 +322,7 @@ function order_set_status(int $id, array $in): array
 
 function order_delete(int $id): array
 {
+    require_admin();
     $o = order_find($id);
     $ids = array_column($o['items'], 'id');
     if ($ids) {
@@ -356,6 +369,7 @@ function item_cast(array $r): array
 
 function item_find(int $id): array
 {
+    require_item_access($id);
     $r = db_one(ITEM_SELECT . ' WHERE i.id = :id', ['id' => $id]);
     if (!$r) throw new ApiError('Order item not found.', 404);
     return item_cast($r);
@@ -364,18 +378,20 @@ function item_find(int $id): array
 // Open (not dispatched, order not cancelled) items for dropdowns; include one more by id.
 function order_items_lookup(): array
 {
+    if (!empty($_GET['pending_issue'])) return pending_material_issue();
     if (!empty($_GET['saved_boq'])) return saved_boq();
     if (!empty($_GET['pending_boq'])) return pending_boq();
     $inc = (int) ($_GET['include'] ?? 0);
-    $final = !empty($_GET['final_boq']) ? " AND i.boq_status = 'Final'" : '';
-    $rows = db_all(ITEM_SELECT . " WHERE (o.status <> 'Cancelled' AND d.id IS NULL$final) OR i.id = :inc ORDER BY o.order_date DESC, o.id DESC, i.line_no", ['inc' => $inc]);
+    $final = (app_role()==='Store'||!empty($_GET['final_boq'])) ? " AND i.boq_status = 'Final'" : '';
+    $rows = db_all(ITEM_SELECT . " WHERE ((o.status <> 'Cancelled' AND d.id IS NULL$final) OR i.id = :inc)$final AND " . order_visibility_sql() . " ORDER BY o.order_date DESC, o.id DESC, i.line_no", ['inc' => $inc]);
     return ['data' => items_cast($rows)];
 }
 
 // Pending BOQ: items of open orders whose BOQ is not saved yet, earliest delivery first.
 function pending_boq(): array
 {
-    $where = "i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND d.id IS NULL";
+    $where = "i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND d.id IS NULL AND ".order_visibility_sql();
+    if(app_role()==='Store')$where.=' AND 1=0';
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
@@ -389,6 +405,7 @@ function pending_boq(): array
 
 function dispatch_save(int $itemId, array $in): array
 {
+    require_roles(['Admin','Store']);
     $it = item_find($itemId);
     if ($it['order_status'] === 'Cancelled') throw new ApiError("Order {$it['order_no']} is cancelled.", 409);
     $errors = [];
@@ -417,8 +434,10 @@ function dispatch_save(int $itemId, array $in): array
         db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $itemId]);
         $it = item_find($itemId);
         if ($it['order_status'] === 'Cancelled') throw new ApiError('This order is cancelled.', 409);
+        if(app_role()==='Store'&&!$it['dispatch_id']&&($it['production_status']!=='Complete'||!db_value('SELECT COUNT(*) FROM material_issues WHERE order_item_id=:i',['i'=>$itemId])))throw new ApiError('Complete production before dispatching this item.',409);
         $h['updated_at'] = now();
         if ($it['dispatch_id']) {
+            require_admin();
             $set = implode(', ', array_map(fn ($c) => "$c = :$c", array_keys($h)));
             $pdo->prepare("UPDATE dispatches SET $set WHERE id = :id")->execute($h + ['id' => $it['dispatch_id']]);
             $msg = "Dispatch of {$it['label']} updated.";
@@ -441,6 +460,7 @@ function dispatch_save(int $itemId, array $in): array
 
 function dispatch_delete(int $itemId): array
 {
+    require_admin();
     $it = item_find($itemId);
     if (!$it['dispatch_id']) throw new ApiError('This item has not been dispatched.', 409);
     db()->prepare('DELETE FROM dispatches WHERE id = :id')->execute(['id' => $it['dispatch_id']]);
@@ -450,7 +470,7 @@ function dispatch_delete(int $itemId): array
 
 function dispatch_list(): array
 {
-    $where = [];
+    $where = [order_visibility_sql()];
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
@@ -475,7 +495,8 @@ function dispatch_list(): array
 
 function saved_boq(): array
 {
-    $where = "i.boq_status IN ('Draft', 'Final')";
+    $where = "i.boq_status IN ('Draft', 'Final') AND ".order_visibility_sql();
+    if(app_role()==='Store')$where.=" AND i.boq_status='Final'";
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
@@ -485,4 +506,15 @@ function saved_boq(): array
     }
     $rows = db_all(ITEM_SELECT . " WHERE $where ORDER BY o.order_date DESC, o.id DESC, i.line_no", $params);
     return ['data' => items_cast($rows)];
+}
+
+function pending_material_issue(): array
+{
+    $where=order_visibility_sql()." AND i.boq_status='Final' AND o.status<>'Cancelled' AND d.id IS NULL AND EXISTS (
+        SELECT 1 FROM boq_lines b WHERE b.order_item_id=i.id AND b.qty_required>(SELECT COALESCE(SUM(x.quantity),0) FROM material_issue_items x JOIN material_issues h ON h.id=x.issue_id WHERE h.order_item_id=i.id AND x.variant_id=b.variant_id))";
+    $params=[];$q=trim((string)($_GET['q']??''));
+    if($q!==''){$where.=' AND (o.order_no LIKE :q1 OR c.name LIKE :q2 OR o.project_name LIKE :q3 OR i.area LIKE :q4)';for($n=1;$n<=4;$n++)$params['q'.$n]="%$q%";}
+    $rows=items_cast(db_all(ITEM_SELECT." WHERE $where ORDER BY o.delivery_date IS NULL,o.delivery_date,o.id,i.line_no",$params));
+    foreach($rows as&$row)$row['issue_status']=db_value('SELECT COUNT(*) FROM material_issues h JOIN material_issue_items x ON x.issue_id=h.id WHERE h.order_item_id=:i AND x.quantity>0',['i'=>$row['id']])?'Partially Issued':'Not Issued';
+    return ['data'=>$rows];
 }

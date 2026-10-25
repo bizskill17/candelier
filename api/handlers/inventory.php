@@ -80,6 +80,7 @@ function inventory_list(): array
 
 function inventory_detail(int $vid): array
 {
+    require_roles(['Admin','Store']);
     $v = db_one('SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.unit FROM material_variants v JOIN materials m ON m.id = v.material_id WHERE v.id = :id', ['id' => $vid]);
     if (!$v) throw new ApiError('Material not found.', 404);
     $moves = db_all('SELECT * FROM stock_moves WHERE variant_id = :v ORDER BY move_date, id', ['v' => $vid]);
@@ -178,11 +179,12 @@ function low_stock(): array
 
 function dashboard(): array
 {
+    $scope=order_visibility_sql();
     $today = date('Y-m-d');
     return ['data' => [
-        'open_orders' => (int) db_value("SELECT COUNT(*) FROM orders WHERE status IN ('Open', 'Partly Dispatched')"),
-        'boq_pending' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
-        'to_dispatch' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
+        'open_orders' => (int) db_value("SELECT COUNT(*) FROM orders o WHERE $scope AND status IN ('Open', 'Partly Dispatched')"),
+        'boq_pending' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE $scope AND i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
+        'to_dispatch' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE $scope AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
         'low_stock' => count(array_filter(inventory_rows(), fn ($r) => $r['is_low'])),
         'followups_today' => (int) db_value("SELECT COUNT(*) FROM crm_lead_current WHERE status = 'Open' AND further_followup_required=1 AND next_followup_date = :d", ['d' => $today]),
         'followups_overdue' => (int) db_value("SELECT COUNT(*) FROM crm_lead_current WHERE status = 'Open' AND further_followup_required=1 AND next_followup_date < :d", ['d' => $today]),

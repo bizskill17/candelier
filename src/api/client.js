@@ -101,6 +101,7 @@ export const itemsApi = {
 export const imageUrl = (path) => (!path ? '' : /^(data:|blob:|https?:)/.test(path) ? path : `/${path}`);
 
 export const ordersApi = {
+  pendingIssue: q => request('GET','order-items',{params:{pending_issue:1,q}}),
   list: (params) => request('GET', 'orders', { params }),
   get: (id) => request('GET', `orders/${id}`),
   create: (body) => request('POST', 'orders', { body }),
@@ -142,6 +143,7 @@ export const docsApi = {
   issuePrefill: (orderItemId, exceptId) => request('GET', 'docs/issue-prefill', { params: { order_item_id: orderItemId, except_id: exceptId } }),
   opening: () => request('GET', 'opening-stock'),
   saveOpening: (lines) => request('PUT', 'opening-stock', { body: { lines } }),
+  addOpening: (lines) => request('POST', 'opening-stock', { body: { lines } }),
 };
 
 export const inventoryApi = {

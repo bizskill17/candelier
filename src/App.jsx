@@ -38,6 +38,7 @@ export default function App() {
           <Route path="follow-ups" element={<FollowUps />} />
           <Route path="followup-logs" element={<FollowUpLogs />} />
           <Route path="orders/*" element={<OrdersPage />} />
+          <Route path="pending-material-issue" element={<BoqMaster pendingIssue />} />
           <Route path="boq-master" element={<BoqMaster />} />
           <Route path="boq/*" element={<BoqPage />} />
           <Route path="production-in-progress" element={<ProductionPage key="in-progress" status="In Progress" />} />

@@ -1,8 +1,8 @@
 <?php
 // Login with PHP sessions. Roles:
 //   Admin  – everything, including Users
-//   Staff  – everything except Users
-//   Viewer – can look at everything, cannot change anything
+//   Sales – shared CRM, assigned Orders and Draft BOQs
+//   Store – stock operations, production completion and dispatch
 //
 //   GET  auth/me         { user, needs_setup }
 //   POST auth/setup      { name, username, password }   only while there are no users
@@ -30,11 +30,15 @@ function session_begin(): void
 function current_user(): ?array
 {
     static $user = false;
-    if ($user !== false) {
+    static $cachedId = null;
+    session_begin();
+    $id = $_SESSION['uid'] ?? null;
+    if ($user !== false && $cachedId === $id) {
         return $user;
     }
     session_begin();
     $id = $_SESSION['uid'] ?? null;
+    $cachedId = $id;
     $user = null;
     if ($id) {
         $u = db_one('SELECT id, code, name, username, role, is_active FROM users WHERE id = :id', ['id' => $id]);

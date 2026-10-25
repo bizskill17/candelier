@@ -33,9 +33,9 @@ crm_followup_save(['lead_id'=>$lid,'entry_type'=>'Status Update','activity_at'=>
 check(lead_find($lid)['status']==='Success'&&lead_find($lid)['temperature']==='Warm','Latest history determines Lead status and temperature');
 check((int)lead_find($lid)['followup_count']===1,'Status-only updates do not count as actual attempts');
 check((int)contact_find($cid)['order_count']===0,'Successful Lead alone does not create a Customer');
-$placed=order_save(null,['customer_id'=>$cid,'lead_id'=>$lid,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'CRM test room']]])['data'];
+$placed=order_save(null,['assigned_salesperson_id'=>$salesUser,'customer_id'=>$cid,'lead_id'=>$lid,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'CRM test room']]])['data'];
 check((int)contact_find($cid)['order_count']===1,'Placing Order makes the same Contact a Customer');
-reject(fn()=>order_save((int)$placed['id'],['customer_id'=>$customer,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['id'=>$placed['items'][0]['id'],'area'=>'CRM test room']]]),'Linked Order cannot be moved to a different Contact');
+reject(fn()=>order_save((int)$placed['id'],['assigned_salesperson_id'=>$salesUser,'customer_id'=>$customer,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['id'=>$placed['items'][0]['id'],'area'=>'CRM test room']]]),'Linked Order cannot be moved to a different Contact');
 check((int)db_value('SELECT contact_id FROM leads WHERE id='.$lid)===$cid,'Order creation does not duplicate Contact');
 order_delete((int)$placed['id']);
 check((int)contact_find($cid)['order_count']===0,'Customer view follows current non-cancelled Orders');

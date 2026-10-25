@@ -83,6 +83,7 @@ function material_validate(?int $id, array $in, bool $allowMissingPhoto = false)
 
 function material_save(?int $id, array $in, bool $allowMissingPhoto = false): array
 {
+    if($id)require_admin();else require_roles(['Admin','Store']);
     if ($id) material_find($id);
     $data = material_validate($id, $in, $allowMissingPhoto);
     $pdo = db();
@@ -139,6 +140,7 @@ function material_bulk(array $in): array
 
 function material_delete(int $id): array
 {
+    require_admin();
     $m = material_find($id);
     foreach (db_all("SELECT boq_draft_json FROM order_items WHERE boq_status = 'Draft' AND boq_draft_json IS NOT NULL") as $draft) {
         foreach (json_decode($draft['boq_draft_json'], true) ?: [] as $line) {
@@ -169,6 +171,7 @@ function variants_route(string $method, array $parts): void
     if ($first === 'stats') {
         $ids = array_filter(array_map('intval', explode(',', (string) ($_GET['ids'] ?? ''))));
         $item = (int) ($_GET['order_item_id'] ?? 0) ?: null;
+        if($item)require_item_access($item);
         json_out(['data' => variant_stats($ids, $item)]);
         return;
     }

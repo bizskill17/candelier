@@ -15,7 +15,7 @@ const assert=require('node:assert/strict');
  await page.route('**/uploads/items/**',r=>r.fulfill({status:200,contentType:'image/png',body:png}));
  await page.route('**/api/index.php?**',async route=>{
   const url=new URL(route.request().url());const r=url.searchParams.get('r');const method=route.request().method();let payload={data:[]};
-  if(r==='auth/me')payload={user:{id:1,name:'Material staff',username:'staff',role:'Staff'},needs_setup:false};
+  if(r==='auth/me')payload={user:{id:1,name:'Material staff',username:'staff',role:'Admin'},needs_setup:false};
   if(r==='variants/catalog')payload={data:{categories:[category],materials,variants:materials.map(m=>({id:m.id,material_id:m.id,spec_key:'',spec_text:'',values:{}}))}};
   if(r==='materials'&&method==='GET')payload={data:materials};
   if((r==='materials'&&method==='POST')||(r?.startsWith('materials/')&&method==='PUT')){

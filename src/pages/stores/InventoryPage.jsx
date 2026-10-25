@@ -23,7 +23,7 @@ const ONLY = [
 // Stock per material + specification, worked out from every movement.
 export default function InventoryPage() {
   const cat = useCatalog();
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateStock } = useAuth();
   const toast = useToast();
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -123,7 +123,7 @@ export default function InventoryPage() {
                             className={`${inputCls()} px-2 py-1 text-right tabular-nums ${r.is_low ? 'border-red-300' : ''}`} />
                         ) : <span className="block text-right tabular-nums">{r.reorder_level ?? '—'}</span>}
                       </td>
-                      <td className={`${td} print:hidden text-center`}><button onClick={() => setDetail(r)} aria-label={`History of ${r.material_name} ${r.spec_text}`} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><History size={13} /> Open</button></td>
+                      <td className={`${td} print:hidden text-center`}><button disabled={!canCreateStock} onClick={() => setDetail(r)} aria-label={`History of ${r.material_name} ${r.spec_text}`} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><History size={13} /> Open</button></td>
                     </tr>
                   ))}
                 </Fragment>
@@ -142,6 +142,7 @@ const REF_LABEL = { opening: 'Opening', receipt: 'Material In', issue: 'Issue', 
 const REF_PATH = { receipt: '/material-in/', issue: '/material-issue/', damage: '/damage/' };
 
 function VariantDetail({ variant, canEdit, onClose, onChanged }) {
+  const {canCreateStock}=useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [d, setD] = useState(null);
@@ -183,7 +184,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
                     {d.history.map((m, i) => (
                       <tr key={i} className="border-b border-gray-100">
                         <td className="py-2 pr-3 tabular-nums">{fmtDate(m.move_date)}</td>
-                        <td className="py-2 pr-3">{REF_PATH[m.ref_type] ? <button onClick={() => navigate(REF_PATH[m.ref_type] + m.ref_id)} className="font-mono text-xs text-brand-600 hover:underline">{m.ref_no}</button> : <span className="font-mono text-xs">{m.ref_no}</span>} <span className="text-xs text-gray-500">{REF_LABEL[m.ref_type]}</span></td>
+                        <td className="py-2 pr-3">{REF_PATH[m.ref_type] ? <button onClick={() => canCreateStock && navigate(REF_PATH[m.ref_type] + m.ref_id)} className="font-mono text-xs text-brand-600 hover:underline">{m.ref_no}</button> : <span className="font-mono text-xs">{m.ref_no}</span>} <span className="text-xs text-gray-500">{REF_LABEL[m.ref_type]}</span></td>
                         <td className="py-2 pr-3 text-gray-600">{m.party}</td>
                         <td className="py-2 pr-3 text-right tabular-nums text-green-700">{m.quantity > 0 ? fmtQty(m.quantity) : ''}</td>
                         <td className="py-2 pr-3 text-right tabular-nums text-red-600">{m.quantity < 0 ? fmtQty(-m.quantity) : ''}</td>
@@ -202,7 +203,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
                 <tbody>
                   {d.bookings.map((b) => (
                     <tr key={b.order_item_id} className="border-b border-gray-100">
-                      <td className="py-2 pr-3"><button onClick={() => navigate(`/boq/${b.order_item_id}`)} className="text-brand-600 hover:underline">{b.label}</button></td>
+                      <td className="py-2 pr-3"><button onClick={() => canCreateStock && navigate(`/boq/${b.order_item_id}`)} className="text-brand-600 hover:underline">{b.label}</button></td>
                       <td className="py-2 pr-3 text-gray-600">{b.customer_name}</td>
                       <td className="py-2 pr-3 text-right tabular-nums">{fmtQty(b.booked)}</td>
                       <td className="py-2 text-right tabular-nums">{fmtQty(b.consumed)}</td>

@@ -20,7 +20,7 @@ import { masters } from '../../config/masters';
 
 let seq = 0;
 const blankItem = (extra = {}) => ({ key: ++seq, id: null, area: '', values: {}, remarks: '', component_image: '', reference_image: '', drawing_file: '', drawing_name: '', ...extra });
-const blankOrder = (userId) => ({ customer_id: '', project_name: '', order_date: today(), delivery_date: '', order_by_id: userId || '', shipping_address: '' });
+const blankOrder = (userId) => ({ customer_id: '', project_name: '', order_date: today(), delivery_date: '', order_by_id: userId || '', assigned_salesperson_id: '', shipping_address: '' });
 const cleanValues = (v) => Object.fromEntries(Object.entries(v || {}).map(([k, x]) => [k, String(x ?? '').trim()]).filter(([, x]) => x));
 const itemBody = ({ id, area, values, remarks, component_image, reference_image, drawing_file, drawing_name }) => ({ id, area: (area || '').trim(), values: cleanValues(values), remarks: remarks || '', component_image: component_image || '', reference_image: reference_image || '', drawing_file: drawing_file || '', drawing_name: drawing_file ? drawing_name || '' : '' });
 const snapshot = (h, items) => JSON.stringify({ h, items: items.map(itemBody) });
@@ -31,7 +31,7 @@ export default function OrderForm({ id, leadId }) {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const toast = useToast();
-  const { canEdit, user } = useAuth();
+  const { canEdit, canCreateSales, canCreateStock, user } = useAuth();
   const [order, setOrder] = useState(null);
   const [header, setHeader] = useState(() => blankOrder(user?.id));
   const [items, setItems] = useState(() => [blankItem()]);
@@ -65,7 +65,7 @@ export default function OrderForm({ id, leadId }) {
 
   const fill = (o) => {
     setOrder(o);
-    const h = { customer_id: o.customer_id, project_name: o.project_name || '', order_date: o.order_date, delivery_date: o.delivery_date || '', order_by_id: o.order_by_id || '', shipping_address: o.shipping_address || '' };
+    const h = { customer_id: o.customer_id, project_name: o.project_name || '', order_date: o.order_date, delivery_date: o.delivery_date || '', order_by_id: o.order_by_id || '', assigned_salesperson_id: o.assigned_salesperson_id || '', shipping_address: o.shipping_address || '' };
     const its = o.items.map((i) => ({ key: ++seq, id: i.id, area: i.area || '', values: { ...(i.values || {}) }, remarks: i.remarks || '', component_image: i.component_image || '', reference_image: i.reference_image || '', drawing_file: i.drawing_file || '', drawing_name: i.drawing_name || '' }));
     setHeader(h);
     setItems(its);
@@ -132,7 +132,8 @@ export default function OrderForm({ id, leadId }) {
   if (isEdit && !order) return <div className="mx-auto max-w-5xl space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-100" />)}</div>;
 
   const cancelled = order?.status === 'Cancelled';
-  const locked = !canEdit || cancelled;
+  const canWrite=canEdit||(!isEdit&&canCreateSales);
+  const locked = !canWrite || cancelled;
   const custOpts = (customers || []).filter((c) => c.is_active || String(c.id) === String(header.customer_id)).map((c) => ({ value: c.id, label: c.name }));
   const fieldsFor = (it) => itemFields.fields.filter((f) => f.is_active || (it.values?.[f.id] ?? '') !== '');
   const th = 'border border-blue-400 px-3 py-2 text-left font-semibold';
@@ -162,6 +163,9 @@ export default function OrderForm({ id, leadId }) {
       <div className="space-y-4">
         <section className="rounded-xl border border-gray-200 bg-white p-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Assigned Salesperson" required htmlFor="o-assignee" error={errors.assigned_salesperson_id}>
+              <SearchSelect id="o-assignee" options={(users||[]).filter(u=>(u.role==='Sales'&&u.is_active)||String(u.id)===String(header.assigned_salesperson_id)).map(u=>({value:u.id,label:u.name}))} value={user?.role==='Sales'&&!isEdit?user.id:header.assigned_salesperson_id} onChange={v=>setH('assigned_salesperson_id',v)} disabled={locked||user?.role!=='Admin'||!users} placeholder="Select Salesperson"/>
+            </Field>
             <Field label="Customer / Contact" required htmlFor="o-customer" error={errors.customer_id} className="sm:col-span-2">
               <div className="flex gap-1.5">
                 <SearchSelect id="o-customer" className="min-w-0 flex-1" options={custOpts} value={header.customer_id} onChange={pickCustomer} error={errors.customer_id} disabled={locked || !customers} placeholder={customers ? 'Select contact' : 'Loading…'} />
@@ -178,7 +182,7 @@ export default function OrderForm({ id, leadId }) {
               <DateInput id="o-delivery" min={header.order_date} value={header.delivery_date} onChange={(v) => setH('delivery_date', v)} error={errors.delivery_date} disabled={locked} />
             </Field>
             <Field label="Order By" htmlFor="o-by" error={errors.order_by_id}>
-              <SearchSelect id="o-by" options={userOpts} value={header.order_by_id} onChange={(v) => setH('order_by_id', v)} disabled={locked || !users} placeholder="Select user" clearable />
+              <SearchSelect id="o-by" options={userOpts} value={header.order_by_id} onChange={(v) => setH('order_by_id', v)} disabled={locked || !users || user?.role!=='Admin'} placeholder="Select user" clearable />
             </Field>
             <Field label="Shipping Address" htmlFor="o-address" error={errors.shipping_address} className="sm:col-span-2 lg:col-span-4">
               <textarea id="o-address" rows={1} disabled={locked} value={header.shipping_address} onChange={(e) => setH('shipping_address', e.target.value)} className={inputCls(errors.shipping_address)} placeholder="Filled from the customer" />
@@ -231,7 +235,7 @@ export default function OrderForm({ id, leadId }) {
                           {s ? (
                             <div className="inline-flex gap-1.5" title={dirty ? 'Save your changes first' : undefined}>
                               <button type="button" disabled={dirty} onClick={() => navigate(`/boq/${s.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-40"><ClipboardList size={13} /> BOQ · {s.boq_status}</button>
-                              {canEdit && !cancelled && <button type="button" disabled={dirty} onClick={() => setDispatching(s)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium disabled:opacity-40 ${s.dispatch ? 'text-brand-600 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'}`}><Truck size={13} /> {s.dispatch ? 'Dispatched' : 'Dispatch'}</button>}
+                              {canCreateStock && (canEdit || (!s.dispatch&&s.production_status==='Complete')) && !cancelled && <button type="button" disabled={dirty} onClick={() => setDispatching(s)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium disabled:opacity-40 ${s.dispatch ? 'text-brand-600 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'}`}><Truck size={13} /> {s.dispatch ? 'Dispatched' : 'Dispatch'}</button>}
                             </div>
                           ) : <span className="text-xs text-gray-400">Save first</span>}
                         </td>
@@ -256,7 +260,7 @@ export default function OrderForm({ id, leadId }) {
         </section>
       </div>
 
-      {canEdit && (
+      {canWrite && (
         <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-2 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
           {isEdit && !cancelled && order.dispatched_count === 0 && <button type="button" onClick={() => setConfirm('cancel')} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"><X size={15} /> Cancel order</button>}
           {isEdit && cancelled && <button type="button" onClick={() => setStatus('Reopen')} className="rounded-lg px-3 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50">Reopen order</button>}

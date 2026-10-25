@@ -27,7 +27,7 @@ function BoqEditor({ itemId }) {
   const navigate = useNavigate();
   const toast = useToast();
   const cat = useCatalog();
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateSales, canCreateStock } = useAuth();
   const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
   const [stats, setStats] = useState({});
@@ -87,7 +87,7 @@ function BoqEditor({ itemId }) {
 
   const dirty = rows.length > 0 && snap(rows) !== savedSnap;
   const showStockDetails = data?.boq_status === 'Final' && !dirty;
-  const readOnly = !canEdit || (data && data.order_status === 'Cancelled');
+  const readOnly = !(canEdit || (canCreateSales && data && data.boq_status!=='Final' && !data.closed)) || (data && data.order_status === 'Cancelled');
   const setRow = (key, patch) => { setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r))); setErrors({}); };
   const addRow = () => setRows((rs) => [...rs, row({})]);
   const removeRow = (idx) => setRows((rs) => rs.length > 1 ? rs.filter((_, i) => i !== idx) : [row({})]);
@@ -186,7 +186,7 @@ function BoqEditor({ itemId }) {
 
       <div className="print:hidden flex flex-wrap items-center gap-2">
         {!readOnly && <button onClick={() => setCopyOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Copy size={15} /> Copy from earlier BOQ</button>}
-        {canEdit && !data.closed && data.boq_status === 'Final' && !dirty && data.lines.length > 0 && <button onClick={() => navigate(`/material-issue/new/item/${itemId}`)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><PackageMinus size={15} /> Issue Material</button>}
+        {canCreateStock && !data.closed && data.boq_status === 'Final' && !dirty && data.lines.length > 0 && <button onClick={() => navigate(`/material-issue/new/item/${itemId}`)} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><PackageMinus size={15} /> Issue Material</button>}
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Printer size={15} /> Print / PDF</button>
         {data.drawing_file && <span className="min-w-0 max-w-xs"><DrawingLink path={data.drawing_file} name={data.drawing_name} title={label} /></span>}
         <span className="flex-1" />
@@ -215,9 +215,9 @@ function BoqEditor({ itemId }) {
                 {[st?.in_stock, ...(showStockDetails ? [st?.booked_all, st?.available, st?.booked_item, r.material_id ? required : null, st?.consumed] : [])].map((n, i) => <td key={i} className={`${num} print:hidden`}>{n == null ? '—' : fmtQty(n)}</td>)}
                 <td className={`${td} print:hidden`}><div className="flex items-center gap-1">
                   {!readOnly && <button onClick={() => removeRow(idx)} title="Remove row" aria-label={`Remove row ${idx + 1}`} className="p-1 text-red-500"><Trash2 size={15} /></button>}
-                  {showStockDetails && canEdit && !data.closed && v && st && <>
+                  {showStockDetails && canCreateStock && !data.closed && v && st && <>
                     {data.boq_status === 'Final' && !dirty && required > 0 && <button disabled={st.available <= 0} onClick={() => setBooking({ mode: 'book', row: r, variant: v, st, required })} className="rounded bg-brand-600 px-2 py-1 text-xs text-white disabled:opacity-40">Book</button>}
-                    {st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release booked stock" className="p-1 text-gray-500"><Unlock size={14} /></button>}
+                    {canEdit && st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release booked stock" className="p-1 text-gray-500"><Unlock size={14} /></button>}
                   </>}
                 </div></td>
               </tr>;

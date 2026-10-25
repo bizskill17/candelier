@@ -17,7 +17,7 @@ function production_status($value): string
 
 function production_scope(): string
 {
-    return "o.status <> 'Cancelled' AND d.id IS NULL AND i.production_status = :status
+    return order_visibility_sql()." AND o.status <> 'Cancelled' AND d.id IS NULL AND i.production_status = :status
             AND EXISTS (SELECT 1 FROM material_issues mi WHERE mi.order_item_id = i.id)";
 }
 
@@ -57,6 +57,8 @@ function production_list(): array
 
 function production_set_status(int $id, array $in): array
 {
+    require_roles(['Admin','Store']);
+    if(app_role()==='Store'&&($in['status']??'')!=='Complete')throw new ApiError('Only Admin may reverse production completion.',403);
     $status = production_status($in['status'] ?? null);
     $pdo = db();
     $pdo->beginTransaction();
@@ -78,11 +80,13 @@ function production_set_status(int $id, array $in): array
 // Save the entire edited set atomically. Only changed fields are written.
 function production_bulk_update(array $in): array
 {
+    require_roles(['Admin','Store']);
     $changes = $in['changes'] ?? null;
     if (!is_array($changes) || !$changes || count($changes) > 200) throw new ApiError('Update between 1 and 200 items at a time.', 422);
     $seen = [];
     foreach ($changes as $row) {
         if (!is_array($row) || !ctype_digit((string) ($row['id'] ?? '')) || (int) $row['id'] < 1) throw new ApiError('Choose a valid order item.', 422);
+        if(app_role()==='Store'&&(array_key_exists('remarks',$row)||($row['status']??'')!=='Complete'))throw new ApiError('Store may complete production; only Admin may correct remarks or reverse a status.',403);
         $id = (int) $row['id'];
         if (isset($seen[$id])) throw new ApiError('Each order item can only appear once.', 422);
         if (!array_key_exists('status', $row) && !array_key_exists('remarks', $row)) throw new ApiError('Choose a status or enter remarks to update.', 422);

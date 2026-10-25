@@ -6,7 +6,7 @@ if (!$dsn || !str_contains($dsn, 'candelier_test')) throw new RuntimeException('
 $GLOBALS['CONFIG'] = ['db' => ['dsn' => $dsn, 'user' => 'root', 'password' => '']];
 date_default_timezone_set('Asia/Kolkata');
 $root = dirname(__DIR__);
-foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'lib/migrate_crm', 'entities', 'handlers/auth', 'handlers/crm', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
+foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'lib/migrate_crm', 'lib/permissions', 'entities', 'handlers/auth', 'handlers/crm', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
 session_begin();
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); echo "PASS: $message\n"; }
 function reject(callable $action, string $message): void {
@@ -16,9 +16,14 @@ function reject(callable $action, string $message): void {
 $pdo = db();
 $schema = file_get_contents("$root/database/schema.sql");
 $pdo->exec($schema);
-$pdo->prepare("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-CRM-TEST','CRM staff','crm-test',:hash,'Staff')")->execute(['hash'=>password_hash('Isolated-Test-Only', PASSWORD_DEFAULT)]);
+$pdo->prepare("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-CRM-TEST','CRM staff','crm-test',:hash,'Admin')")->execute(['hash'=>password_hash('Isolated-Test-Only', PASSWORD_DEFAULT)]);
 $_SESSION['uid']=(int)$pdo->lastInsertId();
 $crmActor=$_SESSION['uid'];
+$pdo->exec("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-SALES1','Sales One','sales-one','test-only','Sales')");$salesUser=(int)$pdo->lastInsertId();
+$pdo->exec("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-SALES2','Sales Two','sales-two','test-only','Sales')");$salesTwo=(int)$pdo->lastInsertId();
+$pdo->exec("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-STORE','Store User','store-user','test-only','Store')");$storeUser=(int)$pdo->lastInsertId();
+$pdo->exec("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-OLD-STAFF','Legacy staff','old-staff','test-only','Staff')");$legacyStaff=(int)$pdo->lastInsertId();
+$pdo->exec("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-OLD-VIEWER','Legacy viewer','old-viewer','test-only','Viewer')");$legacyViewer=(int)$pdo->lastInsertId();
 // Reconstruct the legacy shape before the migration.
 $pdo->exec('ALTER TABLE dispatches DROP COLUMN dispatch_by, DROP COLUMN dispatch_document, DROP COLUMN dispatch_document_name');
 $pdo->exec('ALTER TABLE materials DROP FOREIGN KEY fk_material_category, DROP COLUMN category_id');
@@ -56,6 +61,8 @@ migrate_crm();
 migrate_crm();
 migrate_material_media();
 migrate_material_media();
+migrate_roles_assignment();
+migrate_roles_assignment();
 require __DIR__ . '/crm.php';
 check($before === db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id'), 'Migration preserves ledger rows and balances');
 check((int) db_value('SELECT COUNT(*) FROM materials') === 3, 'Distinct legacy specifications become separate materials');
@@ -119,12 +126,12 @@ reject(fn () => material_delete($wire), 'Materials with stock/issues cannot be d
 check((float) db_value('SELECT SUM(quantity) FROM stock_moves WHERE variant_id = ' . $vid) === 18.0, 'Final stock balance remains correct');
 
 // Order creation/editing no longer depends on the retired scheduling field.
-$newOrder = order_save(null, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['area' => 'Test room', 'production_date' => 'obsolete-invalid-date']]]);
+$newOrder = order_save(null, ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['area' => 'Test room', 'production_date' => 'obsolete-invalid-date']]]);
 $newOrderId = $newOrder['data']['id'];
 $newItemId = $newOrder['data']['items'][0]['id'];
 check(!array_key_exists('production_date', $newOrder['data']['items'][0]), 'Order creation omits retired scheduling field');
 $pdo->prepare("UPDATE order_items SET production_date = '2020-01-01' WHERE id = :i")->execute(['i' => $newItemId]);
-$editedOrder = order_save($newOrderId, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['id' => $newItemId, 'area' => 'Updated room']]]);
+$editedOrder = order_save($newOrderId, ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['id' => $newItemId, 'area' => 'Updated room']]]);
 check($editedOrder['data']['items'][0]['area'] === 'Updated room', 'Orders remain editable without scheduling dates');
 check($editedOrder['data']['items'][0]['stage'] === 'BOQ Pending', 'Archived dates do not change item stage');
 check(!array_key_exists('production_date', item_find($newItemId)), 'BOQ and item responses omit retired field');
@@ -134,9 +141,9 @@ check(!array_key_exists('planned_week', dashboard()['data']), 'Dashboard omits r
 $filters = issue_filter_options()['data'];
 check(in_array((string) $customer, array_map('strval', array_column($filters['customers'], 'id')), true), 'Issue filters include customers across all records');
 check(in_array('Living', array_column($filters['areas'], 'name'), true), 'Issue filters include linked order item areas');
-$_GET = ['customer_id' => $customer, 'area' => 'Living'];
+$_GET = ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'area' => 'Living'];
 check(doc_list($issueDef)['total'] === 1, 'Issue customer and area filters combine correctly');
-$_GET = ['customer_id' => $customer, 'area' => 'Not a matching area'];
+$_GET = ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'area' => 'Not a matching area'];
 check(doc_list($issueDef)['total'] === 0, 'Issue filters exclude nonmatching areas');
 $_GET = ['customer_id' => $customer + 100000];
 check(doc_list($issueDef)['total'] === 0, 'Issue filters exclude nonmatching customers');
@@ -147,4 +154,6 @@ require __DIR__ . '/production.php';
 
 echo "All migration and workflow integration checks passed.\n";
 
-reject(fn () => order_save(null, ['customer_id' => $customer, 'order_date' => date('Y-m-d'), 'items' => [['area' => 'Missing delivery']]]), 'Order requires Delivery Date');
+reject(fn () => order_save(null, ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'order_date' => date('Y-m-d'), 'items' => [['area' => 'Missing delivery']]]), 'Order requires Delivery Date');
+
+require __DIR__ . '/permissions.php';

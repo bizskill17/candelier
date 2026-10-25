@@ -147,3 +147,27 @@ function migrate_material_media(): void
         $pdo->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(:v,:t)')->execute(['v'=>$version,'t'=>now()]);
     } finally {db_value('SELECT RELEASE_LOCK(:k)',['k'=>$lock]);}
 }
+
+function migrate_roles_assignment(): void
+{
+    $pdo=db();$version='20261025_roles_order_assignment';
+    if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=:v',['v'=>$version]))return;
+    $lock='roles_assignment_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);
+    if(!(int)db_value('SELECT GET_LOCK(:k,30)',['k'=>$lock]))throw new ApiError('Permissions update in progress. Please retry.',503);
+    try {
+        if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=:v',['v'=>$version]))return;
+        $pdo->exec('CREATE TABLE IF NOT EXISTS backup_roles_users LIKE users');
+        $pdo->exec('INSERT IGNORE INTO backup_roles_users SELECT * FROM users');
+        if(!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='assigned_salesperson_id'"))
+            $pdo->exec('ALTER TABLE orders ADD COLUMN assigned_salesperson_id INT UNSIGNED NULL, ADD KEY idx_order_assignee(assigned_salesperson_id), ADD CONSTRAINT fk_order_assignee FOREIGN KEY(assigned_salesperson_id) REFERENCES users(id)');
+        $pdo->exec("ALTER TABLE users ALTER role SET DEFAULT 'Sales'");
+        $pdo->beginTransaction();
+        $pdo->exec("UPDATE users SET role='Sales' WHERE role='Staff'");
+        // Viewer had read-only access: do not silently give that account write access.
+        $pdo->exec("UPDATE users SET role='Sales',is_active=0 WHERE role='Viewer'");
+        $pdo->exec("UPDATE orders o JOIN users u ON u.id=o.order_by_id AND u.role='Sales' SET o.assigned_salesperson_id=u.id WHERE o.assigned_salesperson_id IS NULL");
+        $pdo->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(:v,:t)')->execute(['v'=>$version,'t'=>now()]);
+        $pdo->commit();
+    } catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    finally {db_value('SELECT RELEASE_LOCK(:k)',['k'=>$lock]);}
+}

@@ -25,7 +25,8 @@ export const menu = [
     items: [
       { key: 'orders-add', label: 'Add Order', path: '/orders/new', icon: FilePlus2, description: 'Enter a new order with its items.' },
       { key: 'orders-master', label: 'Order Master', path: '/orders/all', icon: ListOrdered, description: 'Every order; open an item for its BOQ and dispatch.' },
-      { key: 'boq-master', label: 'BOQ Master', path: '/boq-master', icon: ClipboardList, description: 'Draft and Final BOQs for every order item.' },
+      { key: 'boq-master', label: 'Orders with BOQ', path: '/boq-master', icon: ClipboardList, description: 'Draft and Final BOQs for every order item.' },
+      { key: 'pending-material-issue', label: 'Orders Pending Material Issue', path: '/pending-material-issue', icon: PackageMinus, description: 'Final BOQs with quantities still to be issued.' },
       { key: 'pending-boq', label: 'Pending BOQ', path: '/pending-boq', icon: ClipboardList, description: 'Order items with no BOQ or a Draft BOQ.' },
       { key: 'production-in-progress', label: 'Production In Progress', path: '/production-in-progress', icon: PackageOpen, description: 'Issued order items currently in production.' },
       { key: 'ready-to-dispatch', label: 'Ready to Dispatch', path: '/ready-to-dispatch', icon: Truck, description: 'Completed order items awaiting dispatch.' },

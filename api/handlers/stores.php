@@ -217,6 +217,7 @@ function doc_validate(array $d, ?array $existing, array $in): array
 
 function doc_save(array $d, ?int $id, array $in): array
 {
+    if($id)require_admin();else require_roles(['Admin','Store']);
     $existing = $id !== null ? doc_find($d, $id) : null;
     [$h, $lines] = doc_validate($d, $existing, $in);
     $t = $d['table'];
@@ -305,6 +306,7 @@ function doc_save(array $d, ?int $id, array $in): array
 
 function doc_delete(array $d, int $id): array
 {
+    require_admin();
     $doc = doc_find($d, $id);
     if (stock_check([[$d['ref'], $id]], [], array_column($doc['lines'], 'variant_id'))) {
         throw new ApiError("{$d['label']} {$doc[$d['no']]} can't be deleted because some of this stock has already been used. Correct it with a stock adjustment instead.", 409);
@@ -356,7 +358,11 @@ function issue_prefill(int $itemId, ?int $exceptIssue): array
 function opening_route(string $method): void
 {
     if ($method === 'GET') { json_out(['data' => opening_list()]); return; }
-    if ($method === 'PUT') { json_out(opening_save(request_body())); return; }
+    if ($method === 'PUT' || $method==='POST') {
+        $lock='opening_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);
+        if(!(int)db_value('SELECT GET_LOCK(:k,30)',['k'=>$lock]))throw new ApiError('Opening stock is being updated. Please retry.',409);
+        try {json_out(opening_save(request_body(),$method==='POST'));}finally{db_value('SELECT RELEASE_LOCK(:k)',['k'=>$lock]);}return;
+    }
     throw new ApiError('Not found.', 404);
 }
 
@@ -375,9 +381,11 @@ function opening_list(): array
     return $rows;
 }
 
-function opening_save(array $in): array
+function opening_save(array $in,bool $append=false): array
 {
+    if($append)require_roles(['Admin','Store']);else require_admin();
     $existing = opening_list();
+    if($append){$new=$in['lines']??[];if(!is_array($new)||!$new)throw new ApiError('Add a new opening stock row.',422);foreach($new as$row)if(!empty($row['id']))throw new ApiError('Only Admin can change saved opening stock.',403);$in['lines']=array_merge($existing,$new);}
     $existingIds = array_column($existing, 'id');
     $errors = [];
     $lines = [];
@@ -423,6 +431,7 @@ function opening_save(array $in): array
 
         $keep = [];
         foreach ($lines as $l) {
+            if($append&&$l['id']){$keep[]=$l['id'];continue;}
             if ($l['id']) {
                 $pdo->prepare('UPDATE opening_stock SET entry_date = :d, variant_id = :v, quantity = :q, remarks = :r, updated_at = :u WHERE id = :id')
                     ->execute(['d' => $l['entry_date'], 'v' => $l['variant_id'], 'q' => $l['quantity'], 'r' => $l['remarks'], 'u' => now(), 'id' => $l['id']]);

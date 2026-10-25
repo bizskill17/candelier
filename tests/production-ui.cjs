@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   let savedDispatch = null;
-  let role = 'Staff', failStatus = false, failList = false, failFilters = false;
+  let role = 'Admin', failStatus = false, failList = false, failFilters = false;
   let rows = Array.from({ length: 41 }, (_, n) => ({
     id: n + 1, order_id: 1, order_no: 'ORD-0001', line_no: n + 1,
     customer_id: n < 21 ? 1 : 2, customer_name: n < 21 ? 'Alpha Customer' : 'Beta Customer',
@@ -159,7 +159,7 @@ const assert = require('node:assert/strict');
   await page.getByRole('button', { name: 'Discard changes', exact: true }).click();
   assert.equal(await page.getByRole('textbox', { name: 'Remarks for ORD-0001 item 21', exact: true }).inputValue(), 'Polish checked');
   // Viewer retains filters/pagination but has no mutation controls.
-  role = 'Viewer';
+  role = 'Sales';
   await page.reload();
   await page.getByText('40 items', { exact: true }).waitFor();
   assert.equal(await page.getByRole('combobox').count(), 0);

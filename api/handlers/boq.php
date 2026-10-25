@@ -25,8 +25,10 @@ function boq_route(string $method, array $parts): void
 
 function boq_item(int $id): array
 {
+    require_item_access($id);
     $r = db_one(ITEM_SELECT . ' WHERE i.id = :id', ['id' => $id]);
     if (!$r) throw new ApiError('Order item not found.', 404);
+    if(app_role()==='Store'&&$r['boq_status']!=='Final')throw new ApiError('Store may view Final BOQs only.',403);
     $r = item_cast($r);
     $r['dispatched'] = $r['dispatch_id'] !== null;
     unset($r['dispatch_id']);
@@ -78,6 +80,8 @@ function boq_save(int $id, array $in): array
         // Serialize changes to this BOQ with material issues for the same item.
         db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $id]);
         $item = boq_item($id);
+        require_roles(['Admin','Sales']);
+        if(app_role()==='Sales'&&$item['boq_status']==='Final')throw new ApiError('Only Admin may correct a Final BOQ.',403);
         if ($item['order_status'] === 'Cancelled') throw new ApiError('Reopen the cancelled order before editing its BOQ.', 409);
         $rows = []; $draft = []; $errors = []; $seen = [];
         $old = array_map('intval', array_column(db_all('SELECT material_id FROM boq_lines WHERE order_item_id = :i', ['i' => $id]), 'material_id'));
@@ -133,7 +137,7 @@ function boq_sources(): array
         "SELECT i.id, i.id AS order_item_id, i.line_no, i.area, i.remarks, o.order_no, o.order_date, o.project_name, c.name AS customer_name,
                 (SELECT COUNT(*) FROM boq_lines b WHERE b.order_item_id = i.id) AS line_count
            FROM order_items i JOIN orders o ON o.id = i.order_id JOIN customers c ON c.id = o.customer_id
-          WHERE i.boq_status = 'Final' AND i.id <> :ex ORDER BY o.order_date DESC, o.id DESC, i.line_no LIMIT 500",
+          WHERE i.boq_status = 'Final' AND i.id <> :ex AND ".order_visibility_sql()." ORDER BY o.order_date DESC, o.id DESC, i.line_no LIMIT 500",
         ['ex' => $ex]
     );
     $rows = with_item_details($rows);
@@ -144,6 +148,7 @@ function boq_sources(): array
 
 function boq_book(int $id, array $in): array
 {
+    require_roles(['Admin','Store']);
     $pdo = db(); $pdo->beginTransaction();
     try {
         db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $id]);
@@ -173,6 +178,7 @@ function boq_book(int $id, array $in): array
 
 function boq_release(int $id, array $in): array
 {
+    require_admin();
     $item = boq_item($id);
     $vid = (int) ($in['variant_id'] ?? 0);
     $st = variant_stats([$vid], $id)[$vid] ?? null;

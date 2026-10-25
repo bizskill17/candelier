@@ -21,6 +21,7 @@ require __DIR__ . '/lib/migrate.php';
 require __DIR__ . '/lib/migrate_crm.php';
 require __DIR__ . '/entities.php';
 require __DIR__ . '/handlers/auth.php';
+require __DIR__ . '/lib/permissions.php';
 require __DIR__ . '/handlers/masters.php';
 require __DIR__ . '/handlers/materials.php';
 require __DIR__ . '/handlers/items.php';
@@ -43,16 +44,12 @@ try {
     migrate_client_categories();
     migrate_crm();
     migrate_material_media();
+    migrate_roles_assignment();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 
     $me = require_login();
-    if ($me['role'] === 'Viewer' && $method !== 'GET') {
-        throw new ApiError('You have view-only access. Ask an administrator if you need to make changes.', 403);
-    }
-    if (in_array($area, ['masters', 'lookup'], true) && ($parts[0] ?? '') === 'users' && $me['role'] !== 'Admin') {
-        throw new ApiError('Only administrators can manage users.', 403);
-    }
+    authorize_request($method, $area, $parts);
 
     switch ($area) {
         case 'masters':         masters_route($method, $parts); break;
@@ -70,7 +67,7 @@ try {
         case 'inventory':       inventory_route($method, $parts); break;
         case 'users-list':
             // Names of users for "Order By" (every signed-in user may read)
-            $rows = db_all('SELECT id, name, is_active FROM users ORDER BY name');
+            $rows = db_all('SELECT id, name, role, is_active FROM users ORDER BY name');
             foreach ($rows as &$r) { $r['id'] = (int) $r['id']; $r['is_active'] = (bool) $r['is_active']; }
             json_out(['data' => $rows]);
             break;

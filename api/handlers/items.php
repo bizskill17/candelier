@@ -42,10 +42,10 @@ function item_fields_list(): array
 {
     $fields = item_fields();
     $sug = [
-        'remarks' => distinct_values('SELECT DISTINCT remarks AS v FROM order_items WHERE remarks IS NOT NULL'),
+        'remarks' => distinct_values('SELECT DISTINCT i.remarks AS v FROM order_items i JOIN orders o ON o.id=i.order_id WHERE i.remarks IS NOT NULL AND '.order_visibility_sql()),
     ];
     foreach ($fields as $f) {
-        $sug[(string) $f['id']] = distinct_values('SELECT DISTINCT value AS v FROM order_item_values WHERE field_id = :f', ['f' => $f['id']]);
+        $sug[(string) $f['id']] = distinct_values('SELECT DISTINCT v.value AS v FROM order_item_values v JOIN order_items i ON i.id=v.order_item_id JOIN orders o ON o.id=i.order_id WHERE v.field_id=:f AND '.order_visibility_sql(), ['f' => $f['id']]);
     }
     return ['data' => $fields, 'suggestions' => $sug];
 }

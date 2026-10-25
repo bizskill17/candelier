@@ -16,7 +16,7 @@ const subTd = 'border border-blue-200 px-3 py-2 align-top';
 // Items of one order, shown under its row.
 function OrderItems({ id, onChanged }) {
   const navigate = useNavigate();
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateSales, canCreateStock } = useAuth();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState('');
   const [dispatching, setDispatching] = useState(null);
@@ -50,7 +50,7 @@ function OrderItems({ id, onChanged }) {
               <td className={`${subTd} text-center`}>
                 <div className="inline-flex gap-1.5">
                   <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50"><ClipboardList size={13} /> BOQ · {it.boq_status}</button>
-                  {canEdit && !cancelled && (
+                  {canCreateStock && (canEdit || (!it.dispatch&&it.production_status==='Complete')) && !cancelled && (
                     <button onClick={() => setDispatching(it)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium ${it.dispatch ? 'text-brand-600 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'}`}><Truck size={13} /> {it.dispatch ? 'Dispatched' : 'Dispatch'}</button>
                   )}
                 </div>
@@ -69,7 +69,7 @@ function OrderItems({ id, onChanged }) {
 }
 
 export default function OrderList() {
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateSales, canCreateStock } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
@@ -109,7 +109,7 @@ export default function OrderList() {
             <Search size={16} className="text-gray-400" />
             <input id="search-orders" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search order no., customer, project, area…" className="w-full bg-transparent text-sm focus:outline-none" />
           </label>
-          {canEdit && <button onClick={() => navigate('/orders/new')} aria-label="Add Order" className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add</button>}
+          {canCreateSales && <button onClick={() => navigate('/orders/new')} aria-label="Add Order" className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add</button>}
         </div>
       </div>
       <div className={tableWrap}>

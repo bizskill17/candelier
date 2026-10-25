@@ -25,20 +25,23 @@ function contact_list(): array {
     $w=[];$p=[];$view=$_GET['view']??'all';
     $open='c.further_followup_required=1';
     $today="DATE(c.next_followup_at)=CURRENT_DATE()";
-    $filters=['never'=>'c.followup_count=0','today'=>"$open AND $today",'upcoming'=>"$open AND DATE(c.next_followup_at)>CURRENT_DATE()",'overdue'=>"$open AND DATE(c.next_followup_at)<CURRENT_DATE()",'missing'=>"c.followup_count>0 AND c.next_followup_at IS NULL AND (c.further_followup_required=1 OR c.further_followup_required IS NULL)",'closed'=>'c.further_followup_required=0','customers'=>'c.order_count>0'];
+    $filters=['never'=>'c.followup_count=0','today'=>"$open AND $today",'upcoming'=>"$open AND DATE(c.next_followup_at)>CURRENT_DATE()",'overdue'=>"$open AND DATE(c.next_followup_at)<CURRENT_DATE()",'missing'=>"c.followup_count>0 AND c.next_followup_at IS NULL AND (c.further_followup_required=1 OR c.further_followup_required IS NULL)",'closed'=>'c.further_followup_required=0','customers'=>"EXISTS(SELECT 1 FROM orders o WHERE o.customer_id=c.id AND o.status<>'Cancelled' AND ".order_visibility_sql().')'];
     if(isset($filters[$view]))$w[]=$filters[$view];
     foreach(['category_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="c.$k=:$k";$p[$k]=(int)$_GET[$k];}
     if(trim((string)($_GET['city']??''))!==''){$w[]='c.city=:city';$p['city']=trim($_GET['city']);}
     if(($_GET['active']??'')!==''){$w[]='c.is_active=:active';$p['active']=(int)$_GET['active'];}
     crm_where_search($w,$p,['c.name','c.company_name','c.mobile','c.email','c.city','c.source_details']);
-    return crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY c.name,c.id',$p);
+    $result=crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY c.name,c.id',$p);
+    $result['data']=array_map('crm_visible_contact',$result['data']);return $result;
 }
 function contact_find(int $id): array {
     $c=db_one('SELECT * FROM crm_contact_current WHERE id=:id',['id'=>$id]);if(!$c)throw new ApiError('Contact not found.',404);
-    $c['history']=crm_history($id,null);$c['leads']=db_all(LEAD_SELECT.' WHERE l.contact_id=:id ORDER BY l.id DESC',['id'=>$id]);
-    $c['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE customer_id=:id ORDER BY order_date DESC,id DESC',['id'=>$id]);return $c;
+    $c=crm_visible_contact($c);$c['history']=crm_history($id,null);$c['leads']=array_map('crm_visible_lead',db_all(LEAD_SELECT.' WHERE l.contact_id=:id ORDER BY l.id DESC',['id'=>$id]));
+    if(app_role()==='Store'){$c['history']=[];$c['leads']=[];}
+    $c['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE customer_id=:id AND '.order_visibility_sql('orders').' ORDER BY order_date DESC,id DESC',['id'=>$id]);return $c;
 }
 function contact_save(?int $id,array $in): array {
+    if($id)require_admin();else require_roles(['Admin','Sales']);
     $old=$id?db_one('SELECT * FROM contacts WHERE id=:id',['id'=>$id]):null;if($id&&!$old)throw new ApiError('Contact not found.',404);
     $h=[];foreach(['name'=>150,'company_name'=>150,'email'=>150,'city'=>100,'address'=>2000,'source_details'=>150]as$k=>$max)$h[$k]=crm_text($in[$k]??'', $max);
     if(!$h['name'])throw new ApiError('Enter the contact name.',422,['name'=>'Required.']);
@@ -77,14 +80,15 @@ function lead_list(): array {
     $w=[];$p=[];foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
     foreach(['contact_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="l.$k=:$k";$p[$k]=(int)$_GET[$k];}
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.display_phone','l.project_name','l.requirement']);
-    return crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY l.enquiry_date DESC,l.id DESC',$p);
+    $result=crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY l.enquiry_date DESC,l.id DESC',$p);$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
 }
 function lead_find(int $id): array {
     $l=db_one(LEAD_SELECT.' WHERE l.id=:id',['id'=>$id]);if(!$l)throw new ApiError('Lead not found.',404);
-    $l['id']=(int)$l['id'];$l['contact_id']=(int)$l['contact_id'];$l['customer_id']=(int)$l['contact_id'];
-    $l['followups']=crm_history(null,$id);$l['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE lead_id=:id ORDER BY id DESC',['id'=>$id]);return $l;
+    $l=crm_visible_lead($l);$l['id']=(int)$l['id'];$l['contact_id']=(int)$l['contact_id'];$l['customer_id']=(int)$l['contact_id'];
+    $l['followups']=crm_history(null,$id);$l['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE lead_id=:id AND '.order_visibility_sql('orders').' ORDER BY id DESC',['id'=>$id]);return $l;
 }
 function lead_save(?int $id,array $in): array {
+    if($id)require_admin();else require_roles(['Admin','Sales']);
     $old=$id?lead_find($id):null;$h=['contact_id'=>(int)($in['contact_id']??0),'enquiry_date'=>trim((string)($in['enquiry_date']??$in['lead_date']??'')),'project_name'=>crm_text($in['project_name']??'',150),'requirement'=>crm_text($in['requirement']??'',10000)];
     if(!db_value('SELECT COUNT(*) FROM contacts WHERE id=:id AND is_active=1',['id'=>$h['contact_id']])&&(!$old||$old['contact_id']!==$h['contact_id']))throw new ApiError('Choose an active Contact.',422);
     if(!$h['requirement'])throw new ApiError('Enter the requirement.',422);
@@ -100,6 +104,7 @@ function lead_save(?int $id,array $in): array {
     }catch(Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}return ['data'=>lead_find($id),'message'=>'Lead saved.'];
 }
 function lead_delete(int $id): array {
+    require_admin();
     lead_find($id);if(db_value("SELECT COUNT(*) FROM followups WHERE (lead_id=:l AND entry_type<>'Lead Created') OR generated_lead_id=:g",['l'=>$id,'g'=>$id])||db_value('SELECT COUNT(*) FROM orders WHERE lead_id=:l',['l'=>$id]))throw new ApiError('This Lead has history or Orders. Close it through a follow-up.',409);
     $pdo=db();$pdo->beginTransaction();try{$pdo->prepare('DELETE FROM followups WHERE lead_id=:l')->execute(['l'=>$id]);$pdo->prepare('DELETE FROM leads WHERE id=:l')->execute(['l'=>$id]);$pdo->commit();}catch(Throwable$e){$pdo->rollBack();throw$e;}return ['message'=>'Lead deleted.'];
 }
@@ -111,6 +116,7 @@ function crm_insert_followup(array $f): int {
 }
 function crm_datetime($v): ?string {$v=trim(str_replace('T',' ',(string)($v??'')));if($v==='')return null;if(strlen($v)===16)$v.=':00';$d=DateTime::createFromFormat('!Y-m-d H:i:s',$v);return $d&&$d->format('Y-m-d H:i:s')===$v?$v:null;}
 function crm_followup_save(array $in): array {
+    require_roles(['Admin','Sales']);
     $cid=(int)($in['contact_id']??0);$lid=(int)($in['lead_id']??0);if((bool)$cid===(bool)$lid)throw new ApiError('Link either a Contact or a Lead.',422);
     $pdo=db();$pdo->beginTransaction();
     try{
@@ -118,13 +124,13 @@ function crm_followup_save(array $in): array {
         $key=crm_text($in['request_key']??'',64);
         if($key){$prior=db_one('SELECT id,contact_id,lead_id,generated_lead_id FROM followups WHERE request_key=:k',['k'=>$key]);if($prior){if((int)$prior['contact_id']!==$cid||(int)$prior['lead_id']!==$lid)throw new ApiError('This request key was already used.',409);$pdo->commit();return ['data'=>['id'=>(int)$prior['id'],'generated_lead_id'=>$prior['generated_lead_id']],'message'=>'History already saved.'];}}
         $lead=$lid?lead_find($lid):null;
-        if($lead&&$lead['status']!=='Open')throw new ApiError('This Lead is closed.',409);
+        if($lead&&$lead['status']!=='Open'&&app_role()!=='Admin')throw new ApiError('This Lead is closed.',409);
         $type=$in['entry_type']??'Follow-up';if(!in_array($type,['Follow-up','Status Update'],true))throw new ApiError('Invalid entry type.',422);
         $at=crm_datetime($in['activity_at']??'');if(!$at||$at>now())throw new ApiError('Enter an activity date/time up to now.',422);
         $latest=db_value("SELECT MAX(activity_at) FROM followups WHERE ".($lid?'lead_id':'contact_id')."=:id",['id'=>$id]);if($latest&&$at<$latest)throw new ApiError('Use a date/time on or after the latest history entry.',422);
         $outcome=$in['outcome']??null;$method=$in['method']??null;
         if($type==='Follow-up'&&(!in_array($outcome,CRM_OUTCOMES,true)||!in_array($method,['Call','WhatsApp','Email','Meeting','Other'],true)))throw new ApiError('Choose the method and outcome.',422);
-        if($type==='Status Update'&&!$lid)throw new ApiError('Status updates apply to Leads.',422);
+        if($type==='Status Update'&&!$lid)require_admin();
         $status=$lead?($in['lead_status']??$lead['status']):null;$temp=$lead?($in['lead_temperature']??$lead['temperature']):null;
         if($lead&&(!in_array($status,LEAD_STATUSES,true)||!in_array($temp,CRM_TEMPERATURES,true)))throw new ApiError('Choose a valid Lead status and temperature.',422);
         $required=filter_var($in['further_followup_required']??false,FILTER_VALIDATE_BOOLEAN);if($lead&&$status!=='Open')$required=false;
@@ -158,5 +164,17 @@ function followups_due(): array {
     $conditions=['today'=>'DATE(l.next_followup_at)=CURRENT_DATE()','overdue'=>'DATE(l.next_followup_at)<CURRENT_DATE()','upcoming'=>'DATE(l.next_followup_at)>CURRENT_DATE()','missing'=>'l.next_followup_at IS NULL'];if(isset($conditions[$tab]))$w[]=$conditions[$tab];
     if(in_array($_GET['temperature']??'',CRM_TEMPERATURES,true)){$w[]='l.temperature=:temp';$p['temp']=$_GET['temperature'];}
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.requirement']);
-    return crm_page(LEAD_SELECT.' WHERE '.implode(' AND ',$w).' ORDER BY l.next_followup_at IS NULL,l.next_followup_at,l.id',$p);
+    $result=crm_page(LEAD_SELECT.' WHERE '.implode(' AND ',$w).' ORDER BY l.next_followup_at IS NULL,l.next_followup_at,l.id',$p);$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+}
+
+// Shared CRM does not expose another salesperson's linked Order details.
+function crm_visible_contact(array $c): array {
+    if(app_role()==='Sales')$c['order_count']=(int)db_value("SELECT COUNT(*) FROM orders o WHERE o.customer_id=:c AND o.status<>'Cancelled' AND ".order_visibility_sql(),['c'=>$c['id']]);
+    return $c;
+}
+function crm_visible_lead(array $l): array {
+    if(app_role()==='Sales'){
+        $order=db_one('SELECT o.id,o.order_no FROM orders o WHERE o.lead_id=:l AND '.order_visibility_sql().' ORDER BY o.id LIMIT 1',['l'=>$l['id']]);
+        $l['order_id']=$order?(int)$order['id']:null;$l['order_no']=$order['order_no']??null;
+    }return $l;
 }

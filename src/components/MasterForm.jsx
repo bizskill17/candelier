@@ -32,7 +32,8 @@ function useLookups(fields) {
 export default function MasterForm({ entity, def, record, onClose, onSaved }) {
   const toast = useToast();
   const isEdit = Boolean(record);
-  const { canEdit } = useAuth();
+  const { canEdit: canCorrect, canCreateMaster } = useAuth();
+  const canEdit = record ? canCorrect : canCreateMaster(entity);
   const [values, setValues] = useState(() =>
     record ? { ...emptyValues(def.fields), ...nullsToEmpty(record) } : emptyValues(def.fields)
   );

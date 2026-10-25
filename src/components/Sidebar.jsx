@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
+import { canAccessPath } from '../auth/permissions';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
 
@@ -24,10 +25,10 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
   };
 
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const q = query.trim().toLowerCase();
   const groups = menu
-    .map((g) => ({ ...g, items: g.items.filter((i) => (isAdmin || !i.adminOnly) && (!q || i.label.toLowerCase().includes(q))) }))
+    .map((g) => ({ ...g, items: g.items.filter((i) => (isAdmin || !i.adminOnly) && canAccessPath(i.path,user?.role) && (!q || i.label.toLowerCase().includes(q))) }))
     .filter((g) => g.items.length > 0);
 
   // On desktop the collapsed state shows icons only; the mobile drawer is always full width.

@@ -32,7 +32,7 @@ const PER_PAGE = 20;
 function DocList({ type }) {
   const cfg = docConfig[type];
   const navigate = useNavigate();
-  const { canEdit } = useAuth();
+  const { canEdit, canCreateStock } = useAuth();
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -86,7 +86,7 @@ function DocList({ type }) {
             <Search size={16} className="text-gray-400" />
             <input id={`search-${type}`} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={cfg.search} className="w-full bg-transparent text-sm focus:outline-none" />
           </label>
-          {canEdit && <button onClick={() => navigate(`/${type}/new`)} aria-label={`Add ${cfg.singular}`} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add</button>}
+          {canCreateStock && <button onClick={() => navigate(`/${type}/new`)} aria-label={`Add ${cfg.singular}`} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add</button>}
         </div>
       </div>
       <div className={tableWrap}>
@@ -169,8 +169,8 @@ function DocForm({ type, id, presetItem }) {
   const navigate = useNavigate();
   const toast = useToast();
   const cat = useCatalog();
-  const { canEdit } = useAuth();
-  const readOnly = !canEdit;
+  const { canEdit, canCreateStock } = useAuth();
+  const readOnly = !(canEdit || (!id && canCreateStock));
   const [doc, setDoc] = useState(null);
   const [header, setHeader] = useState(() => emptyHeader(type, presetItem));
   const [lines, setLines] = useState(() => [blankStockLine(type === 'damage' ? { reason: 'Broken' } : {})]);
