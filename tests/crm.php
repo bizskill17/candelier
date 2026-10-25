@@ -6,11 +6,14 @@ check(lead_find($legacyLead)['temperature']==='Cold'&&lead_find($legacyLead)['st
 check((int)lead_find($legacyLead)['followup_count']===1,'System migration events do not count as follow-up attempts');
 check(str_ends_with(lead_find($legacyLead)['next_followup_at'],'14:30:00'),'Legacy schedule preserved');
 foreach(['contacts','leads']as$table)check((int)db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:t AND COLUMN_NAME IN ('status','temperature','next_followup_date','next_followup_at','closure_remarks','closed_date')",['t'=>$table])===0,"$table has no duplicated lifecycle state");
-$c=contact_save(null,['name'=>'CRM integration contact','mobile'=>'9876501234','email'=>'crm-test@example.test'])['data'];$cid=(int)$c['id'];
-reject(fn()=>contact_save(null,['name'=>'Duplicate','mobile'=>'+98 7650-1234']),'Duplicate normalised mobile rejected');
-reject(fn()=>contact_save(null,['name'=>'Duplicate','email'=>'CRM-TEST@example.test']),'Duplicate email rejected');
+$pdo->exec("INSERT INTO client_categories (code,name,is_active) VALUES ('CC-CONTACT-TEST','Contact test category',1)");
+$contactCategory=(int)$pdo->lastInsertId();
+$contactRequired=['category_id'=>$contactCategory,'city'=>'Guwahati'];
+$c=contact_save(null,$contactRequired+['name'=>'CRM integration contact','mobile'=>'9876501234','email'=>'crm-test@example.test'])['data'];$cid=(int)$c['id'];
+reject(fn()=>contact_save(null,$contactRequired+['name'=>'Duplicate','mobile'=>'+98 7650-1234']),'Duplicate normalised mobile rejected');
+reject(fn()=>contact_save(null,$contactRequired+['name'=>'Duplicate','mobile'=>'9876501243','email'=>'CRM-TEST@example.test']),'Duplicate email rejected');
 $count=(int)db_value('SELECT COUNT(*) FROM contacts');
-reject(fn()=>contact_bulk(['rows'=>[['name'=>'Rollback contact','mobile'=>'9876501235'],['name'=>'Bad category','mobile'=>'9876501236','category'=>'Does not exist']]]),'Contact bulk upload rolls back all rows');
+reject(fn()=>contact_bulk(['rows'=>[$contactRequired+['name'=>'Rollback contact','mobile'=>'9876501235'],['name'=>'Bad category','mobile'=>'9876501236','category'=>'Does not exist']]]),'Contact bulk upload rolls back all rows');
 check((int)db_value('SELECT COUNT(*) FROM contacts')===$count,'Bulk failure leaves no partial contacts');
 $l=lead_save(null,['contact_id'=>$cid,'enquiry_date'=>date('Y-m-d'),'requirement'=>'Cold requirement','initial_temperature'=>'Cold'])['data'];$lid=$l['id'];
 check((int)contact_find($cid)['followup_count']===0,'Lead creation leaves Contact Never Followed Up');
@@ -40,3 +43,19 @@ check((int)db_value('SELECT contact_id FROM leads WHERE id='.$lid)===$cid,'Order
 order_delete((int)$placed['id']);
 check((int)contact_find($cid)['order_count']===0,'Customer view follows current non-cancelled Orders');
 $_GET=[];
+
+foreach(['mobile'=>'Enter the mobile number.','category_id'=>'Select a category.','city'=>'Select a city.']as$field=>$message){
+    $input=$contactRequired+['name'=>'Required field check','mobile'=>'9876501240'];$input[$field]='';
+    try{contact_save(null,$input);throw new RuntimeException('Expected required contact field rejection');}
+    catch(ApiError$e){check(($e->fields[$field]??null)===$message,"Contact $field has a clear field-level validation message");}
+}
+try{contact_save(null,['name'=>'Missing several fields']);throw new RuntimeException('Expected multiple errors');}
+catch(ApiError$e){check(isset($e->fields['mobile'],$e->fields['category_id'],$e->fields['city']),'Contact validation returns all missing required fields together');}
+try{contact_save(null,$contactRequired+['name'=>'Invalid email','mobile'=>'9876501241','email'=>'invalid']);throw new RuntimeException('Expected invalid email');}
+catch(ApiError$e){check(isset($e->fields['email']),'Contact email validation attaches error to Email');}
+try{contact_save(null,$contactRequired+['name'=>'Invalid mobile','mobile'=>'12345']);throw new RuntimeException('Expected invalid mobile');}
+catch(ApiError$e){check(isset($e->fields['mobile']),'Contact rejects malformed mobile numbers');}
+// Fields removed from the form remain preserved on pre-existing records.
+$pdo->prepare("UPDATE contacts SET source_details='Legacy source note',alternate_mobile='9876501242' WHERE id=:id")->execute(['id'=>$cid]);
+contact_save($cid,$contactRequired+['name'=>'CRM integration contact','mobile'=>'9876501234','email'=>'crm-test@example.test']);
+check(db_value('SELECT source_details FROM contacts WHERE id='.$cid)==='Legacy source note'&&db_value('SELECT alternate_mobile FROM contacts WHERE id='.$cid)==='9876501242','Editing contact preserves removed legacy fields');

@@ -3,7 +3,7 @@
 check(db_value('SELECT role FROM users WHERE id='.$legacyStaff)==='Sales','Legacy Staff becomes Sales without broadening existing access');
 check((int)db_value('SELECT is_active FROM users WHERE id='.$legacyViewer)===0,'Legacy Viewer is held inactive for Admin review, not given write access');
 check(db_value('SELECT role FROM users WHERE id='.$legacyViewer)==='Sales','Role names are Admin, Store and Sales');
-$permContact=contact_save(null,['name'=>'Permissions shared contact','mobile'=>'9876598765'])['data'];
+$permContact=contact_save(null,$contactRequired+['name'=>'Permissions shared contact','mobile'=>'9876598765'])['data'];
 $_SESSION['uid']=$salesUser;
 check(app_role()==='Sales','Sales session recognised');
 $sharedLead=lead_save(null,['contact_id'=>$permContact['id'],'enquiry_date'=>date('Y-m-d'),'requirement'=>'Shared CRM test'])['data'];
