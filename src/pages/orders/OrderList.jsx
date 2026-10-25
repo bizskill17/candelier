@@ -98,7 +98,7 @@ export default function OrderList() {
   useEffect(() => { setPage(1); }, [q, status, customerId]);
 
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
-  const cols = 8;
+  const cols = 9;
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div className="flex flex-wrap gap-2">

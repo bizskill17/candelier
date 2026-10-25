@@ -55,7 +55,24 @@ opening_save(['lines'=>[['material_id'=>$bulkMaterial['id'],'values'=>[],'entry_
 check(count(opening_list())===count($openingBefore)+1,'Store can add new opening stock without rewriting saved rows');
 foreach($openingLedgerBefore as$move)check(db_one('SELECT * FROM stock_moves WHERE id=:id',['id'=>$move['id']])===$move,'Append preserves existing opening ledger entry');
 reject(fn()=>opening_save(['lines'=>[]]),'Store cannot replace or delete saved opening stock');
+$storeIssueBody=['issue_date'=>date('Y-m-d'),'order_item_id'=>$mineItem,'issued_to'=>'Store User','lines'=>[['material_id'=>$wire,'quantity'=>1]]];
+$storeIssue=doc_save(doc_def('material-issue'),null,$storeIssueBody)['data'];
+$pendingRows=pending_material_issue()['data'];$pendingMine=array_values(array_filter($pendingRows,fn($x)=>(int)$x['id']===$mineItem));
+check($pendingMine[0]['issue_status']==='Partially Issued','Store issue leaves partial BOQ quantities in Pending Material Issue');
+production_set_status($mineItem,['status'=>'Complete']);
+check(item_find($mineItem)['production_status']==='Complete','Store can complete issued production');
+$storeDispatch=dispatch_save($mineItem,['dispatch_date'=>date('Y-m-d'),'dispatch_by'=>'Store User']);
+check(item_find($mineItem)['dispatch_id']!==null,'Store can record a new dispatch after completion');
+check(!in_array($mineItem,array_map('intval',array_column(pending_material_issue()['data'],'id')),true),'Dispatched items leave Pending Material Issue');
+reject(fn()=>dispatch_save($mineItem,['dispatch_date'=>date('Y-m-d')]),'Store cannot edit a saved dispatch');
+reject(fn()=>dispatch_delete($mineItem),'Store cannot undo a saved dispatch');
+reject(fn()=>doc_save(doc_def('material-issue'),(int)$storeIssue['id'],$storeIssueBody),'Store cannot edit a saved material issue');
+$_SESSION['uid']=$salesTwo;
+check(!in_array($mineItem,array_map('intval',array_column(dispatch_list()['data'],'order_item_id')),true),'Dispatch register also respects Order assignment');
 $_SESSION['uid']=$crmActor;
+dispatch_delete($mineItem);
+doc_save(doc_def('material-issue'),(int)$storeIssue['id'],array_replace($storeIssueBody,['lines'=>[['material_id'=>$wire,'quantity'=>2]]]));
+check(!in_array($mineItem,array_map('intval',array_column(pending_material_issue()['data'],'id')),true),'Fully issued BOQs leave Pending Material Issue');
 // Admin assigns and corrects, including a previously Final BOQ.
 $edited=order_save($mine['id'],['customer_id'=>$permContact['id'],'assigned_salesperson_id'=>$salesTwo,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['id'=>$mineItem,'area'=>'Admin corrected room']]])['data'];
 check((int)$edited['assigned_salesperson_id']===$salesTwo,'Admin can reassign an Order');
