@@ -15,10 +15,6 @@ import { today, fmtDate, fmtQty } from '../../lib/util';
 const th = 'border border-blue-400 px-2.5 py-2.5 text-left font-semibold';
 const td = 'border border-blue-200 px-2.5 py-2 align-top';
 const num = `${td} text-right tabular-nums`;
-const ONLY = [
-  { value: '', label: 'All stock levels' }, { value: 'instock', label: 'In stock' }, { value: 'zero', label: 'Out of stock' },
-  { value: 'booked', label: 'Has bookings' }, { value: 'low', label: 'Below reorder level' },
-];
 
 // Stock per material + specification, worked out from every movement.
 export default function InventoryPage() {
@@ -30,7 +26,6 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [materialId, setMaterialId] = useState('');
-  const [only, setOnly] = useState('');
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [detail, setDetail] = useState(null);
@@ -38,44 +33,29 @@ export default function InventoryPage() {
   useEffect(() => { const t = setTimeout(() => setQ(search), 300); return () => clearTimeout(t); }, [search]);
   const load = useCallback(async () => {
     setLoading(true); setLoadError('');
-    try { const r = await inventoryApi.list({ material_id: materialId, only, q }); setRows(r.data); setSummary(r.summary); } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
-  }, [materialId, only, q]);
+    try { const r = await inventoryApi.list({ material_id: materialId, only: 'instock', q }); setRows((r.data || []).filter(item => Number(item.in_stock) > 0)); setSummary(r.summary); } catch (e) { setLoadError(e.message); } finally { setLoading(false); }
+  }, [materialId, q]);
   useEffect(() => { load(); }, [load]);
 
-  const saveReorder = async (r, value) => {
-    const v = value === '' ? '' : value;
-    if (String(v) === String(r.reorder_level ?? '')) return;
-    try { const res = await inventoryApi.setReorder(r.id, v); toast(res.message); load(); } catch (e) { toast(e.fields?.reorder_level || e.message, 'error'); }
-  };
-
-  const pagination = usePagination(rows, JSON.stringify([materialId, only, q]));
+  const pagination = usePagination(rows, JSON.stringify([materialId, q]));
   const groups = [];
   pagination.rows.forEach((r) => {
     const g = groups.find((x) => x.material_id === r.material_id);
     if (g) g.rows.push(r); else groups.push({ material_id: r.material_id, name: r.material_name, rows: [r] });
   });
-  const cols = 12;
+  const cols = 11;
 
   return (
     <div className="mx-auto max-w-[90rem] space-y-4">
       <div className="print:hidden flex flex-wrap gap-2">
         <SearchSelect id="filter-material" className="w-full sm:w-52" options={[{ value: '', label: 'All materials' }, ...cat.materials.map((m) => ({ value: m.id, label: m.name }))]} value={materialId} onChange={setMaterialId} placeholder="All materials" clearable />
-        <SearchSelect id="filter-only" className="w-full sm:w-52" options={ONLY} value={only} onChange={setOnly} placeholder="All stock levels" clearable />
         <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
           <Search size={16} className="text-gray-400" />
           <input id="search-inventory" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search materials…" className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Printer size={15} /> Print / PDF</button>
       </div>
-      {summary && (
-        <div className="print:hidden flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-600">
-          <span><b className="text-gray-900">{summary.specs}</b> materials</span>
-          <span><b className="text-gray-900">{summary.in_stock}</b> in stock</span>
-          <span><b className="text-gray-900">{summary.zero}</b> out of stock</span>
-          <span><b className="text-gray-900">{summary.booked}</b> with bookings</span>
-          <span className={summary.low ? 'text-red-600' : ''}><b>{summary.low}</b> below reorder level</span>
-        </div>
-      )}
+      <div className="print:hidden text-sm text-gray-600"><b className="text-gray-900">{rows.length}</b> materials in stock</div>
       <div className="hidden print:block"><h1 className="text-xl font-semibold">Inventory</h1><p className="text-sm text-gray-600">As on {fmtDate(today())}</p></div>
 
       <div className={tableWrap}>
@@ -93,14 +73,13 @@ export default function InventoryPage() {
                 <th className={`${th} w-20 text-right`}>In Stock</th>
                 <th className={`${th} w-20 text-right`}>Booked</th>
                 <th className={`${th} w-24 text-right`}>Available to Book</th>
-                <th className={`${th} w-24 text-right`}>Reorder Level</th>
                 <th className={`${th} print:hidden w-20 text-center`}>History</th>
               </tr>
             </thead>
             <tbody>
               {loading && rows.length === 0 && [1, 2, 3].map((i) => <tr key={i}><td colSpan={cols} className={td}><div className="h-4 animate-pulse rounded bg-gray-100" /></td></tr>)}
               {!loading && loadError && <tr><td colSpan={cols} className={`${td} py-10 text-center`}><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></td></tr>}
-              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${td} py-14 text-center text-gray-500`}>{q || materialId || only ? 'Nothing matches.' : 'No stock yet. Start with Opening Stock or Material In.'}</td></tr>}
+              {!loading && !loadError && rows.length === 0 && <tr><td colSpan={cols} className={`${td} py-14 text-center text-gray-500`}>{q || materialId ? 'No in-stock materials match.' : 'No materials currently have positive stock.'}</td></tr>}
               {groups.map((g) => (
                 <Fragment key={g.material_id}>
 
@@ -115,14 +94,7 @@ export default function InventoryPage() {
                       <td className={num}>{fmtQty(r.damaged)}</td>
                       <td className={`${num} font-semibold ${r.in_stock <= 0 ? 'text-gray-400' : 'text-gray-900'}`}>{fmtQty(r.in_stock)}</td>
                       <td className={num}>{r.booked ? fmtQty(r.booked) : '—'}</td>
-                      <td className={`${num} font-semibold ${r.available < 0 ? 'text-red-600' : r.is_low ? 'text-red-600' : 'text-green-700'}`}>{fmtQty(r.available)}</td>
-                      <td className={`${td} px-1.5`}>
-                        {canEdit ? (
-                          <input key={`${r.id}-${r.reorder_level}`} aria-label={`Reorder level, ${r.material_name} ${r.spec_text}`} type="number" min="0" step="any" defaultValue={r.reorder_level ?? ''} placeholder="—"
-                            onBlur={(e) => saveReorder(r, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                            className={`${inputCls()} px-2 py-1 text-right tabular-nums ${r.is_low ? 'border-red-300' : ''}`} />
-                        ) : <span className="block text-right tabular-nums">{r.reorder_level ?? '—'}</span>}
-                      </td>
+                      <td className={`${num} font-semibold ${r.available < 0 ? 'text-red-600' : 'text-green-700'}`}>{fmtQty(r.available)}</td>
                       <td className={`${td} print:hidden text-center`}><button disabled={!canCreateStock} onClick={() => setDetail(r)} aria-label={`History of ${r.material_name} ${r.spec_text}`} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><History size={13} /> Open</button></td>
                     </tr>
                   ))}
