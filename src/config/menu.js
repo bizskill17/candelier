@@ -17,7 +17,7 @@ export const menu = [
     heading: 'Leads',
     items: [
       { key: 'leads-add', label: 'Add Lead', path: '/leads/new', icon: UserPlus, description: 'A specific requirement linked to a Contact.' },
-      { key: 'leads', label: 'All Leads', path: '/leads/all', icon: Contact, description: 'Requirements with Hot, Warm or Cold temperature from history.' },
+      { key: 'leads', label: 'All Leads', path: '/leads/all', icon: Contact, description: 'Requirements with Hot, Warm or Cold priority from history.' },
       { key: 'follow-ups', label: 'Lead Follow-ups', path: '/follow-ups', icon: PhoneCall, description: 'Follow-ups for all open Leads, including Hot, Warm and Cold.' },
     ],
   },
