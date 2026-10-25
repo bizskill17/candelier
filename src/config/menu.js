@@ -7,19 +7,26 @@ import {
 export const menu = [
   { items: [{ key: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard }] },
   {
-    heading: 'CRM',
+    heading: 'Contacts',
     items: [
-      { key: 'contacts', label: 'Contacts', path: '/contacts', icon: Contact, description: 'All relationships and contact follow-ups.' },
+      { key: 'contacts', label: 'All Contacts', path: '/contacts', icon: Contact, description: 'All relationships and contact follow-ups.' },
       { key: 'contacts-never', label: 'Never Followed Up', path: '/contacts/never', icon: PhoneCall, description: 'Contacts without a follow-up attempt.' },
-      { key: 'contacts-today', label: 'Contact Follow-ups Today', path: '/contacts/today', icon: PhoneCall, description: 'General contact follow-ups due today.' },
-      { key: 'contacts-overdue', label: 'Overdue Contact Follow-ups', path: '/contacts/overdue', icon: PhoneCall, description: 'General contact follow-ups past their due date.' },
-      { key: 'customers', label: 'Customers', path: '/customers', icon: Handshake, description: 'Contacts with confirmed non-cancelled orders.' },
+      { key: 'contacts-today', label: 'Follow-ups Today', path: '/contacts/today', icon: PhoneCall, description: 'General contact follow-ups due today.' },
+      { key: 'contacts-overdue', label: 'Overdue Follow-ups', path: '/contacts/overdue', icon: PhoneCall, description: 'General contact follow-ups past their due date.' },
+    ],
+  },
+  {
+    heading: 'Leads',
+    items: [
       { key: 'leads-add', label: 'Add Lead', path: '/leads/new', icon: UserPlus, description: 'A specific requirement linked to a Contact.' },
-      { key: 'leads', label: 'Leads', path: '/leads/all', icon: Contact, description: 'Requirements with Hot, Warm or Cold temperature from history.' },
+      { key: 'leads', label: 'All Leads', path: '/leads/all', icon: Contact, description: 'Requirements with Hot, Warm or Cold temperature from history.' },
       { key: 'follow-ups', label: 'Lead Follow-ups', path: '/follow-ups', icon: PhoneCall, description: 'Follow-ups for all open Leads, including Hot, Warm and Cold.' },
       { key: 'followup-logs', label: 'Follow Up Logs', path: '/followup-logs', icon: ScrollText, description: 'Every follow-up entered, with filters.' },
     ],
   },
+  { items: [
+      { key: 'customers', label: 'Customers', path: '/customers', icon: Handshake, description: 'Contacts with confirmed non-cancelled orders.' },
+  ] },
   {
     heading: 'Orders',
     items: [
@@ -55,10 +62,7 @@ export const menu = [
       { key: 'client_categories', label: 'Contact Categories', path: '/client-categories', icon: Tags, description: 'Groups of customers: Architect, Hotel, Dealer…' },
       { key: 'suppliers', label: 'Suppliers', path: '/suppliers', icon: Building2, description: 'Parties who supply material.' },
       { key: 'transporters', label: 'Transporters', path: '/transporters', icon: Send, description: 'Used when dispatching.' },
+      { key: 'users', label: 'Users', path: '/users', icon: UserCog, adminOnly: true, description: 'Sign-in accounts and roles.' },
     ],
-  },
-  {
-    heading: 'Administration',
-    items: [{ key: 'users', label: 'Users', path: '/users', icon: UserCog, adminOnly: true, description: 'Sign-in accounts and roles.' }],
   },
 ];
