@@ -175,7 +175,15 @@ function followup_logs(): array {
     if(valid_date($_GET['from']??'')){$w[]='f.activity_at>=:from';$p['from']=$_GET['from'].' 00:00:00';}
     if(valid_date($_GET['to']??'')){$w[]='f.activity_at<=:to';$p['to']=$_GET['to'].' 23:59:59';}
     crm_where_search($w,$p,['c.name','c.mobile','l.lead_no','l.requirement','f.remarks']);
-    return crm_page('SELECT f.*,c.name AS contact_name,l.lead_no,u.name AS recorded_by_name FROM followups f LEFT JOIN leads l ON l.id=f.lead_id JOIN contacts c ON c.id=COALESCE(f.contact_id,l.contact_id) LEFT JOIN users u ON u.id=f.recorded_by'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY f.activity_at DESC,f.id DESC',$p);
+    $from=' FROM followups f LEFT JOIN leads l ON l.id=f.lead_id JOIN contacts c ON c.id=COALESCE(f.contact_id,l.contact_id) LEFT JOIN users u ON u.id=f.recorded_by';
+    $where=$w?' WHERE '.implode(' AND ',$w):'';
+    $result=crm_page('SELECT f.*,c.name AS contact_name,l.lead_no,u.name AS recorded_by_name'.$from.$where.' ORDER BY f.activity_at DESC,f.id DESC',$p);
+    // Counts cover all matching pages and actual follow-up attempts, not system/status events.
+    $countWhere=$where.($w?' AND ':' WHERE ')."f.entry_type='Follow-up'";
+    $people=db_all("SELECT f.recorded_by,COALESCE(u.name,'Unassigned') AS name,COUNT(*) AS count".$from.$countWhere.' GROUP BY f.recorded_by,u.name ORDER BY count DESC,name,f.recorded_by',$p);
+    foreach($people as &$person){$person['recorded_by']=$person['recorded_by']===null?null:(int)$person['recorded_by'];$person['count']=(int)$person['count'];}unset($person);
+    $result['person_counts']=$people;$result['followup_total']=array_sum(array_column($people,'count'));
+    return $result;
 }
 function followups_due(): array {
     $w=["l.status='Open'","l.further_followup_required=1"];$p=[];$tab=$_GET['tab']??'today';

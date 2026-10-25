@@ -19,7 +19,7 @@ const assert=require('node:assert/strict');
   if(r==='contacts/1')payload={data:{...contacts[0],history:lead.followups,leads:[lead],orders:[]}};
   if(r==='contacts/1'&&method==='PUT'){savedContact=route.request().postDataJSON();payload={data:{...contacts[0],...savedContact},message:'Contact saved.'};}
   if(r==='crm-followups'&&method==='POST'){saved=route.request().postDataJSON();payload={data:{id:2,generated_lead_id:2},message:'Follow-up saved and Lead created.'};}
-  if(r==='crm-followups'&&method==='GET')payload={data:[{...lead.followups[0],contact_name:'Contact 01',lead_no:'LD-001',recorded_by_name:'Test staff'}],page:1,pages:1,total:1};
+  if(r==='crm-followups'&&method==='GET')payload={person_counts:[{recorded_by:1,name:'Test staff',count:3}],followup_total:3,data:[{...lead.followups[0],contact_name:'Contact 01',lead_no:'LD-001',recorded_by_name:'Test staff'}],page:1,pages:1,total:1};
   if(r==='leads/1')payload={data:lead};
   if(r==='leads'||r==='follow-ups')payload={data:[lead],page:1,pages:1,total:1};
   if(r==='leads'&&method==='POST'){saved=route.request().postDataJSON();payload={data:lead,message:'Lead saved.'};}
@@ -59,7 +59,7 @@ const assert=require('node:assert/strict');
  await page.goto('http://127.0.0.1:5173/leads/new/contact/1');await page.getByRole('button',{name:'Save Lead',exact:true}).waitFor();await page.getByRole('button',{name:'Lead Contact',exact:true}).getByText('Contact 01',{exact:true}).waitFor();
  assert.equal(await page.getByRole('button',{name:'Lead Status',exact:true}).count(),0);await page.getByLabel('Requirement',{exact:true}).fill('New requirement');await page.getByRole('button',{name:'Save Lead',exact:true}).click();await page.getByText('Lead History',{exact:true}).waitFor();assert.equal(saved.contact_id,1);assert.equal(saved.customer_type,undefined);
  await page.getByRole('button',{name:'Follow Up',exact:true}).click();await page.getByRole('button',{name:'Lead Temperature',exact:true}).getByText('Cold',{exact:true}).waitFor();await page.getByRole('button',{name:'Cancel',exact:true}).click();
- await page.goto('http://127.0.0.1:5173/followup-logs');await page.getByRole('columnheader',{name:'Contact',exact:true}).waitFor();await page.locator('tbody').getByText('Contact 01',{exact:true}).waitFor();
+ await page.goto('http://127.0.0.1:5173/followup-logs');await page.getByRole('region',{name:'Follow-ups by person',exact:true}).waitFor();assert.match(await page.getByRole('region',{name:'Follow-ups by person',exact:true}).innerText(),/Test staff/);const istToday=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());assert.equal(await page.getByLabel('From date',{exact:true}).inputValue(),istToday);assert.equal(await page.getByLabel('To date',{exact:true}).inputValue(),istToday);await page.getByRole('columnheader',{name:'Contact',exact:true}).waitFor();await page.locator('tbody').getByText('Contact 01',{exact:true}).waitFor();
  role='Admin';await page.goto('http://127.0.0.1:5173/contacts/1');await page.getByRole('button',{name:'Edit Contact',exact:true}).click();
  const editDialog=page.getByRole('dialog',{name:'Edit Contact',exact:true});
  await editDialog.getByRole('button',{name:'Category',exact:true}).click();await page.getByRole('option',{name:'Residential',exact:true}).click();
