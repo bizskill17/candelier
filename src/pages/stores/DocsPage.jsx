@@ -184,6 +184,15 @@ function DocForm({ type, id, presetItem }) {
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const issueDraftKey = (itemId) => `candelier.material-issue.draft.${itemId}`;
+  const returnFromBoq = () => {
+    const itemId = header.order_item_id;
+    if (!itemId) return;
+    try {
+      sessionStorage.setItem(issueDraftKey(itemId), JSON.stringify({ header, lines }));
+    } catch { toast('Could not preserve the current issue form. Please check browser storage.', 'error'); return; }
+    navigate(`/boq/${itemId}?returnToIssue=1`);
+  };
 
   useEffect(() => {
     if (type === 'material-issue' || type === 'damage') ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
@@ -222,7 +231,23 @@ function DocForm({ type, id, presetItem }) {
       }
     }).catch((e) => setLoadError(e.message));
   };
-  useEffect(() => { if (isEdit) load(); else if (presetItem && type === 'material-issue') loadPrefill(presetItem, true); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (isEdit) { load(); return; }
+    if (presetItem && type === 'material-issue') {
+      let restored = false;
+      try {
+        const stored = sessionStorage.getItem(issueDraftKey(presetItem));
+        if (stored) {
+          const draft = JSON.parse(stored);
+          setHeader({ ...emptyHeader(type, presetItem), ...draft.header, order_item_id: presetItem });
+          if (Array.isArray(draft.lines)) setLines(draft.lines);
+          sessionStorage.removeItem(issueDraftKey(presetItem));
+          restored = true;
+        }
+      } catch { /* The BOQ prefill remains usable without a saved issue draft. */ }
+      loadPrefill(presetItem, !restored);
+    }
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setH = (k, v) => { setHeader((h) => ({ ...h, [k]: v })); if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined })); };
   const back = () => navigate(`/${type}`);
@@ -315,7 +340,7 @@ function DocForm({ type, id, presetItem }) {
                 <SearchSelect id="d-item" panelWidth={680} searchPlaceholder="Search order, customer, project or item…" options={(items || []).map((i) => ({ value: i.id, label: `${i.order_no} · Item #${i.line_no}`, subtitle: [i.customer_name, i.project_name, i.area].filter(Boolean).join(' · '), description: (i.details || []).map((detail) => `${detail.name}: ${detail.value}`).join(' | '), badge: i.boq_status === 'Final' ? 'Final BOQ' : undefined }))}
                   value={header.order_item_id} onChange={(v) => { setH('order_item_id', v); loadPrefill(v, !isEdit); }} error={errors.order_item_id} disabled={readOnly || !items || isEdit} placeholder={items ? 'Select order item' : 'Loading…'} />
                 {header.order_item_id && <div className="mt-2 flex items-center gap-2">
-                  <button type="button" onClick={() => navigate(`/boq/${header.order_item_id}`)}
+                  <button type="button" onClick={returnFromBoq}
                     className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-blue-100">
                     <Pencil size={13} /> {canEdit ? 'Edit BOQ' : 'View BOQ'}
                   </button>
