@@ -31,7 +31,7 @@ export default function DispatchList() {
   }, [q, from, to]);
   useEffect(() => { load(); }, [load]);
   const pagination = usePagination(rows, JSON.stringify([q, from, to]));
-  const cols = canEdit ? 9 : 8;
+  const cols = canEdit ? 11 : 10;
   const removeDispatch = async () => {
     if (!deleting || busy) return;
     setBusy(true);
@@ -53,13 +53,15 @@ export default function DispatchList() {
       </div>
       <div className={tableWrap}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-sm">
+          <table className="w-full min-w-[1200px] border-collapse text-sm">
             <thead className={theadCls}>
               <tr>
                 <th className={`${thCls} w-28`}>Dispatch No.</th>
                 <th className={`${thCls} w-28`}>Date</th>
-                <th className={`${thCls} w-36`}>Order / Item</th>
-                <th className={thCls}>Customer / Project</th>
+                <th className={`${thCls} w-36`}>Order No.</th>
+                <th className={`${thCls} w-20`}>Item No.</th>
+                <th className={thCls}>Customer Name</th>
+                <th className={thCls}>Project Name</th>
                 <th className={thCls}>Order Item</th>
                 <th className={thCls}>Transporter</th>
                 <th className={`${thCls} w-28`}>Vehicle No.</th>
@@ -75,8 +77,10 @@ export default function DispatchList() {
                 <tr key={d.id} className="hover:bg-gray-50">
                   <td className={`${tdCls} font-mono text-xs font-medium text-gray-900`}>{d.dispatch_no}</td>
                   <td className={`${tdCls} whitespace-nowrap tabular-nums`}>{fmtDate(d.dispatch_date)}</td>
-                  <td className={`${tdCls} whitespace-nowrap font-mono text-xs`}>{d.order_no} <span className="text-gray-500">#{d.line_no}</span></td>
-                  <td className={tdCls}>{d.customer_name}{d.project_name && <div className="text-xs text-gray-500">{d.project_name}</div>}</td>
+                  <td className={`${tdCls} whitespace-nowrap font-mono text-xs`}>{d.order_no}</td>
+                  <td className={`${tdCls} tabular-nums`}>{d.line_no}</td>
+                  <td className={tdCls}>{d.customer_name}</td>
+                  <td className={tdCls}>{d.project_name || <span className="text-gray-300">—</span>}</td>
                   <td className={`${tdCls} font-medium text-gray-900`}>{d.item_title}{d.item_remarks && <div className="text-xs font-normal italic text-gray-500">{d.item_remarks}</div>}</td>
                   <td className={tdCls}>{d.transporter_name || <span className="text-gray-300">—</span>}</td>
                   <td className={`${tdCls} font-mono text-xs`}>{d.vehicle_no || <span className="text-gray-300">—</span>}</td>
