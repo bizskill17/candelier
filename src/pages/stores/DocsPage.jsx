@@ -314,6 +314,13 @@ function DocForm({ type, id, presetItem }) {
               <Field label="Order Item" required htmlFor="d-item" error={errors.order_item_id} className="sm:col-span-2">
                 <SearchSelect id="d-item" panelWidth={680} searchPlaceholder="Search order, customer, project or item…" options={(items || []).map((i) => ({ value: i.id, label: `${i.order_no} · Item #${i.line_no}`, subtitle: [i.customer_name, i.project_name, i.area].filter(Boolean).join(' · '), description: (i.details || []).map((detail) => `${detail.name}: ${detail.value}`).join(' | '), badge: i.boq_status === 'Final' ? 'Final BOQ' : undefined }))}
                   value={header.order_item_id} onChange={(v) => { setH('order_item_id', v); loadPrefill(v, !isEdit); }} error={errors.order_item_id} disabled={readOnly || !items || isEdit} placeholder={items ? 'Select order item' : 'Loading…'} />
+                {header.order_item_id && <div className="mt-2 flex items-center gap-2">
+                  <button type="button" onClick={() => navigate(`/boq/${header.order_item_id}`)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-blue-100">
+                    <Pencil size={13} /> {canEdit ? 'Edit BOQ' : 'View BOQ'}
+                  </button>
+                  <span className="text-xs text-gray-500">Opens the BOQ for the selected order item.</span>
+                </div>}
               </Field>
               <Field label="Date" required htmlFor="d-date" error={errors[cfg.date]}>
                 <DateInput id="d-date" max={today()} value={header[cfg.date]} onChange={(v) => setH(cfg.date, v)} error={errors[cfg.date]} disabled={readOnly} />
