@@ -6,10 +6,16 @@ import { ordersApi } from '../../api/client';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate, today } from '../../lib/util';
 import { ItemDetailLines } from '../../lib/items';
+import { FileDown } from 'lucide-react';
+import { useCatalog } from '../../lib/catalog';
+import { downloadSavedBoqPdf } from '../boq/BoqPage';
 
 // Order items whose BOQ is not made yet (open orders, not dispatched), earliest delivery first.
 export default function PendingBoq() {
   const navigate = useNavigate();
+  const catalog = useCatalog();
+  const [pdfError, setPdfError] = useState('');
+  const downloadPdf = async (id) => { setPdfError(''); try { await downloadSavedBoqPdf(id, catalog); } catch (e) { setPdfError(e.message); } };
   const [rows, setRows] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
@@ -29,6 +35,7 @@ export default function PendingBoq() {
   const cols = 10;
   return (
     <div className="mx-auto max-w-7xl space-y-4">
+      {pdfError && <div role="alert" className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">BOQ PDF: {pdfError}</div>}
       <div className="flex flex-wrap items-center gap-2">
         <label className="flex min-w-[240px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
           <Search size={16} className="text-gray-400" />
@@ -71,6 +78,7 @@ export default function PendingBoq() {
                     <td className={`${td} min-w-[10rem] text-gray-700`}>{it.remarks || DASH}</td>
                     <td className={`${td} whitespace-nowrap tabular-nums`}>{it.delivery_date ? <span className={late ? 'inline-flex items-center gap-1 font-medium text-red-600' : ''}>{late && <AlertTriangle size={12} />}{fmtDate(it.delivery_date)}</span> : DASH}</td>
                     <td className={`${td} text-center`}>
+                      {it.boq_status === 'Draft' && <button type="button" title="Download BOQ PDF" aria-label={`Download BOQ PDF for item ${it.line_no}`} onClick={() => downloadPdf(it.id)} className="inline-flex items-center gap-1 rounded border border-blue-200 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-blue-50"><FileDown size={14}/> PDF</button>}
                       <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-700"><ClipboardList size={13} /> {it.boq_status === 'Draft' ? 'Continue Draft' : 'Make BOQ'}</button>
                     </td>
                   </tr>
