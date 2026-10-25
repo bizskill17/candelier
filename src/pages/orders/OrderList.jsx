@@ -8,6 +8,9 @@ import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate, today, ItemStage, ORDER_STATUSES } from '../../lib/util';
 import DispatchDialog from './DispatchDialog';
 import { ItemText } from '../../lib/items';
+import { FileDown } from 'lucide-react';
+import { useCatalog } from '../../lib/catalog';
+import { downloadSavedBoqPdf } from '../boq/BoqPage';
 
 const PER_PAGE = 20;
 
@@ -15,6 +18,9 @@ const PER_PAGE = 20;
 export default function OrderList() {
   const { canEdit, canCreateSales, canCreateStock } = useAuth();
   const navigate = useNavigate();
+  const catalog = useCatalog();
+  const [pdfError, setPdfError] = useState('');
+  const downloadPdf = async (id) => { setPdfError(''); try { await downloadSavedBoqPdf(id, catalog); } catch (e) { setPdfError(e.message); } };
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -69,6 +75,7 @@ export default function OrderList() {
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-4">
+      {pdfError && <div role="alert" className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">BOQ PDF: {pdfError}</div>}
       <div className="flex flex-wrap gap-2">
         <SearchSelect id="filter-orders-customer" className="w-full sm:w-64" options={[{ value: '', label: 'All customers' }, ...customers.map(c => ({ value: c.id, label: c.name }))]} value={customerId} onChange={setCustomerId} placeholder="All customers" clearable />
         <SearchSelect id="filter-orders-status" className="w-full sm:w-52" options={[{ value: '', label: 'All statuses' }, { value: 'open', label: 'Not fully dispatched' }, ...ORDER_STATUSES.map(s => ({ value: s, label: s }))]} value={status} onChange={setStatus} placeholder="All statuses" clearable />
@@ -111,6 +118,7 @@ export default function OrderList() {
                   <td className={`${tdCls} whitespace-nowrap`}>
                     <div className="flex flex-wrap gap-1">
                       <button onClick={() => navigate(`/orders/${o.id}`)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs text-brand-600"><Pencil size={12}/>{canEdit ? 'Edit' : 'Open'}</button>
+                      {['Draft', 'Final'].includes(it.boq_status) && <button type="button" title="Download BOQ PDF" aria-label={`Download BOQ PDF for item ${it.line_no}`} onClick={() => downloadPdf(it.id)} className="inline-flex items-center gap-1 rounded border border-blue-200 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-blue-50"><FileDown size={14}/> PDF</button>}
                       <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs"><ClipboardList size={12}/>BOQ · {it.boq_status}</button>
                       {canCreateStock && (canEdit || (!it.dispatch && it.production_status === 'Complete')) && o.status !== 'Cancelled' && <button onClick={() => setDispatching(it)} className="inline-flex items-center gap-1 rounded bg-brand-600 px-2 py-1 text-xs text-white"><Truck size={12}/>{it.dispatch ? 'Dispatched' : 'Dispatch'}</button>}
                     </div>
