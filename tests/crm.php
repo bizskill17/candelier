@@ -94,3 +94,23 @@ check($event['outcome']===null&&substr($event['activity_at'],0,10)===date('Y-m-d
 check((bool)$simple['data']['generated_lead_id']&&(bool)$event['further_followup_required'],'Lead Received creates lead and schedules follow-up');
 crm_followup_save(['contact_id'=>$simpleContact,'followup_status'=>'No Further Follow-up','method'=>'Call','next_followup_at'=>'2099-01-01 12:00:00','requirement_received'=>true]);
 check(!(bool)contact_find($simpleContact)['further_followup_required']&&contact_find($simpleContact)['next_followup_at']===null,'No Further Follow-up clears stale schedule and requirement flags');
+
+// Lead Master views use the same schedule rules as Lead Follow-ups.
+$viewContact=contact_save(null,$contactRequired+['name'=>'Lead view test','mobile'=>'9876519989'])['data']['id'];
+$viewIds=[];
+foreach(['today','upcoming','overdue','missing','success','fail'] as $kind){
+    $v=lead_save(null,['contact_id'=>$viewContact,'enquiry_date'=>date('Y-m-d'),'requirement'=>'View '.$kind])['data']['id'];$viewIds[$kind]=(int)$v;
+    if(in_array($kind,['success','fail'],true))crm_followup_save(['lead_id'=>$v,'entry_type'=>'Status Update','activity_at'=>now(),'lead_status'=>ucfirst($kind)]);
+    elseif($kind!=='missing'){
+        $next=match($kind){'today'=>date('Y-m-d').' 23:59:59','upcoming'=>date('Y-m-d',strtotime('+2 days')).' 12:00:00',default=>date('Y-m-d',strtotime('-1 day')).' 12:00:00'};
+        $at=$kind==='overdue'?date('Y-m-d',strtotime('-2 days')).' 12:00:00':now();
+        if($kind==='overdue')db()->prepare('UPDATE followups SET activity_at=:at WHERE lead_id=:id')->execute(['at'=>$at,'id'=>$v]);
+        crm_followup_save(['lead_id'=>$v,'activity_at'=>$at,'method'=>'Call','further_followup_required'=>true,'next_followup_at'=>$next,'remarks'=>'View scheduling test']);
+    }
+}
+foreach($viewIds as $kind=>$expectedId){$_GET=['view'=>$kind,'contact_id'=>$viewContact];check(array_map('intval',array_column(lead_list()['data'],'id'))===[$expectedId],'Lead view '.$kind.' includes only matching status/schedule');}
+$pdo->prepare('UPDATE leads SET updated_at=:t WHERE contact_id=:id')->execute(['t'=>date('Y-m-d',strtotime('-1 day')).' 12:00:00','id'=>$viewContact]);
+$pdo->prepare('UPDATE leads SET updated_at=:t WHERE id=:id')->execute(['t'=>now(),'id'=>$viewIds['today']]);
+$_GET=['view'=>'updated-today','contact_id'=>$viewContact];check(array_map('intval',array_column(lead_list()['data'],'id'))===[$viewIds['today']],'Lead Updated Today excludes previous dates');
+$_GET=['view'=>'all','contact_id'=>$viewContact];check(lead_list()['total']===6,'All Leads includes every lifecycle view');
+$_GET=[];

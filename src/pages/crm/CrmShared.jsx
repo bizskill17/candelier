@@ -70,6 +70,7 @@ export function FollowupForm({contact, lead, onClose, onSaved}) {
  <Field label="Next Follow-up Date" required><input aria-label="Next Follow-up Date" type="date" required value={f.next_followup_date} min={indiaNow().slice(0,10)} onChange={e=>set('next_followup_date',e.target.value)} className={inputCls()} /></Field>
  <Field label="Next Follow-up Time" required><input aria-label="Next Follow-up Time" type="time" required value={f.next_followup_time} onChange={e=>set('next_followup_time',e.target.value)} className={inputCls()} /></Field>
  </>}
+ {lead&&<Field label="Remarks" className="sm:col-span-2"><textarea aria-label="Follow-up Remarks" rows={3} maxLength={10000} value={f.remarks} onChange={e=>set('remarks',e.target.value)} className={inputCls()} /></Field>}
  </div><p className="mt-3 text-xs text-gray-500">Activity time, Recorded By and entry time are captured automatically. All times are Indian time.</p>
  </Modal>;
 }
