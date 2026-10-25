@@ -134,7 +134,7 @@ export default function OrderForm({ id, leadId }) {
   const cancelled = order?.status === 'Cancelled';
   const canWrite=canEdit||(!isEdit&&canCreateSales);
   const locked = !canWrite || cancelled;
-  const custOpts = (customers || []).filter((c) => c.is_active || String(c.id) === String(header.customer_id)).map((c) => ({ value: c.id, label: c.name }));
+  const custOpts = (customers || []).filter((c) => c.is_active || String(c.id) === String(header.customer_id)).map((c) => ({ value: c.id, label: [c.name, c.city, c.mobile || c.phone].filter(Boolean).join(' · ') }));
   const fieldsFor = (it) => itemFields.fields.filter((f) => f.is_active || (it.values?.[f.id] ?? '') !== '');
   const th = 'border border-blue-400 px-3 py-2 text-left font-semibold';
   const td = 'border border-blue-200 px-2 py-2 align-top';
