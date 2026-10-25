@@ -136,16 +136,17 @@ export default function ProductionPage({ status }) {
     </div>
     <div className={tableWrap} aria-busy={loading || busy}>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1050px] border-collapse text-sm">
+        <table className="w-full min-w-[1150px] border-collapse text-sm">
           <thead className={theadCls}><tr>
-            {['Order No.', 'Customer Name', 'Project Name', 'Area', 'Order Item', 'Production Status', 'Remarks', ...(ready && canCreateStock ? ['Action'] : [])].map((heading) => <th key={heading} className={th}>{heading}</th>)}
+            {['Order No.', 'Item No.', 'Customer Name', 'Project Name', 'Area', 'Order Item', 'Production Status', 'Remarks', ...(ready && canCreateStock ? ['Action'] : [])].map((heading) => <th key={heading} className={th}>{heading}</th>)}
           </tr></thead>
           <tbody>
-            {loading && <tr><td colSpan={ready && canCreateStock ? 8 : 7} className={`${td} text-center text-gray-500`}>Loading items…</td></tr>}
-            {error && !loading && <tr><td colSpan={ready && canCreateStock ? 8 : 7} className={`${td} py-10 text-center`}><p role="alert" className="text-red-600">{error}</p><button onClick={refresh} className="mt-2 text-brand-600 underline">Try again</button></td></tr>}
-            {!loading && !error && !rows.length && <tr><td colSpan={ready && canCreateStock ? 8 : 7} className={`${td} !py-12 text-center text-gray-500`}>{filtered ? 'No items match these filters.' : ready ? 'No completed items awaiting dispatch.' : 'No issued items in production.'}</td></tr>}
+            {loading && <tr><td colSpan={ready && canCreateStock ? 9 : 8} className={`${td} text-center text-gray-500`}>Loading items…</td></tr>}
+            {error && !loading && <tr><td colSpan={ready && canCreateStock ? 9 : 8} className={`${td} py-10 text-center`}><p role="alert" className="text-red-600">{error}</p><button onClick={refresh} className="mt-2 text-brand-600 underline">Try again</button></td></tr>}
+            {!loading && !error && !rows.length && <tr><td colSpan={ready && canCreateStock ? 9 : 8} className={`${td} !py-12 text-center text-gray-500`}>{filtered ? 'No items match these filters.' : ready ? 'No completed items awaiting dispatch.' : 'No issued items in production.'}</td></tr>}
             {rows.map((it) => <tr key={it.id} className={pending[it.id] ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'}>
-              <td className={`${td} whitespace-nowrap font-mono text-xs`}><Link to={`/orders/${it.order_id}`} className="text-brand-600 hover:underline">{it.order_no}</Link><span className="mt-1 block text-gray-500">Item #{it.line_no}</span></td>
+              <td className={`${td} whitespace-nowrap font-mono text-xs`}><Link to={`/orders/${it.order_id}`} className="text-brand-600 hover:underline">{it.order_no}</Link></td>
+              <td className={`${td} tabular-nums`}>{it.line_no}</td>
               <td className={`${td} min-w-[150px] font-medium`}>{it.customer_name}</td>
               <td className={`${td} min-w-[130px]`}>{it.project_name || dash}</td>
               <td className={`${td} min-w-[100px]`}>{it.area || dash}</td>
