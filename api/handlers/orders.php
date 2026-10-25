@@ -136,7 +136,7 @@ function order_find(int $id): array
     $o = db_one(ORDER_SELECT . ' WHERE o.id = :id', ['id' => $id]);
     if (!$o) throw new ApiError('Order not found. It may have been deleted.', 404);
     $o = order_cast($o);
-    $lead = db_one('SELECT id, lead_no FROM leads WHERE order_id = :o', ['o' => $id]);
+    $lead = db_one('SELECT l.id, l.lead_no FROM leads l JOIN orders o ON o.lead_id=l.id WHERE o.id = :o', ['o' => $id]);
     $o['lead'] = $lead ? ['id' => (int) $lead['id'], 'lead_no' => $lead['lead_no']] : null;
     $o['items'] = order_items_of($id);
     return $o;
@@ -169,9 +169,9 @@ function order_validate(?array $existing, array $in): array
     $h['shipping_address'] = $addr === '' ? null : $addr;
     $leadId = (int) ($in['lead_id'] ?? 0);
     if ($leadId && !$existing) {
-        $lead = db_one('SELECT lead_no, status, order_id, customer_id FROM leads WHERE id = :id', ['id' => $leadId]);
+        $lead = db_one('SELECT lead_no, status, order_id, customer_id FROM crm_lead_current WHERE id = :id', ['id' => $leadId]);
         if (!$lead) $errors['lead_id'] = 'That lead no longer exists.';
-        elseif ($lead['order_id']) $errors['lead_id'] = "An order was already made from lead {$lead['lead_no']}.";
+        elseif ((int)$lead['customer_id'] !== $cid) $errors['lead_id'] = 'The order Contact must match the Lead Contact.';
         elseif ($lead['status'] !== 'Success') $errors['lead_id'] = "Lead {$lead['lead_no']} is not marked Success.";
     }
     $h['_lead_id'] = $leadId && !$existing ? $leadId : null;
@@ -228,6 +228,7 @@ function order_save(?int $id, array $in): array
     try {
         $leadId = $h['_lead_id'];
         unset($h['_lead_id']);
+        if ($leadId) $h['lead_id']=$leadId;
         $h['updated_at'] = now();
         if ($id === null) {
             $h['order_no'] = next_doc_no('orders', 'ORD', 'order_no');
@@ -266,7 +267,7 @@ function order_save(?int $id, array $in): array
             $pdo->prepare('DELETE FROM order_items WHERE id = :i')->execute(['i' => $old['id']]);
         }
         if ($leadId) {
-            $pdo->prepare('UPDATE leads SET order_id = :o, updated_at = :u WHERE id = :l')->execute(['o' => $id, 'u' => now(), 'l' => $leadId]);
+            // The originating Lead is linked on orders.lead_id; no state is duplicated on Leads.
             $msg .= ' Linked to lead ' . db_value('SELECT lead_no FROM leads WHERE id = :l', ['l' => $leadId]) . '.';
         }
         order_refresh_status($id);
@@ -319,7 +320,7 @@ function order_delete(int $id): array
         db()->exec("DELETE FROM boq_lines WHERE order_item_id IN ($in)");
         db()->exec("DELETE FROM order_item_values WHERE order_item_id IN ($in)");
     }
-    db()->prepare('UPDATE leads SET order_id = NULL WHERE order_id = :id')->execute(['id' => $id]);
+
     db()->prepare('DELETE FROM order_items WHERE order_id = :id')->execute(['id' => $id]);
     db()->prepare('DELETE FROM orders WHERE id = :id')->execute(['id' => $id]);
     return ['message' => "Order {$o['order_no']} deleted."];

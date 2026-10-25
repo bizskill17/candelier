@@ -18,6 +18,7 @@ require __DIR__ . '/lib/http.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/stock.php';
 require __DIR__ . '/lib/migrate.php';
+require __DIR__ . '/lib/migrate_crm.php';
 require __DIR__ . '/entities.php';
 require __DIR__ . '/handlers/auth.php';
 require __DIR__ . '/handlers/masters.php';
@@ -40,6 +41,7 @@ try {
     migrate_production_status();
     migrate_dispatch_fields();
     migrate_client_categories();
+    migrate_crm();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 
@@ -71,6 +73,8 @@ try {
             foreach ($rows as &$r) { $r['id'] = (int) $r['id']; $r['is_active'] = (bool) $r['is_active']; }
             json_out(['data' => $rows]);
             break;
+        case 'contacts': contacts_route($method, $parts); break;
+        case 'crm-followups': crm_followups_route($method, $parts); break;
         case 'leads':           leads_route($method, $parts); break;
         case 'followup-logs':   if ($method !== 'GET') throw new ApiError('Not found.', 404); json_out(followup_logs()); break;
         case 'follow-ups':      if ($method !== 'GET') throw new ApiError('Not found.', 404); json_out(followups_due()); break;

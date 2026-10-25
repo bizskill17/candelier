@@ -11,6 +11,11 @@
 
 function masters_route(string $method, array $parts): void
 {
+    if (in_array($parts[0] ?? '', ['contacts','customers'], true)) {
+        if (($parts[2] ?? '') === 'status' && $method === 'PATCH') { $in=request_body(); json_out(contact_save((int)$parts[1], array_replace(contact_find((int)$parts[1]), $in))); return; }
+        if (($parts[0] ?? '') === 'customers' && $method === 'GET' && !isset($parts[1])) $_GET['view']='customers';
+        contacts_route($method, array_slice($parts,1)); return;
+    }
     $e  = entity($parts[0] ?? '');
     $id = isset($parts[1]) ? (int) $parts[1] : null;
     $sub = $parts[2] ?? null;

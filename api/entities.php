@@ -37,7 +37,7 @@ function entities(): array
             'joins' => ['state_id' => ['table' => 'states', 'as' => 'state_name'], 'category_id' => ['table' => 'client_categories', 'as' => 'category_name']],
             'search' => ['code', 'name', 'contact_person', 'phone', 'city', 'email', 'contact_mobile', 'address'],
             'text_filters' => ['city'],
-            'referenced_by' => [['table' => 'orders', 'column' => 'customer_id', 'label' => 'order'], ['table' => 'leads', 'column' => 'customer_id', 'label' => 'lead']],
+            'referenced_by' => [['table' => 'orders', 'column' => 'customer_id', 'label' => 'order'], ['table' => 'leads', 'column' => 'contact_id', 'label' => 'lead']],
             'lookup' => ['address', 'phone', 'city', 'email', 'contact_person', 'contact_mobile', 'state_id', 'category_id'],
         ],
         'suppliers' => [
@@ -59,7 +59,7 @@ function entities(): array
             'label' => 'State', 'table' => 'states', 'prefix' => 'ST',
             'fields' => ['name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'max' => 60, 'unique' => true]],
             'search' => ['code', 'name'],
-            'referenced_by' => [['table' => 'leads', 'column' => 'state_id', 'label' => 'lead'], ['table' => 'customers', 'column' => 'state_id', 'label' => 'customer']],
+            'referenced_by' => [['table' => 'contacts', 'column' => 'state_id', 'label' => 'contact'], ['table' => 'customers', 'column' => 'state_id', 'label' => 'customer']],
         ],
         'client_categories' => [
             'label' => 'Client Category', 'table' => 'client_categories', 'prefix' => 'CC',
@@ -71,7 +71,7 @@ function entities(): array
             'label' => 'Lead Source', 'table' => 'lead_sources', 'prefix' => 'SRC',
             'fields' => ['name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'max' => 60, 'unique' => true]],
             'search' => ['code', 'name'],
-            'referenced_by' => [['table' => 'leads', 'column' => 'source_id', 'label' => 'lead']],
+            'referenced_by' => [['table' => 'contacts', 'column' => 'source_id', 'label' => 'contact']],
         ],
         'users' => [
             'label' => 'User', 'table' => 'users', 'prefix' => 'USR',
@@ -88,7 +88,7 @@ function entities(): array
             'referenced_by' => [
                 ['table' => 'orders', 'column' => 'order_by_id', 'label' => 'order'],
                 ['table' => 'bookings', 'column' => 'booked_by', 'label' => 'booking'],
-                ['table' => 'lead_followups', 'column' => 'followup_by', 'label' => 'follow-up'],
+                ['table' => 'followups', 'column' => 'recorded_by', 'label' => 'follow-up'], ['table'=>'contacts','column'=>'created_by','label'=>'contact'], ['table'=>'leads','column'=>'created_by','label'=>'lead'],
             ],
         ],
     ];
@@ -97,6 +97,12 @@ function entities(): array
 function entity(string $key): array
 {
     $all = entities();
+    $all['contacts'] = $all['customers'];
+    $all['contacts']['label'] = 'Contact';
+    $all['contacts']['table'] = 'customers';
+    $all['contacts']['prefix'] = 'CON';
+    $all['contact_categories'] = $all['client_categories'];
+    $all['crm_sources'] = $all['lead_sources'];
     if (!isset($all[$key])) {
         throw new ApiError("Unknown master \"$key\".", 404);
     }

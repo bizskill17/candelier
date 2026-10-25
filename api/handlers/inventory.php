@@ -184,7 +184,7 @@ function dashboard(): array
         'boq_pending' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
         'to_dispatch' => (int) db_value("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.status <> 'Cancelled' AND NOT EXISTS (SELECT 1 FROM dispatches d WHERE d.order_item_id = i.id)"),
         'low_stock' => count(array_filter(inventory_rows(), fn ($r) => $r['is_low'])),
-        'followups_today' => (int) db_value("SELECT COUNT(*) FROM leads WHERE status = 'Open' AND temperature = 'Hot' AND next_followup_date = :d", ['d' => $today]),
-        'followups_overdue' => (int) db_value("SELECT COUNT(*) FROM leads WHERE status = 'Open' AND temperature = 'Hot' AND next_followup_date < :d", ['d' => $today]),
+        'followups_today' => (int) db_value("SELECT COUNT(*) FROM crm_lead_current WHERE status = 'Open' AND further_followup_required=1 AND next_followup_date = :d", ['d' => $today]),
+        'followups_overdue' => (int) db_value("SELECT COUNT(*) FROM crm_lead_current WHERE status = 'Open' AND further_followup_required=1 AND next_followup_date < :d", ['d' => $today]),
     ]];
 }

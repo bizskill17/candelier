@@ -47,7 +47,9 @@ jobs:
         run: find api -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Test CSV import
-        run: node tests/materialCsv.test.mjs
+        run: |
+          node tests/materialCsv.test.mjs
+          node tests/contactsCsv.test.mjs
 
       - name: Test migration and BOQ workflow
         env:

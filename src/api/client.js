@@ -166,3 +166,14 @@ export const crmApi = {
   due: (params) => request('GET', 'follow-ups', { params }),
   logs: (params) => request('GET', 'followup-logs', { params }),
 };
+
+export const contactsApi = {
+  list: (params) => request('GET', 'contacts', { params }),
+  get: (id) => request('GET', `contacts/${id}`),
+  save: (id, body) => request(id ? 'PUT' : 'POST', id ? `contacts/${id}` : 'contacts', { body }),
+  bulk: (rows) => request('POST', 'contacts/bulk', { body: { rows } }),
+};
+export const historyApi = {
+  save: (body) => request('POST', 'crm-followups', { body }),
+  list: (params) => request('GET', 'crm-followups', { params }),
+};

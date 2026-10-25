@@ -54,7 +54,7 @@ export const masters = {
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Blue Dart' }, { name: 'phone', label: 'Phone', type: 'phone' }],
   },
   client_categories: {
-    singular: 'Client Category', plural: 'client categories', hideCode: true,
+    singular: 'Contact Category', plural: 'contact categories', hideCode: true,
     columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }],
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Architect' }],
   },
@@ -64,7 +64,7 @@ export const masters = {
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Assam' }],
   },
   lead_sources: {
-    singular: 'Lead Source', plural: 'lead sources', hideCode: true,
+    singular: 'Source', plural: 'sources', hideCode: true,
     columns: [{ key: 'name', label: 'Name', sort: 'name', strong: true }],
     fields: [{ name: 'name', label: 'Name', type: 'text', required: true, full: true, placeholder: 'e.g. Instagram Ads' }],
   },

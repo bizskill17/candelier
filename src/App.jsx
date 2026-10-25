@@ -16,6 +16,7 @@ import OpeningStock from './pages/stores/OpeningStock';
 import InventoryPage from './pages/stores/InventoryPage';
 import LowStock from './pages/stores/LowStock';
 import LeadsPage from './pages/crm/LeadsPage';
+import ContactsPage from './pages/crm/ContactsPage';
 import FollowUps from './pages/crm/FollowUps';
 import FollowUpLogs from './pages/crm/FollowUpLogs';
 import { menu } from './config/menu';
@@ -31,6 +32,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="contacts/*" element={<ContactsPage />} />
+          <Route path="customers" element={<ContactsPage customers />} />
           <Route path="leads/*" element={<LeadsPage />} />
           <Route path="follow-ups" element={<FollowUps />} />
           <Route path="followup-logs" element={<FollowUpLogs />} />
@@ -50,7 +53,7 @@ export default function App() {
           <Route path="material-categories" element={<MasterPage key="material_categories" module={mod('material_categories')} />} />
           <Route path="materials" element={<MaterialsPage />} />
           <Route path="item-fields" element={<ItemFieldsPage />} />
-          {['customers', 'suppliers', 'transporters'].map((k) => (
+          {['suppliers', 'transporters'].map((k) => (
             <Route key={k} path={k} element={<MasterPage key={k} module={mod(k)} />} />
           ))}
           <Route path="lead-sources" element={<MasterPage key="lead_sources" module={mod('lead_sources')} />} />
