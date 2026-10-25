@@ -161,7 +161,6 @@ export const crmApi = {
   update: (id, body) => request('PUT', `leads/${id}`, { body }),
   remove: (id) => request('DELETE', `leads/${id}`),
   followUp: (id, body) => request('POST', `leads/${id}/followups`, { body }),
-  undoFollowUp: (id, fid) => request('DELETE', `leads/${id}/followups/${fid}`),
   customer: (id) => request('POST', `leads/${id}/customer`),
   due: (params) => request('GET', 'follow-ups', { params }),
   logs: (params) => request('GET', 'followup-logs', { params }),
