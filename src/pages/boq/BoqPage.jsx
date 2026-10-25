@@ -58,29 +58,57 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
   ctx.font = 'bold 19px Arial'; ctx.fillText('Order Item', margin, y); y += 32;
   ctx.font = '19px Arial'; renderCell(detailLines, margin, y); y += detailLines.length * 26 + 32;
   if (d.remarks) { ctx.font = '19px Arial'; const ls = textLine('Remarks: ' + d.remarks, margin, width - 2 * margin, 19); renderCell(ls, margin, y); y += ls.length * 26 + 24; }
-  const columns = [margin, margin + 60, margin + 286, margin + 860, margin + 982];
   const tableWidth = width - 2 * margin;
+  // Column edges, not text baselines. Each row begins after the previous row ends.
+  const edges = [margin, margin + 64, margin + 304, margin + 835, margin + 958, margin + tableWidth];
+  const colWidth = i => edges[i + 1] - edges[i];
   const tableHeader = () => {
-    ctx.fillStyle = '#2951d9'; ctx.fillRect(margin, y - 30, tableWidth, 47);
-    ctx.font = 'bold 18px Arial'; ctx.fillStyle = '#fff';
-    ['SL', 'Category', 'Material', 'Qty', 'Unit'].forEach((h,i) => ctx.fillText(h, columns[i] + 8, y));
-    ctx.fillStyle = '#111827'; y += 30;
+    const top = y;
+    const headerHeight = 54;
+    ctx.fillStyle = '#2951d9';
+    ctx.fillRect(margin, top, tableWidth, headerHeight);
+    ctx.font = 'bold 19px Arial';
+    ctx.fillStyle = '#ffffff';
+    ['SL', 'Category', 'Material', 'Qty', 'Unit'].forEach((h, i) => {
+      ctx.textAlign = i === 3 ? 'right' : 'left';
+      ctx.fillText(h, i === 3 ? edges[i + 1] - 12 : edges[i] + 12, top + 35);
+    });
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#111827';
+    y = top + headerHeight;
   };
+  if (y + 125 > height - 95) { savePage(); startPage(); }
   tableHeader();
   for (let i = 0; i < (d.lines || []).length; i++) {
     const r = d.lines[i];
     const material = catalog?.material?.(r.material_id);
     const category = catalog?.categories?.find(c => String(c.id) === String(r.category_id || material?.category_id));
-    const values = [String(i + 1), category?.name || '—', [material?.material_code, material?.name].filter(Boolean).join(' - ') || '—', fmtQty(r.qty_required ?? r.qty ?? 0), material?.unit || '—'];
-    const sizes = [18,18,18,19,18];
-    const limits = [50,215,562,110,110];
-    const lines = values.map((v,k) => textLine(v, columns[k], limits[k], sizes[k]));
-    const rowHeight = Math.max(45, ...lines.map(v => v.length * 25 + 14));
-    if (y + rowHeight > height - 110) { savePage(); startPage(); tableHeader(); }
-    ctx.strokeStyle = '#cbd5e1'; ctx.strokeRect(margin, y - 29, tableWidth, rowHeight);
-    ctx.font = '18px Arial';
-    lines.forEach((ls,k) => renderCell(ls, columns[k] + 8, y));
-    y += rowHeight;
+    const values = [
+      String(i + 1), category?.name || '—',
+      [material?.material_code, material?.name].filter(Boolean).join(' - ') || '—',
+      fmtQty(r.qty_required ?? r.qty ?? 0), material?.unit || '—'
+    ];
+    const fontSize = 18;
+    const lines = values.map((v, k) => textLine(v, edges[k] + 12, colWidth(k) - 24, fontSize));
+    const rowHeight = Math.max(54, ...lines.map(ls => ls.length * 27 + 22));
+    if (y + rowHeight > height - 95) { savePage(); startPage(); tableHeader(); }
+    const top = y;
+    ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+    ctx.fillRect(margin, top, tableWidth, rowHeight);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(margin, top, tableWidth, rowHeight);
+    edges.slice(1, -1).forEach(edge => {
+      ctx.beginPath(); ctx.moveTo(edge, top); ctx.lineTo(edge, top + rowHeight); ctx.stroke();
+    });
+    ctx.fillStyle = '#111827';
+    ctx.font = fontSize + 'px Arial';
+    lines.forEach((ls, k) => {
+      ctx.textAlign = k === 3 ? 'right' : 'left';
+      renderCell(ls, k === 3 ? edges[k + 1] - 12 : edges[k] + 12, top + 33, 27);
+    });
+    ctx.textAlign = 'left';
+    y = top + rowHeight;
   }
   savePage();
   const enc = new TextEncoder();
