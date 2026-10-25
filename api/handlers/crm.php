@@ -95,10 +95,16 @@ function leads_route(string $method,array $parts): void {
     throw new ApiError('Not found.',404);
 }
 function lead_list(): array {
-    $w=[];$p=[];foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
+    $w=[];$p=[];$view=$_GET['view']??'all';
+    $scheduled="l.status='Open' AND l.further_followup_required=1";
+    $views=['today'=>"$scheduled AND DATE(l.next_followup_at)=CURRENT_DATE()",'upcoming'=>"$scheduled AND DATE(l.next_followup_at)>CURRENT_DATE()",'overdue'=>"$scheduled AND DATE(l.next_followup_at)<CURRENT_DATE()",'missing'=>"$scheduled AND l.next_followup_at IS NULL",'success'=>"l.status='Success'",'fail'=>"l.status='Fail'"];
+    if(isset($views[$view]))$w[]=$views[$view];
+    if($view==='updated-today'){$w[]='l.updated_at >= :updated_start AND l.updated_at < :updated_end';$p['updated_start']=date('Y-m-d').' 00:00:00';$p['updated_end']=date('Y-m-d',strtotime('+1 day')).' 00:00:00';}
+    foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
     foreach(['contact_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="l.$k=:$k";$p[$k]=(int)$_GET[$k];}
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.display_phone','l.project_name','l.requirement']);
-    $result=crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY l.enquiry_date DESC,l.id DESC',$p);$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+    $sort=$view==='updated-today'?'l.updated_at DESC,l.id DESC':'l.enquiry_date DESC,l.id DESC';
+    $result=crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
 }
 function lead_find(int $id): array {
     $l=db_one(LEAD_SELECT.' WHERE l.id=:id',['id'=>$id]);if(!$l)throw new ApiError('Lead not found.',404);
