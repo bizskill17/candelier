@@ -93,8 +93,11 @@ function migrate_crm(): void
             }
         }
         // Repoint the existing FK before archiving the old party table.
-        $fk=db_one("SELECT REFERENCED_TABLE_NAME AS target FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND CONSTRAINT_NAME='fk_order_customer'");
-        if ($fk && $fk['target'] !== 'contacts') $pdo->exec('ALTER TABLE orders DROP FOREIGN KEY fk_order_customer, ADD CONSTRAINT fk_order_customer FOREIGN KEY(customer_id) REFERENCES contacts(id)');
+        $fk=db_one("SELECT CONSTRAINT_NAME AS name, REFERENCED_TABLE_NAME AS target FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='orders' AND COLUMN_NAME='customer_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
+        if (!$fk || $fk['target'] !== 'contacts') {
+            if ($fk) { $name=str_replace('`','``',$fk['name']); $pdo->exec("ALTER TABLE orders DROP FOREIGN KEY `$name`"); }
+            $pdo->exec('ALTER TABLE orders ADD CONSTRAINT fk_order_contact FOREIGN KEY(customer_id) REFERENCES contacts(id)');
+        }
         if (db_value("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='customers' AND TABLE_TYPE='BASE TABLE'")) $pdo->exec('RENAME TABLE customers TO legacy_crm_customers');
         foreach (db_all("SELECT CONSTRAINT_NAME AS name FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='legacy_crm_customers' AND CONSTRAINT_TYPE='FOREIGN KEY'") as $key) { $name=str_replace('`','``',$key['name']); $pdo->exec("ALTER TABLE legacy_crm_customers DROP FOREIGN KEY `$name`"); }
         // Compatibility projection only: there is one writable person record, in contacts.
