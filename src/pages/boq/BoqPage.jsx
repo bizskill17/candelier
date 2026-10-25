@@ -258,18 +258,20 @@ function BookDialog({ itemId, booking, onClose, onDone }) {
   const [qty, setQty] = useState(String(round3(suggested)));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const inFlight=useRef(false);
   const go = async () => {
-    setBusy(true);
+    if(inFlight.current)return;
+    inFlight.current=true;setBusy(true);setError('');
     try {
       const r = mode === 'book' ? await boqApi.book(itemId, variant.id, qty) : await boqApi.release(itemId, variant.id, qty);
       toast(r.message);
       onDone(r.data);
-    } catch (e) { setError(e.fields?.quantity || e.message); } finally { setBusy(false); }
+    } catch (e) { setError(e.fields?.quantity || e.message); } finally { inFlight.current=false;setBusy(false); }
   };
   return (
-    <Modal open title={mode === 'book' ? 'Book stock' : 'Release booked stock'} onClose={onClose}
+    <Modal open title={mode === 'book' ? 'Book stock' : 'Release booked stock'} onClose={() => !inFlight.current && onClose()}
       footer={<>
-        <button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
+        <button disabled={busy} onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
         <button onClick={go} disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : mode === 'book' ? 'Book' : 'Release'}</button>
       </>}>
       <p className="font-medium text-gray-900">{m?.name}</p>
@@ -280,7 +282,7 @@ function BookDialog({ itemId, booking, onClose, onDone }) {
         {mode === 'book' && <><dt className="text-gray-500">Still required</dt><dd className="text-right tabular-nums">{fmtQty(Math.max(0, required || 0))}</dd></>}
       </dl>
       <label htmlFor="book-qty" className="mb-1 mt-4 block text-sm font-medium text-gray-700">{mode === 'book' ? 'Quantity to book' : 'Quantity to release'}</label>
-      <input id="book-qty" autoFocus type="number" min="0" step="any" inputMode="decimal" value={qty} onChange={(e) => { setQty(e.target.value); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') go(); }} className={`${inputCls(error)} text-right tabular-nums`} />
+      <input id="book-qty" disabled={busy} autoFocus type="number" min="0" step="any" inputMode="decimal" value={qty} onChange={(e) => { setQty(e.target.value); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') {e.preventDefault();go();} }} className={`${inputCls(error)} text-right tabular-nums`} />
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </Modal>
   );

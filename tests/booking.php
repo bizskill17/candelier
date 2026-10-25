@@ -58,11 +58,11 @@ function booking_race(array $requests,int $variant): array {
         $deadline=microtime(true)+8;$blocked=false;
         while(microtime(true)<$deadline){
             foreach($workers as&$w){if(!$w['ready']){$w['prefix'].=stream_get_contents($w['out']);$w['ready']=str_contains($w['prefix'],"READY\n");}}unset($w);
-            $waits=(int)db_value('SELECT COUNT(*) FROM information_schema.INNODB_LOCK_WAITS');
+            $waits=(int)db_value("SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID<>CONNECTION_ID() AND DB=DATABASE() AND INFO LIKE '%FOR UPDATE%'");
             if(count(array_filter($workers,fn($w)=>$w['ready']))===count($workers)&&$waits>=count($workers)){$blocked=true;break;}
             usleep(25000);
         }
-        if(!$blocked){$diagnostics=[];foreach($workers as$w)$diagnostics[]=['ready'=>$w['ready'],'output'=>$w['prefix'].stream_get_contents($w['out']),'error'=>stream_get_contents($w['err']),'status'=>proc_get_status($w['proc'])];throw new RuntimeException('Competing booking requests did not reach their locks: '.json_encode($diagnostics));}
+        if(!$blocked){$diagnostics=[];foreach($workers as$w)$diagnostics[]=['ready'=>$w['ready'],'output'=>$w['prefix'].stream_get_contents($w['out']),'error'=>stream_get_contents($w['err']),'status'=>proc_get_status($w['proc'])];$diagnostics[]=['queries'=>db_all('SELECT ID,DB,STATE,INFO FROM information_schema.PROCESSLIST WHERE DB=DATABASE()')];throw new RuntimeException('Competing booking requests did not reach their locks: '.json_encode($diagnostics));}
         $hold->commit();$results=[];
         foreach($workers as$w){stream_set_blocking($w['out'],true);$output=$w['prefix'].stream_get_contents($w['out']);$err=stream_get_contents($w['err']);fclose($w['out']);fclose($w['err']);$code=proc_close($w['proc']);if($code!==0)throw new RuntimeException('Booking worker failed: '.$err);$results[]=json_decode(substr($output,strpos($output,"READY\n")+6),true,512,JSON_THROW_ON_ERROR);}
         return $results;

@@ -150,7 +150,7 @@ function boq_sources(): array
 function boq_book(int $id, array $in): array
 {
     require_roles(['Admin','Store']);
-    $pdo = db(); $pdo->beginTransaction();
+    $pdo = db(); stock_transaction_begin();
     try {
         db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $id]);
         $item = boq_item($id);
@@ -180,17 +180,21 @@ function boq_book(int $id, array $in): array
 function boq_release(int $id, array $in): array
 {
     require_admin();
-    $item = boq_item($id);
-    $vid = (int) ($in['variant_id'] ?? 0);
-    $st = variant_stats([$vid], $id)[$vid] ?? null;
-    if (!$st || $st['booked_item'] <= 0) throw new ApiError('Nothing is booked for this material.', 409);
-    $qty = ($in['quantity'] ?? '') === '' ? $st['booked_item'] : $in['quantity'];
-    if (!qty_ok($qty) || (float) $qty > $st['booked_item'] + 0.0005) {
-        throw new ApiError('Please fix the highlighted fields.', 422, ['quantity' => 'Enter up to ' . fmt_qty($st['booked_item']) . '.']);
-    }
-    $qty = round((float) $qty, 3);
-    db()->prepare('INSERT INTO bookings (order_item_id, variant_id, quantity, booked_on, booked_by, notes, created_at, updated_at) VALUES (:i, :v, :q, :t, :b, :n, :c, :u)')
-        ->execute(['i' => $id, 'v' => $vid, 'q' => -$qty, 't' => now(), 'b' => current_user()['id'] ?? null, 'n' => 'Release', 'c' => now(), 'u' => now()]);
-    $lbl = variant_label($vid);
-    return ['data' => boq_find($id), 'message' => 'Released ' . fmt_qty($qty) . " {$lbl['unit']} of {$lbl['label']}."];
+    $pdo=db();stock_transaction_begin();
+    try {
+        // Same lock order as booking/issue: item, then material identity.
+        db_one('SELECT id FROM order_items WHERE id=:i FOR UPDATE',['i'=>$id]);
+        $item=boq_item($id);
+        $vid=(int)($in['variant_id']??0);
+        db_one('SELECT id FROM material_variants WHERE id=:v FOR UPDATE',['v'=>$vid]);
+        $st=variant_stats([$vid],$id)[$vid]??null;
+        if(!$st||$st['booked_item']<=0)throw new ApiError('Nothing is booked for this material.',409);
+        $qty=($in['quantity']??'')===''?$st['booked_item']:$in['quantity'];
+        if(!qty_ok($qty)||(float)$qty>$st['booked_item']+0.0005)throw new ApiError('Please fix the highlighted fields.',422,['quantity'=>'Enter up to '.fmt_qty($st['booked_item']).'.']);
+        $qty=round((float)$qty,3);
+        $pdo->prepare('INSERT INTO bookings(order_item_id,variant_id,quantity,booked_on,booked_by,notes,created_at,updated_at) VALUES(:i,:v,:q,:t,:b,:n,:c,:u)')->execute(['i'=>$id,'v'=>$vid,'q'=>-$qty,'t'=>now(),'b'=>current_user()['id'],'n'=>'Release','c'=>now(),'u'=>now()]);
+        $pdo->commit();
+    } catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    $lbl=variant_label($vid);
+    return ['data'=>boq_find($id),'message'=>'Released '.fmt_qty($qty)." {$lbl['unit']} of {$lbl['label']}."];
 }

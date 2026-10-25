@@ -222,7 +222,7 @@ function doc_save(array $d, ?int $id, array $in): array
     [$h, $lines] = doc_validate($d, $existing, $in);
     $t = $d['table'];
     $pdo = db();
-    $pdo->beginTransaction();
+    stock_transaction_begin();
     try {
         if ($d['type'] === 'material-issue') {
             $lockedItem = db_one('SELECT boq_status FROM order_items WHERE id = :i FOR UPDATE', ['i' => $h['order_item_id']]);
@@ -238,7 +238,7 @@ function doc_save(array $d, ?int $id, array $in): array
             $seen[$l['variant_id']] = $l['n'];
         }
         unset($l);
-        $lockIds = array_column($lines, 'variant_id');
+        $lockIds = array_values(array_unique(array_merge(array_column($lines,'variant_id'),$existing?array_column($existing['lines'],'variant_id'):[])));
         sort($lockIds);
         foreach ($lockIds as $vid) db_one('SELECT id FROM material_variants WHERE id = :v FOR UPDATE', ['v' => $vid]);
         if ($d['type'] === 'material-issue') {

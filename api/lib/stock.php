@@ -10,6 +10,14 @@
 // Booked (All Orders) = sum of open over every order item.
 // Available to Book   = stock in hand - Booked (All Orders).
 
+// Re-read committed stock/reservations after waiting for a material lock.
+// A repeatable-read snapshot opened before that wait can miss another booking.
+function stock_transaction_begin(): void
+{
+    db()->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+    db()->beginTransaction();
+}
+
 function fmt_qty($n): string
 {
     $s = number_format((float) $n, 3, '.', '');
