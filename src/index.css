@@ -29,3 +29,29 @@ input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
   tr { page-break-inside: avoid; }
   @page { margin: 12mm; }
 }
+
+/* BOQ print/PDF: print a clean full-page report rather than the application's scrollable UI. */
+@media print {
+  .app-layout { display: block !important; height: auto !important; }
+  .app-layout > :first-child { display: none !important; }
+  .app-content { display: block !important; width: 100% !important; min-width: 0 !important; }
+  .app-content > :first-child { display: none !important; }
+  .app-content > main { display: block !important; width: 100% !important; max-width: none !important; overflow: visible !important; padding: 0 !important; }
+  .boq-print-root { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+  .boq-screen-table { display: none !important; }
+  .boq-print-table { display: block !important; overflow: visible !important; break-before: auto; }
+  .boq-print-table table { width: 100% !important; table-layout: fixed; font-size: 10px; }
+  .boq-print-table th, .boq-print-table td { border: 1px solid #cbd5e1; padding: 5px 6px; vertical-align: top; overflow-wrap: anywhere; }
+  .boq-print-table th { background: #e9efff !important; color: #111827 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .boq-print-table th:nth-child(1) { width: 5%; }
+  .boq-print-table th:nth-child(2) { width: 19%; }
+  .boq-print-table th:nth-child(3) { width: 43%; }
+  .boq-print-table th:nth-child(4) { width: 12%; }
+  .boq-print-table th:nth-child(5) { width: 11%; }
+  .boq-print-table th:nth-child(6) { width: 10%; }
+  .boq-print-table img { max-width: 45px !important; max-height: 45px !important; object-fit: contain; }
+  .boq-print-root > section:first-of-type { break-inside: avoid; }
+  .boq-print-table thead { display: table-header-group; }
+  .boq-print-table tr { break-inside: avoid; page-break-inside: avoid; }
+  @page { size: A4 portrait; margin: 12mm; }
+}
