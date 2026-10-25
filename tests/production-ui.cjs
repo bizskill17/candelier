@@ -134,7 +134,7 @@ const assert = require('node:assert/strict');
   assert.equal(savedDispatch.dispatch_by, 'Dispatch Supervisor');
   assert.equal(savedDispatch.transporter_id, 9);
   assert.equal(savedDispatch.dispatch_document_name, 'dispatch.pdf');
-  await page.getByRole('link', { name: 'Dispatches', exact: true }).click();
+  await page.getByRole('link', { name: 'Orders Dispatched', exact: true }).click();
   await page.getByText('Chandelier 41', { exact: true }).waitFor();
   // Errors are recoverable, and stale rows are hidden while loading/failing.
   failList = true; failFilters = true;
