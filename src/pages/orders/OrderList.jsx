@@ -41,10 +41,10 @@ export default function OrderList() {
     try {
       // Fetch all matching orders in batches so that item-level pagination is accurate,
       // rather than paginating order headers before expanding their items.
-      const first = await ordersApi.list({ q, status, customer_id: customerId, page: 1, per_page: 100 });
+      const first = await ordersApi.list({ status, customer_id: customerId, page: 1, per_page: 100 });
       const batchCount = Math.ceil((first.total || 0) / 100);
       const batches = batchCount > 1 ? await Promise.all(Array.from({ length: batchCount - 1 }, (_, n) =>
-        ordersApi.list({ q, status, customer_id: customerId, page: n + 2, per_page: 100 })
+        ordersApi.list({ status, customer_id: customerId, page: n + 2, per_page: 100 })
       )) : [];
       const headers = [first, ...batches].flatMap(r => r.data || []);
       const details = await Promise.all(headers.map(o => ordersApi.get(o.id).then(r => r.data)));
