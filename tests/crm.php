@@ -83,3 +83,14 @@ $_GET['recorded_by']=$crmActor;$own=followup_logs();
 check(count(array_filter($own['person_counts'],fn($p)=>$p['recorded_by']!==$crmActor))===0,'Person counts respect Recorded By filter');
 $_GET=['entry_type'=>'Lead Created'];check(followup_logs()['followup_total']===0,'System Lead Created entries do not count as follow-up attempts');
 $_GET=[];
+
+// Simplified follow-up decisions capture activity automatically and need no Outcome.
+$simpleContact=contact_save(null,$contactRequired+['name'=>'Decision test','mobile'=>'9876519988'])['data']['id'];
+reject(fn()=>crm_followup_save(['contact_id'=>$simpleContact,'followup_status'=>'Follow Up Again','method'=>'Call']),'Follow Up Again requires next date');
+reject(fn()=>crm_followup_save(['contact_id'=>$simpleContact,'followup_status'=>'Lead Received','method'=>'Call','next_followup_at'=>'2099-01-01 12:00:00']),'Lead Received requires requirement');
+$simple=crm_followup_save(['contact_id'=>$simpleContact,'followup_status'=>'Lead Received','method'=>'Call','requirement'=>'Decision requirement','next_followup_at'=>'2099-01-01 12:00:00']);
+$event=db_one('SELECT * FROM followups WHERE id=:id',['id'=>$simple['data']['id']]);
+check($event['outcome']===null&&substr($event['activity_at'],0,10)===date('Y-m-d'),'Simplified follow-up records automatic activity without invented outcome');
+check((bool)$simple['data']['generated_lead_id']&&(bool)$event['further_followup_required'],'Lead Received creates lead and schedules follow-up');
+crm_followup_save(['contact_id'=>$simpleContact,'followup_status'=>'No Further Follow-up','method'=>'Call','next_followup_at'=>'2099-01-01 12:00:00','requirement_received'=>true]);
+check(!(bool)contact_find($simpleContact)['further_followup_required']&&contact_find($simpleContact)['next_followup_at']===null,'No Further Follow-up clears stale schedule and requirement flags');

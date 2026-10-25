@@ -135,6 +135,15 @@ function crm_insert_followup(array $f): int {
 function crm_datetime($v): ?string {$v=trim(str_replace('T',' ',(string)($v??'')));if($v==='')return null;if(strlen($v)===16)$v.=':00';$d=DateTime::createFromFormat('!Y-m-d H:i:s',$v);return $d&&$d->format('Y-m-d H:i:s')===$v?$v:null;}
 function crm_followup_save(array $in): array {
     require_roles(['Admin','Sales']);
+    // The simplified form sends a decision; legacy clients retain their existing contract.
+    if(array_key_exists('followup_status',$in)){
+        $decision=$in['followup_status'];
+        if(!in_array($decision,['Lead Received','Follow Up Again','No Further Follow-up'],true))throw new ApiError('Choose a valid follow-up status.',422);
+        if($decision==='Lead Received'&&!empty($in['lead_id']))throw new ApiError('Receive a new Lead from a Contact follow-up.',422);
+        $in['entry_type']='Follow-up';$in['activity_at']=now();$in['outcome']=null;
+        $in['requirement_received']=$decision==='Lead Received';
+        $in['further_followup_required']=$decision!=='No Further Follow-up';
+    }
     $cid=(int)($in['contact_id']??0);$lid=(int)($in['lead_id']??0);if((bool)$cid===(bool)$lid)throw new ApiError('Link either a Contact or a Lead.',422);
     $pdo=db();$pdo->beginTransaction();
     try{
@@ -147,7 +156,7 @@ function crm_followup_save(array $in): array {
         $at=crm_datetime($in['activity_at']??'');if(!$at||$at>now())throw new ApiError('Enter an activity date/time up to now.',422);
         $latest=db_value("SELECT MAX(activity_at) FROM followups WHERE ".($lid?'lead_id':'contact_id')."=:id",['id'=>$id]);if($latest&&$at<$latest)throw new ApiError('Use a date/time on or after the latest history entry.',422);
         $outcome=$in['outcome']??null;$method=$in['method']??null;
-        if($type==='Follow-up'&&(!in_array($outcome,CRM_OUTCOMES,true)||!in_array($method,['Call','WhatsApp','Email','Meeting','Other'],true)))throw new ApiError('Choose the method and outcome.',422);
+        if($type==='Follow-up'&&(($outcome!==null&&!in_array($outcome,CRM_OUTCOMES,true))||!in_array($method,['Call','WhatsApp','Email','Meeting','Other'],true)))throw new ApiError('Choose a valid follow-up method and outcome, if supplied.',422);
         if($type==='Status Update'&&!$lid)require_admin();
         $status=$lead?($in['lead_status']??$lead['status']):null;$temp=$lead?($in['lead_temperature']??$lead['temperature']):null;
         if($lead&&(!in_array($status,LEAD_STATUSES,true)||!in_array($temp,CRM_TEMPERATURES,true)))throw new ApiError('Choose a valid Lead status and temperature.',422);
