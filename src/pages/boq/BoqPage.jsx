@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Copy, Printer, Plus, Trash2, Lock, Unlock, PackageMinus, RefreshCw } from 'lucide-react';
-import { boqApi, materialsApi } from '../../api/client';
+import { boqApi, materialsApi, imageUrl } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useCatalog } from '../../lib/catalog';
@@ -21,7 +21,17 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
   const response = await boqApi.get(itemId);
   const d = response.data;
   if (!d || !['Draft', 'Final'].includes(d.boq_status)) throw new Error('No saved BOQ is available for this item.');
-  const width = 1240, height = 1754, margin = 72;
+  const width = 1754, height = 1240, margin = 72;
+  // Preload saved material photographs before painting PDF pages.
+  const pictures = await Promise.all((d.lines || []).map(async line => {
+    const path = catalog?.material?.(line.material_id)?.photo_path;
+    if (!path) return null;
+    return new Promise(resolve => {
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img); img.onerror = () => resolve(null);
+      img.src = imageUrl(path);
+    });
+  }));
   const pages = [];
   let canvas, ctx, y;
   const startPage = () => {
@@ -60,7 +70,7 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
   if (d.remarks) { ctx.font = '19px Arial'; const ls = textLine('Remarks: ' + d.remarks, margin, width - 2 * margin, 19); renderCell(ls, margin, y); y += ls.length * 26 + 24; }
   const tableWidth = width - 2 * margin;
   // Column edges, not text baselines. Each row begins after the previous row ends.
-  const edges = [margin, margin + 64, margin + 304, margin + 835, margin + 958, margin + tableWidth];
+  const edges = [margin, margin + 75, margin + 375, margin + 1060, margin + 1250, margin + 1430, margin + tableWidth];
   const colWidth = i => edges[i + 1] - edges[i];
   const tableHeader = () => {
     const top = y;
@@ -69,9 +79,9 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
     ctx.fillRect(margin, top, tableWidth, headerHeight);
     ctx.font = 'bold 19px Arial';
     ctx.fillStyle = '#ffffff';
-    ['SL', 'Category', 'Material', 'Qty', 'Unit'].forEach((h, i) => {
-      ctx.textAlign = i === 3 ? 'right' : 'left';
-      ctx.fillText(h, i === 3 ? edges[i + 1] - 12 : edges[i] + 12, top + 35);
+    ['SL', 'Category', 'Material', 'Photo', 'Qty', 'Unit'].forEach((h, i) => {
+      ctx.textAlign = i === 4 ? 'right' : 'left';
+      ctx.fillText(h, i === 4 ? edges[i + 1] - 12 : edges[i] + 12, top + 35);
     });
     ctx.textAlign = 'left';
     ctx.fillStyle = '#111827';
@@ -86,11 +96,11 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
     const values = [
       String(i + 1), category?.name || '—',
       [material?.material_code, material?.name].filter(Boolean).join(' - ') || '—',
-      fmtQty(r.qty_required ?? r.qty ?? 0), material?.unit || '—'
+      '', fmtQty(r.qty_required ?? r.qty ?? 0), material?.unit || '—'
     ];
     const fontSize = 18;
     const lines = values.map((v, k) => textLine(v, edges[k] + 12, colWidth(k) - 24, fontSize));
-    const rowHeight = Math.max(54, ...lines.map(ls => ls.length * 27 + 22));
+    const rowHeight = Math.max(100, ...lines.map(ls => ls.length * 27 + 22));
     if (y + rowHeight > height - 95) { savePage(); startPage(); tableHeader(); }
     const top = y;
     ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#f8fafc';
@@ -104,9 +114,20 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
     ctx.fillStyle = '#111827';
     ctx.font = fontSize + 'px Arial';
     lines.forEach((ls, k) => {
-      ctx.textAlign = k === 3 ? 'right' : 'left';
-      renderCell(ls, k === 3 ? edges[k + 1] - 12 : edges[k] + 12, top + 33, 27);
+      if (k === 3) return;
+      ctx.textAlign = k === 4 ? 'right' : 'left';
+      renderCell(ls, k === 4 ? edges[k + 1] - 12 : edges[k] + 12, top + 33, 27);
     });
+    const photo = pictures[i];
+    if (photo) {
+      const maxW = colWidth(3) - 20, maxH = rowHeight - 16;
+      const scale = Math.min(maxW / photo.naturalWidth, maxH / photo.naturalHeight);
+      const pw = photo.naturalWidth * scale, ph = photo.naturalHeight * scale;
+      ctx.drawImage(photo, edges[3] + (colWidth(3) - pw) / 2, top + (rowHeight - ph) / 2, pw, ph);
+    } else {
+      ctx.font = '16px Arial'; ctx.fillStyle = '#94a3b8';
+      ctx.fillText('—', edges[3] + 14, top + 33); ctx.fillStyle = '#111827';
+    }
     ctx.textAlign = 'left';
     y = top + rowHeight;
   }
@@ -122,11 +143,11 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
   object(2, '<< /Type /Pages /Kids [' + pageIds.map(id=> id+' 0 R').join(' ') + '] /Count ' + pages.length + ' >>');
   for (let i=0; i<pages.length; i++) {
     const id = pageIds[i], jpg = Uint8Array.from(atob(pages[i]), c => c.charCodeAt(0));
-    object(id, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 ' + (id+1) + ' 0 R >> >> /Contents ' + (id+2) + ' 0 R >>');
+    object(id, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /XObject << /Im0 ' + (id+1) + ' 0 R >> >> /Contents ' + (id+2) + ' 0 R >>');
     offsets[id+1]=length;
     ascii((id+1)+' 0 obj\n<< /Type /XObject /Subtype /Image /Width '+width+' /Height '+height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpg.length+' >>\nstream\n');
     push(jpg); ascii('\nendstream\nendobj\n');
-    const stream = 'q 595 0 0 842 0 0 cm /Im0 Do Q';
+    const stream = 'q 842 0 0 595 0 0 cm /Im0 Do Q';
     object(id+2, '<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
   }
   const xref = length, size=3+pages.length*3;
