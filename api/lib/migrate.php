@@ -130,3 +130,20 @@ function migrate_client_categories(): void
         db_value('SELECT RELEASE_LOCK(:k)', ['k' => $lock]);
     }
 }
+
+// Existing records retain IDs; codes are entered by staff, never invented by migration.
+function migrate_material_media(): void
+{
+    $pdo=db(); $version='20261025_material_codes_photos';
+    if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=:v',['v'=>$version]))return;
+    $lock='material_media_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);
+    if(!(int)db_value('SELECT GET_LOCK(:k,30)',['k'=>$lock]))throw new ApiError('Material update in progress. Please retry.',503);
+    try {
+        if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=:v',['v'=>$version]))return;
+        if(!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='materials' AND COLUMN_NAME='material_code'"))
+            $pdo->exec('ALTER TABLE materials ADD COLUMN material_code VARCHAR(50) NULL, ADD UNIQUE KEY uq_material_code(material_code)');
+        if(!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='materials' AND COLUMN_NAME='photo_path'"))
+            $pdo->exec('ALTER TABLE materials ADD COLUMN photo_path VARCHAR(255) NULL');
+        $pdo->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(:v,:t)')->execute(['v'=>$version,'t'=>now()]);
+    } finally {db_value('SELECT RELEASE_LOCK(:k)',['k'=>$lock]);}
+}

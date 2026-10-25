@@ -21,7 +21,7 @@ export function parseMaterialCsv(text) {
   if (quoted) throw new Error('The CSV has an unclosed quotation mark.');
   row.push(cell.trim()); if (row.some(Boolean)) rows.push(row);
   const header = rows.shift();
-  if (!header || header.length !== 3 || header.map((x) => x.toLowerCase()).join('|') !== 'material category|material name|unit') throw new Error('Use the template columns: Material Category, Material Name, Unit.');
+  if (!header || header.length !== 4 || header.map((x) => x.toLowerCase()).join('|') !== 'material code|material category|material name|unit') throw new Error('Use the template columns: Material Code, Material Category, Material Name, Unit.');
   if (!rows.length || rows.length > 500) throw new Error('Upload between 1 and 500 material rows.');
-  return rows.map((r, i) => { if (r.length !== 3) throw new Error(`Row ${i + 2}: expected 3 columns.`); return { category: r[0], name: r[1], unit: r[2] }; });
+  return rows.map((r, i) => { if (r.length !== 4) throw new Error(`Row ${i + 2}: expected 4 columns.`); return { material_code: r[0], category: r[1], name: r[2], unit: r[3] }; });
 }

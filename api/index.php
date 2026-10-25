@@ -42,6 +42,7 @@ try {
     migrate_dispatch_fields();
     migrate_client_categories();
     migrate_crm();
+    migrate_material_media();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 

@@ -6,8 +6,16 @@ Workshop CRM, orders, BOQs and stores management. Quantities only.
 
 Create Material Categories, then materials. Each material requires one category and a unit.
 Materials have no specification fields. Use Bulk Upload and the downloadable CSV template
-(Material Category, Material Name, Unit). Categories must already exist. Up to 500 rows are
+(Material Code, Material Category, Material Name, Unit). Categories must already exist. Up to 500 rows are
 validated together; invalid uploads import nothing and show row-specific errors.
+Every new material needs a manually entered, unique Material Code. Individually added
+or edited materials require a photo; bulk CSV imports may omit photos and display
+Photo pending until completed through Edit. Upload an image or use Take Photo to
+capture from a mobile camera or laptop webcam. Camera permission is requested only
+when Take Photo is clicked; streams stop when the capture window closes. Existing
+materials retain their IDs and remain usable; missing codes/photos are completed
+on editing. The migration never invents codes. BOQ rows display live material codes
+and photo thumbnails; click a thumbnail to enlarge it. Photos also appear when printing.
 
 ## BOQ workflow
 

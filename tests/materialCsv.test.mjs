@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { parseMaterialCsv } from '../src/lib/materialCsv.js';
-assert.deepEqual(parseMaterialCsv('\uFEFFMaterial Category,Material Name,Unit\r\nCrystal,"Prism, Clear",Pcs\r\n'), [{ category: 'Crystal', name: 'Prism, Clear', unit: 'Pcs' }]);
-assert.equal(parseMaterialCsv('Material Category,Material Name,Unit\nCrystal,"Prism ""K9""",Pcs')[0].name, 'Prism "K9"');
-assert.equal(parseMaterialCsv('Material Category,Material Name,Unit\nCrystal,"Prism\nClear",Pcs')[0].name, 'Prism\nClear');
-assert.throws(() => parseMaterialCsv('Material Category,Material Name,Unit\nCrystal,"Unclosed,Pcs'), /unclosed/);
-assert.throws(() => parseMaterialCsv('Material Category,Material Name,Unit\nCrystal,Prism,Pcs,Extra'), /Row 2/);
-assert.throws(() => parseMaterialCsv('Category,Name,Unit\nCrystal,Prism,Pcs'), /template/);
-assert.throws(() => parseMaterialCsv('Material Category,Material Name,Unit'), /between/);
+assert.deepEqual(parseMaterialCsv('\uFEFFMaterial Code,Material Category,Material Name,Unit\r\nMAT-001,Crystal,"Prism, Clear",Pcs\r\n'), [{ material_code: 'MAT-001', category: 'Crystal', name: 'Prism, Clear', unit: 'Pcs' }]);
+assert.equal(parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,"Prism ""K9""",Pcs')[0].name, 'Prism "K9"');
+assert.equal(parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,"Prism\nClear",Pcs')[0].name, 'Prism\nClear');
+assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,"Unclosed,Pcs'), /unclosed/);
+assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,Prism,Pcs,Extra'), /Row 2/);
+assert.throws(() => parseMaterialCsv('Category,Name,Unit\nMAT-001,Crystal,Prism,Pcs'), /template/);
+assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit'), /between/);
 console.log('CSV parsing checks passed.');
