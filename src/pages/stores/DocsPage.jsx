@@ -200,7 +200,17 @@ function DocForm({ type, id, presetItem }) {
       if (fill) {
         const rows = r.data.lines.map((l) => ({ material_id: l.material_id, values: l.values, quantity: round3(Math.max(0, Math.min(l.pending, l.in_stock))) || '' })).filter((l) => l.quantity);
         setLines(toStockLines(rows));
-        if (!rows.length) toast(r.data.lines.length ? 'Everything on the BOQ has been issued already.' : 'No materials remain to issue.', 'error');
+        if (!rows.length) {
+          const boqLines = r.data.lines || [];
+          const remaining = boqLines.filter((line) => Number(line.pending || 0) > 0);
+          if (!boqLines.length || !remaining.length) {
+            toast('No BOQ quantities remain to issue for this order item.', 'error');
+          } else if (remaining.every((line) => Number(line.in_stock || 0) <= 0)) {
+            toast('BOQ quantities are pending, but none of those materials are currently in stock.', 'error');
+          } else {
+            toast('BOQ quantities are pending, but no issuable quantities could be calculated. Please verify stock and material availability.', 'error');
+          }
+        }
       }
     } catch (e) { setPrefill({ blocked: true, lines: [] }); setFormError(e.message); toast(e.message, 'error'); }
   };
