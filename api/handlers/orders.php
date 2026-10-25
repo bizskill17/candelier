@@ -167,12 +167,12 @@ function order_validate(?array $existing, array $in): array
     $addr = trim((string) ($in['shipping_address'] ?? ''));
     if (mb_strlen($addr) > 255) $errors['shipping_address'] = 'Keep this under 255 characters.';
     $h['shipping_address'] = $addr === '' ? null : $addr;
-    $leadId = (int) ($in['lead_id'] ?? 0);
+    $leadId = (int) ($existing ? ($existing['lead']['id'] ?? 0) : ($in['lead_id'] ?? 0));
     if ($leadId && !$existing) {
         $lead = db_one('SELECT lead_no, status, order_id, customer_id FROM crm_lead_current WHERE id = :id', ['id' => $leadId]);
         if (!$lead) $errors['lead_id'] = 'That lead no longer exists.';
         elseif ((int)$lead['customer_id'] !== $cid) $errors['lead_id'] = 'The order Contact must match the Lead Contact.';
-        elseif ($lead['status'] !== 'Success') $errors['lead_id'] = "Lead {$lead['lead_no']} is not marked Success.";
+        elseif (!$existing && $lead['status'] !== 'Success') $errors['lead_id'] = "Lead {$lead['lead_no']} is not marked Success.";
     }
     $h['_lead_id'] = $leadId && !$existing ? $leadId : null;
 

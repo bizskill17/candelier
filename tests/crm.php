@@ -20,7 +20,8 @@ $base=['activity_at'=>now(),'method'=>'Call','outcome'=>'Connected','further_fol
 crm_followup_save($base+['lead_id'=>$lid,'lead_temperature'=>'Cold','lead_status'=>'Open']);
 $_GET=['tab'=>'today'];check(in_array($lid,array_map('intval',array_column(followups_due()['data'],'id')),true),'Cold Leads are included in due follow-ups');
 check(contact_find($cid)['next_followup_at']===null,'Lead schedule does not overwrite general Contact schedule');
-$created=crm_followup_save($base+['contact_id'=>$cid,'requirement_received'=>true,'requirement'=>'Second requirement','project_name'=>'Project B','request_key'=>'crm-integration-requirement']);
+$created=crm_followup_save($base+['contact_id'=>$cid,'requirement_received'=>true,'requirement'=>'Second requirement','project_name'=>'Project B','request_key'=>'crm-integration-requirement','recorded_by'=>999999]);
+check((int)db_value('SELECT recorded_by FROM followups WHERE id='.(int)$created['data']['id'])===$crmActor,'Actor is authenticated staff, not caller-supplied identity');
 $replayed=crm_followup_save($base+['contact_id'=>$cid,'requirement_received'=>true,'requirement'=>'Second requirement','request_key'=>'crm-integration-requirement']);
 check($created['data']['id']===$replayed['data']['id'],'Retried requirement request does not duplicate Follow-up or Lead');
 check((int)contact_find($cid)['followup_count']===2,'Contact timeline counts actual Contact and Lead attempts only');

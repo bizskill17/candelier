@@ -28,6 +28,7 @@ function contact_list(): array {
     $filters=['never'=>'c.followup_count=0','today'=>"$open AND $today",'upcoming'=>"$open AND DATE(c.next_followup_at)>CURRENT_DATE()",'overdue'=>"$open AND DATE(c.next_followup_at)<CURRENT_DATE()",'missing'=>"c.followup_count>0 AND c.next_followup_at IS NULL AND (c.further_followup_required=1 OR c.further_followup_required IS NULL)",'closed'=>'c.further_followup_required=0','customers'=>'c.order_count>0'];
     if(isset($filters[$view]))$w[]=$filters[$view];
     foreach(['category_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="c.$k=:$k";$p[$k]=(int)$_GET[$k];}
+    if(trim((string)($_GET['city']??''))!==''){$w[]='c.city=:city';$p['city']=trim($_GET['city']);}
     if(($_GET['active']??'')!==''){$w[]='c.is_active=:active';$p['active']=(int)$_GET['active'];}
     crm_where_search($w,$p,['c.name','c.company_name','c.mobile','c.email','c.city','c.source_details']);
     return crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY c.name,c.id',$p);

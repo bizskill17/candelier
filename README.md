@@ -66,8 +66,34 @@ For local development, run PHP on port 8000 and `npm run dev` (Vite proxies `/ap
 MySQL database called `candelier_test` via `TEST_DB_DSN`; it creates fixture data in that test database.
 Never run it against a production database. CI provisions its own MariaDB service.
 
-## Client categories
+## CRM
 
-- Masters → Client Categories: your own list (Architect, Interior Designer, Hotel, Banquet, Residential, Dealer to start).
-- Each customer has a Client Category (pick from the list, or + to add one on the spot); it shows as a column in Customers.
-- Customers list: search, City filter (every city entered so far), Category filter, and an **Excel** button that downloads exactly what the search and filters show.
+Contacts are the single identity record. Leads store a Contact link, enquiry date,
+project and requirement. The shared `followups` table holds all status, Hot/Warm/Cold,
+remarks and next schedules; latest activity time then entry ID determines current state.
+Direct Contact follow-ups and Lead follow-ups have separate schedules. Lead Created
+and Status Update events are history, not actual follow-up attempts.
+
+CRM → Contacts includes Never Followed Up, Due Today, Upcoming, Overdue,
+Next Date Missing and Closed Follow-ups. Use Requirement Received in a Contact
+follow-up to create its Lead in the same transaction. User and entry timestamp are
+captured automatically. Times use Asia/Kolkata. Lists use 20 rows per page.
+Customers shows Contacts with a non-cancelled Order; creating an Order selects the
+same Contact. All Contacts remain available for new Orders. Sources and Contact
+Categories are maintained in Masters. Contacts and Customers retain City/Category
+filters and Excel export. Contacts supports CSV template, preview and atomic bulk
+upload with duplicate-mobile/email checks.
+
+The first API request upgrades existing records under a database lock. Existing
+Customer and Lead IDs and Order/BOQ/stock/production/dispatch links are preserved.
+`legacy_crm_customers`, `legacy_crm_leads` and `legacy_crm_followups` preserve
+original rows, including legacy contact-person text; they are audit snapshots only.
+The `customers` compatibility view projects Contacts for operational queries.
+`crm_contact_current` and `crm_lead_current` derive current schedules and state.
+The schema file is the installation bootstrap; API migrations establish the current
+schema on both fresh installations and upgrades. Do not reimport it over an upgraded DB.
+
+`node tests/contactsCsv.test.mjs` validates the Contact CSV parser. CRM migration,
+identity, schedules, atomic Lead creation, retry protection and Customer membership
+are tested by `tests/crm.php` inside `tests/workflow.php`. The validation workflow
+also exercises the CRM browser screens alongside operational UI checks.

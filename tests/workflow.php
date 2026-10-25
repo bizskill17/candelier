@@ -16,6 +16,9 @@ function reject(callable $action, string $message): void {
 $pdo = db();
 $schema = file_get_contents("$root/database/schema.sql");
 $pdo->exec($schema);
+$pdo->prepare("INSERT INTO users(code,name,username,password_hash,role) VALUES ('USR-CRM-TEST','CRM staff','crm-test',:hash,'Staff')")->execute(['hash'=>password_hash('Isolated-Test-Only', PASSWORD_DEFAULT)]);
+$_SESSION['uid']=(int)$pdo->lastInsertId();
+$crmActor=$_SESSION['uid'];
 // Reconstruct the legacy shape before the migration.
 $pdo->exec('ALTER TABLE dispatches DROP COLUMN dispatch_by, DROP COLUMN dispatch_document, DROP COLUMN dispatch_document_name');
 $pdo->exec('ALTER TABLE materials DROP FOREIGN KEY fk_material_category, DROP COLUMN category_id');

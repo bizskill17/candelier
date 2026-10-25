@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, contactsApi, historyApi, ordersApi } from '../../api/client';
+import MasterForm from '../../components/MasterForm';
+import { masters } from '../../config/masters';
 import Modal from '../../components/Modal';
 import SearchSelect from '../../components/SearchSelect';
 import { inputCls, tdCls, thCls, theadCls, tableWrap } from '../../components/table';
@@ -20,18 +22,18 @@ export function useCrmLookups() {
  return data;
 }
 export function ContactForm({contact={}, onClose, onSaved}) {
- const look=useCrmLookups();const [f,setF]=useState({name:'',company_name:'',mobile:'',alternate_mobile:'',email:'',category_id:'',source_id:'',source_details:'',city:'',state_id:'',address:'',is_active:1,...contact});
+ const look=useCrmLookups();const [master,setMaster]=useState(null);const [extra,setExtra]=useState({});const [f,setF]=useState({name:'',company_name:'',mobile:'',alternate_mobile:'',email:'',category_id:'',source_id:'',source_details:'',city:'',state_id:'',address:'',is_active:1,...contact});
  const [error,setError]=useState('');const [busy,setBusy]=useState(false);const toast=useToast();
  const set=(k,v)=>setF(x=>({...x,[k]:v}));
  const save=async()=>{setBusy(true);setError('');try{const r=await contactsApi.save(contact.id,f);toast(r.message);onSaved(r.data);onClose();}catch(e){setError(e.message);}finally{setBusy(false);}};
- return <Modal open wide="xl" title={contact.id?'Edit Contact':'Add Contact'} onClose={()=>!busy&&onClose()} footer={<><button disabled={busy} onClick={onClose} className="px-3 py-2">Cancel</button><button disabled={busy} onClick={save} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy?'Saving…':'Save Contact'}</button></>}>
+ return <><Modal open wide="xl" title={contact.id?'Edit Contact':'Add Contact'} onClose={()=>!busy&&onClose()} footer={<><button disabled={busy} onClick={onClose} className="px-3 py-2">Cancel</button><button disabled={busy} onClick={save} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy?'Saving…':'Save Contact'}</button></>}>
   {error&&<p role="alert" className="mb-3 text-red-600">{error}</p>}<div className="grid gap-4 sm:grid-cols-2">
   {['name','company_name','mobile','alternate_mobile','email','city','source_details'].map(k=><Field key={k} label={{name:'Contact Name',company_name:'Company Name',mobile:'Mobile',alternate_mobile:'Alternate Mobile',email:'Email',city:'City',source_details:'Source Details'}[k]} required={k==='name'}><input aria-label={k} value={f[k]||''} onChange={e=>set(k,e.target.value)} className={inputCls()} /></Field>)}
-  {[['category_id','Category',look.categories],['source_id','Source',look.sources],['state_id','State',look.states]].map(([k,l,opts])=><Field key={k} label={l}><Choice label={l} value={f[k]||''} onChange={v=>set(k,v)} values={[{value:'',label:'None'},...opts.filter(x=>Number(x.is_active)||String(x.id)===String(f[k])).map(x=>({value:x.id,label:x.name}))]} /></Field>)}
+  {[['category_id','Category',look.categories],['source_id','Source',look.sources],['state_id','State',look.states]].map(([k,l,opts])=><Field key={k} label={l}><div className="flex gap-2"><div className="min-w-0 flex-1"><Choice label={l} value={f[k]||''} onChange={v=>set(k,v)} values={[{value:'',label:'None'},...(extra[k]?[...opts.filter(x=>String(x.id)!==String(extra[k].id)),extra[k]]:opts).filter(x=>Number(x.is_active)||String(x.id)===String(f[k])).map(x=>({value:x.id,label:x.name}))]} /></div>{k!=='state_id'&&<button type="button" aria-label={`Add ${l}`} onClick={()=>setMaster({key:k,entity:k==='category_id'?'client_categories':'lead_sources'})} className="rounded-lg border px-3">+</button>}</div></Field>)}
   <Field label="Address"><textarea aria-label="Address" value={f.address||''} onChange={e=>set('address',e.target.value)} className={inputCls()} /></Field>
   <Field label="Status"><Choice label="Contact Status" value={String(f.is_active)} onChange={v=>set('is_active',Number(v))} values={[{value:'1',label:'Active'},{value:'0',label:'Inactive'}]} /></Field>
   </div><p className="mt-3 text-xs text-gray-500">Provide a mobile number or email. Source and category names are maintained in Masters.</p>
- </Modal>;
+ </Modal>{master&&<MasterForm entity={master.entity} def={masters[master.entity]} onClose={()=>setMaster(null)} onSaved={row=>{setExtra(x=>({...x,[master.key]:row}));set(master.key,row.id);}}/>}</>;
 }
 export function FollowupForm({contact, lead, onClose, onSaved}) {
  const [f,setF]=useState({request_key:crypto.randomUUID(),activity_at:indiaNow(),entry_type:'Follow-up',method:'Call',outcome:'Connected',remarks:'',further_followup_required:true,next_followup_at:'',lead_status:lead?.status||'Open',lead_temperature:lead?.temperature||'Warm',requirement_received:false,project_name:'',requirement:''});
