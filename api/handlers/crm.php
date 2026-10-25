@@ -21,20 +21,27 @@ function contacts_route(string $method,array $parts): void {
     else {if($method==='GET'){json_out(['data'=>contact_find($id)]);return;}if($method==='PUT'){json_out(contact_save($id,request_body()));return;}}
     throw new ApiError('Not found.',404);
 }
+// Count every view over the same search/filter scope, before pagination.
+function crm_view_counts(string $from,array $views,array $where,array $params): array {
+    $columns=[];foreach($views as $key=>$condition)$columns[]="COALESCE(SUM(CASE WHEN $condition THEN 1 ELSE 0 END),0) AS `$key`";
+    $row=db_one('SELECT '.implode(',',$columns).' FROM '.$from.($where?' WHERE '.implode(' AND ',$where):''),$params);
+    return array_map('intval',$row);
+}
 function contact_list(): array {
     $w=[];$p=[];$view=$_GET['view']??'all';
     $open='c.further_followup_required=1';
     $today="DATE(c.next_followup_at)=CURRENT_DATE()";
     $filters=['never'=>'c.followup_count=0','today'=>"$open AND $today",'upcoming'=>"$open AND DATE(c.next_followup_at)>CURRENT_DATE()",'overdue'=>"$open AND DATE(c.next_followup_at)<CURRENT_DATE()",'missing'=>"c.followup_count>0 AND c.next_followup_at IS NULL AND (c.further_followup_required=1 OR c.further_followup_required IS NULL)",'closed'=>'c.further_followup_required=0','customers'=>"EXISTS(SELECT 1 FROM orders o WHERE o.customer_id=c.id AND o.status<>'Cancelled' AND ".order_visibility_sql().')'];
-    if(isset($filters[$view]))$w[]=$filters[$view];
-    if($view==='updated-today'){$w[]='c.updated_at >= :updated_start AND c.updated_at < :updated_end';$p['updated_start']=date('Y-m-d').' 00:00:00';$p['updated_end']=date('Y-m-d',strtotime('+1 day')).' 00:00:00';}
+    $filters=['all'=>'1=1','updated-today'=>'c.updated_at>=CURRENT_DATE() AND c.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$filters;
     foreach(['category_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="c.$k=:$k";$p[$k]=(int)$_GET[$k];}
     if(trim((string)($_GET['city']??''))!==''){$w[]='c.city=:city';$p['city']=trim($_GET['city']);}
     if(($_GET['active']??'')!==''){$w[]='c.is_active=:active';$p['active']=(int)$_GET['active'];}
     crm_where_search($w,$p,['c.name','c.company_name','c.mobile','c.email','c.city','c.source_details']);
+    $counts=crm_view_counts('crm_contact_current c',$filters,$w,$p);
+    if(isset($filters[$view]))$w[]=$filters[$view];
     $sort=$view==='updated-today'?'c.updated_at DESC,c.id DESC':'c.name,c.id';
     $result=crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);
-    $result['data']=array_map('crm_visible_contact',$result['data']);return $result;
+    $result['view_counts']=$counts;$result['data']=array_map('crm_visible_contact',$result['data']);return $result;
 }
 function contact_find(int $id): array {
     $c=db_one('SELECT * FROM crm_contact_current WHERE id=:id',['id'=>$id]);if(!$c)throw new ApiError('Contact not found.',404);
@@ -98,13 +105,14 @@ function lead_list(): array {
     $w=[];$p=[];$view=$_GET['view']??'all';
     $scheduled="l.status='Open' AND l.further_followup_required=1";
     $views=['today'=>"$scheduled AND DATE(l.next_followup_at)=CURRENT_DATE()",'upcoming'=>"$scheduled AND DATE(l.next_followup_at)>CURRENT_DATE()",'overdue'=>"$scheduled AND DATE(l.next_followup_at)<CURRENT_DATE()",'missing'=>"$scheduled AND l.next_followup_at IS NULL",'success'=>"l.status='Success'",'fail'=>"l.status='Fail'"];
-    if(isset($views[$view]))$w[]=$views[$view];
-    if($view==='updated-today'){$w[]='l.updated_at >= :updated_start AND l.updated_at < :updated_end';$p['updated_start']=date('Y-m-d').' 00:00:00';$p['updated_end']=date('Y-m-d',strtotime('+1 day')).' 00:00:00';}
+    $views=['all'=>'1=1','updated-today'=>'l.updated_at>=CURRENT_DATE() AND l.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$views;
     foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
     foreach(['contact_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="l.$k=:$k";$p[$k]=(int)$_GET[$k];}
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.display_phone','l.project_name','l.requirement']);
+    $counts=crm_view_counts('crm_lead_current l',$views,$w,$p);
+    if(isset($views[$view]))$w[]=$views[$view];
     $sort=$view==='updated-today'?'l.updated_at DESC,l.id DESC':'l.enquiry_date DESC,l.id DESC';
-    $result=crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+    $result=crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);$result['view_counts']=$counts;$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
 }
 function lead_find(int $id): array {
     $l=db_one(LEAD_SELECT.' WHERE l.id=:id',['id'=>$id]);if(!$l)throw new ApiError('Lead not found.',404);
