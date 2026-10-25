@@ -47,7 +47,7 @@ const assert=require('node:assert/strict');
  await dialog.getByText('A contact with this email address already exists. Use the existing contact.',{exact:true}).waitFor();
  assert.equal(await dialog.getByRole('textbox',{name:'email',exact:true}).getAttribute('aria-invalid'),'true');
  await dialog.getByRole('textbox',{name:'email',exact:true}).fill('new@example.com');await dialog.getByRole('button',{name:'Save Contact',exact:true}).click();await dialog.waitFor({state:'hidden'});
- await page.waitForURL('**/contacts/updated-today');
+ await page.waitForURL('**/contacts/updated-today');await page.getByRole('heading',{name:'Updated Today',exact:true}).waitFor();
  await page.waitForFunction(()=>document.querySelector('a[href="/contacts/updated-today"][class*="bg-brand-50"]'));
  assert(queried.some(q=>q.view==='updated-today'&&q.page==='1'&&!q.q&&!q.city));
  assert.equal(savedContact.category_id,1);assert.equal(savedContact.city,'Shillong');assert.equal(savedContact.mobile,'9876501234');assert.equal(savedContact.source_details,undefined);assert.equal(savedContact.alternate_mobile,undefined);
