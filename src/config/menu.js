@@ -1,7 +1,7 @@
 // The left menu. Quantities only: no rates or prices anywhere.
 import {
   LayoutDashboard, FilePlus2, ListOrdered, Truck, ClipboardList, PackageOpen, PackagePlus, PackageMinus,
-  AlertOctagon, UserPlus, Contact, PhoneCall, Megaphone, MapPin, ScrollText, Warehouse, TrendingDown, Boxes, ListChecks, Tags, Handshake, Building2, Send, UserCog,
+  AlertOctagon, UserPlus, Contact, PhoneCall, Megaphone, MapPin, ScrollText, Warehouse, Boxes, ListChecks, Tags, Handshake, Building2, Send, UserCog,
 } from 'lucide-react';
 
 export const menu = [
@@ -30,11 +30,17 @@ export const menu = [
     ],
   },
   {
-    heading: 'BOQ & Issue',
+    heading: 'BOQ',
     items: [
       { key: 'pending-boq', label: 'Pending BOQ', path: '/pending-boq', icon: ClipboardList, description: 'Order items with no BOQ or a Draft BOQ.' },
       { key: 'boq-master', label: 'Orders with BOQ', path: '/boq-master', icon: ClipboardList, description: 'Draft and Final BOQs for every order item.' },
-      { key: 'pending-material-issue', label: 'Orders Pending Issue', path: '/pending-material-issue', icon: PackageMinus, description: 'Final BOQs with quantities still to be issued.' },
+    ],
+  },
+  {
+    heading: 'Issue',
+    items: [
+      { key: 'pending-material-issue', label: 'Pending Material Issue', path: '/pending-material-issue', icon: ClipboardList, description: 'Final BOQs with quantities remaining to issue.' },
+      { key: 'material-issue', label: 'Material Issue', path: '/material-issue', icon: PackageMinus, description: 'Issue material against order items.' },
     ],
   },
   {
@@ -50,10 +56,8 @@ export const menu = [
     items: [
       { key: 'opening-stock', label: 'Opening Stock', path: '/opening-stock', icon: PackageOpen, description: 'Stock on hand when you start using the system.' },
       { key: 'material-in', label: 'Material In', path: '/material-in', icon: PackagePlus, description: 'Material purchased or received as samples.' },
-      { key: 'material-issue', label: 'Material Issue', path: '/material-issue', icon: PackageMinus, description: 'Material issued to an order item.' },
       { key: 'damage', label: 'Damage', path: '/damage', icon: AlertOctagon, description: 'Broken, defective or lost material.' },
       { key: 'inventory', label: 'Inventory', path: '/inventory', icon: Warehouse, description: 'Stock per material.' },
-      { key: 'low-stock', label: 'Low Stock', path: '/low-stock', icon: TrendingDown, description: 'Materials below their reorder level.' },
     ],
   },
   {
