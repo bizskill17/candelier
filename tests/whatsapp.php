@@ -31,3 +31,15 @@ check(str_contains(wa_error_message(['code'=>400,'data'=>['error'=>['code'=>1320
 check(str_contains(wa_error_message(['code'=>401,'data'=>['error'=>'Invalid API key']]),'HTTP 401'),'WhatsApp authentication failures include HTTP status');
 check(str_contains(wa_error_message(['code'=>422,'data'=>['errors'=>['templateName'=>['Template is required']]]]),'Template is required'),'WhatsApp validation error fields retained');
 check(!str_contains(wa_error_message(['code'=>401,'data'=>['message'=>'Rejected isolated-test-key']]),'isolated-test-key'),'Provider errors redact the configured API key');
+
+$_SESSION['uid']=$salesUser;
+$waImage='uploads/items/2026/10/wa-header-test.png';$waDir=upload_root().'/uploads/items/2026/10';if(!is_dir($waDir))mkdir($waDir,0755,true);
+file_put_contents(upload_root().'/'.$waImage,base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aOn0AAAAASUVORK5CYII='));
+try{
+ $b['request_key']='wa-image-header-valid';$b['image_header']=true;$b['image_path']=$waImage;
+ $imageCampaign=(int)wa_create($b)['data']['id'];$payload=json_decode(db_value('SELECT payload FROM whatsapp_messages WHERE campaign_id=?',[$imageCampaign]),true);
+ check($payload['fileUrl']==='https://candelier.bizskilledu.com/'.$waImage,'Image templates include the public fileUrl expected by Red Lava');
+ $b['request_key']='wa-image-header-missing';$b['image_path']='';reject(fn()=>wa_create($b),'Image header requires a photo');
+ $b['request_key']='wa-image-header-traversal';$b['image_path']='../../config.php';reject(fn()=>wa_create($b),'Template photo rejects paths outside uploads');
+ $b['request_key']='wa-image-header-nonexistent';$b['image_path']='uploads/items/2026/10/nonexistent-photo.png';reject(fn()=>wa_create($b),'Template photo must exist and be a valid image');
+}finally{unlink(upload_root().'/'.$waImage);$_SESSION['uid']=$crmActor;}
