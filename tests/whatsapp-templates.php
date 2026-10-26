@@ -1,0 +1,7 @@
+<?php
+$_SESSION['uid']=$salesUser;$requestSeen=null;
+$GLOBALS['WA_TEST_TRANSPORT']=function($method,$path,$body)use(&$requestSeen){$requestSeen=[$method,$path,$body];return ['code'=>200,'data'=>['results'=>[['id'=>'row-approved','template'=>['name'=>'designs','status'=>'APPROVED','language'=>'en','components'=>[['type'=>'HEADER','format'=>'IMAGE'],['type'=>'BODY','text'=>'Welcome to La Decore']]]],['template'=>['name'=>'pending','status'=>'PENDING','language'=>'en']]],'total'=>2]];};
+$r=wa_templates(1);check(count($r['data'])===1&&$r['data'][0]['name']==='designs','Template dropdown reads Red Lava results and nested template records');check($r['data'][0]['header']==='image'&&$r['data'][0]['language']==='en'&&$r['data'][0]['body']==='Welcome to La Decore','Template choice includes language, image header and body preview');check(!$r['has_more']&&$requestSeen[1]==='/api/v1/messageTemplate/getTemplates'&&$requestSeen[2]['pagination']['pageSize']===10,'Template list uses documented endpoint and pagination');
+$GLOBALS['WA_TEST_TRANSPORT']=fn()=>['code'=>401,'data'=>['title'=>'Invalid API key']];reject(fn()=>wa_templates(1),'Template listing reports authentication failures clearly');
+check(wa_template_rows(['data'=>['results'=>[['name'=>'nested']]]])[0]['name']==='nested','Template normalizer handles wrapped report results');
+unset($GLOBALS['WA_TEST_TRANSPORT']);$_SESSION['uid']=$crmActor;

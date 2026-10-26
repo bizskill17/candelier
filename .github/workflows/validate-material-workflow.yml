@@ -70,3 +70,4 @@ jobs:
           node tests/booking-ui.cjs
           node tests/whatsapp-ui.cjs
           node tests/whatsapp-failed-ui.cjs
+          node tests/whatsapp-templates-ui.cjs

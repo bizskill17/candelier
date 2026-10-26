@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/../lib/whatsapp_tracking.php';
+require_once __DIR__.'/../lib/whatsapp_templates.php';
 function migrate_whatsapp(): void {
  db()->exec("CREATE TABLE IF NOT EXISTS whatsapp_settings(id INT PRIMARY KEY,api_key TEXT NOT NULL,phone_id VARCHAR(80) NOT NULL DEFAULT '') ENGINE=InnoDB");
  db()->exec("CREATE TABLE IF NOT EXISTS whatsapp_campaigns(id INT AUTO_INCREMENT PRIMARY KEY,request_key VARCHAR(80) UNIQUE NOT NULL,name VARCHAR(120) NOT NULL,template_name VARCHAR(120) NOT NULL,language VARCHAR(20) NOT NULL,phone_id VARCHAR(80) NOT NULL,created_by INT NOT NULL,created_at DATETIME NOT NULL) ENGINE=InnoDB");
@@ -38,7 +39,7 @@ function wa_http(string $method,string $path,?array $body=null,?string $phone=nu
  if(isset($GLOBALS['WA_TEST_TRANSPORT'])&&str_contains(getenv('TEST_DB_DSN')?:'','candelier_test'))return ($GLOBALS['WA_TEST_TRANSPORT'])($method,$path,$body);
  $s=db_one('SELECT * FROM whatsapp_settings WHERE id=1');if(!$s)throw new ApiError('Configure Red Lava first.',422);if(!function_exists('curl_init'))throw new ApiError('PHP cURL is required.',503);
  $headers=['Accept: application/json','Content-Type: application/json','x-api-key: '.wa_decrypt($s['api_key'])];$phone=$phone??$s['phone_id'];if($phone!=='')$headers[]='x-phone-id: '.$phone;
- $ch=curl_init('https://wa.redlava.in/api/v1/whatsapp/'.$path);curl_setopt_array($ch,[CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$headers,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>25,CURLOPT_FOLLOWLOCATION=>false]);if($body!==null)curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($body));$raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$err=curl_errno($ch);curl_close($ch);if($err||$raw===false)throw new ApiError('Provider response uncertain.',502);$data=json_decode($raw,true);if(!is_array($data))throw new ApiError('Unreadable provider response.',502);return ['code'=>$code,'data'=>$data];
+ $ch=curl_init('https://wa.redlava.in'.(str_starts_with($path,'/api/v1/')?$path:'/api/v1/whatsapp/'.$path));curl_setopt_array($ch,[CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$headers,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>25,CURLOPT_FOLLOWLOCATION=>false]);if($body!==null)curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($body));$raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$err=curl_errno($ch);curl_close($ch);if($err||$raw===false)throw new ApiError('Provider response uncertain.',502);$data=json_decode($raw,true);if(!is_array($data))throw new ApiError('Unreadable provider response.',502);return ['code'=>$code,'data'=>$data];
 }
 function wa_timestamp($v): ?string {if(!is_scalar($v)||$v==='')return null;if(is_numeric($v)){$n=(float)$v;if($n>100000000000)$n/=1000;return $n>0?date('Y-m-d H:i:s',(int)$n):null;}$t=strtotime((string)$v);return $t===false?null:date('Y-m-d H:i:s',$t);}
 function wa_error_message(array $response): string {
@@ -82,6 +83,7 @@ function wa_process(int $campaign): array {
 }
 function whatsapp_route(string $method,array $parts): void {
  require_roles(['Admin','Sales']);$first=$parts[0]??'';
+ if($first==='templates'&&$method==='GET'){json_out(wa_templates((int)($_GET['page']??1)));return;}
  if($first==='failed-contacts'&&$method==='GET'){json_out(wa_failed_contacts());return;}
  if($first==='sync'&&$method==='POST'){$body=request_body();json_out(wa_sync_batch(!empty($body['force']),max(0,(int)($body['after']??0))));return;}
  if($method==='GET'&&$first==='contact'){ $contact=(int)($parts[1]??0);$page=max(1,(int)($_GET['page']??1));$total=(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE contact_id=?',[$contact]);$offset=($page-1)*20;$rows=db_all('SELECT m.id,m.status,m.status_times,m.error_text,m.updated_at,c.name AS campaign_name FROM whatsapp_messages m JOIN whatsapp_campaigns c ON c.id=m.campaign_id WHERE m.contact_id=? ORDER BY m.id DESC LIMIT 20 OFFSET '.$offset,[$contact]);foreach($rows as &$r)$r['status_times']=json_decode($r['status_times'],true);json_out(['data'=>$rows,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/20))]);return;}

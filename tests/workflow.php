@@ -164,3 +164,5 @@ require __DIR__ . '/booking.php';
 require __DIR__ . '/whatsapp.php';
 
 require __DIR__ . '/whatsapp-failed.php';
+
+require __DIR__ . '/whatsapp-templates.php';
