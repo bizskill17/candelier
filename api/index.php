@@ -47,6 +47,13 @@ try {
     migrate_material_media();
     migrate_roles_assignment();
     migrate_whatsapp();
+    if ($area === 'whatsapp-sync') {
+        if($method!=='POST')throw new ApiError('Not found.',404);
+        $provided=(string)($_SERVER['HTTP_X_CANDELIER_SYNC']??'');$valid=false;
+        foreach([0,-1] as $delta){$expected=hash_hmac('sha256','whatsapp-status-sync:'.((int)floor(time()/3600)+$delta),hash_file('sha256',$configFile));if(hash_equals($expected,$provided))$valid=true;}
+        if(!$valid)throw new ApiError('Unauthorised scheduler.',401);
+        json_out(wa_sync_batch());exit;
+    }
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 

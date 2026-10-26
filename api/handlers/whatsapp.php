@@ -1,18 +1,21 @@
 <?php
+require_once __DIR__.'/../lib/whatsapp_tracking.php';
 function migrate_whatsapp(): void {
  db()->exec("CREATE TABLE IF NOT EXISTS whatsapp_settings(id INT PRIMARY KEY,api_key TEXT NOT NULL,phone_id VARCHAR(80) NOT NULL DEFAULT '') ENGINE=InnoDB");
  db()->exec("CREATE TABLE IF NOT EXISTS whatsapp_campaigns(id INT AUTO_INCREMENT PRIMARY KEY,request_key VARCHAR(80) UNIQUE NOT NULL,name VARCHAR(120) NOT NULL,template_name VARCHAR(120) NOT NULL,language VARCHAR(20) NOT NULL,phone_id VARCHAR(80) NOT NULL,created_by INT NOT NULL,created_at DATETIME NOT NULL) ENGINE=InnoDB");
  db()->exec("CREATE TABLE IF NOT EXISTS whatsapp_messages(id INT AUTO_INCREMENT PRIMARY KEY,campaign_id INT NOT NULL,contact_id INT NOT NULL,contact_name VARCHAR(200) NOT NULL,recipient VARCHAR(30) NOT NULL,status VARCHAR(30) NOT NULL,user_message_id VARCHAR(255) NULL,provider_id VARCHAR(255) NULL,wa_id VARCHAR(255) NULL,status_times LONGTEXT NOT NULL,error_text TEXT NULL,payload LONGTEXT NOT NULL,updated_at DATETIME NOT NULL,UNIQUE KEY recipient(campaign_id,recipient),KEY campaign_status(campaign_id,status)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ wa_tracking_migrate();
 }
 function wa_secret(): string {return hash('sha256',json_encode($GLOBALS['CONFIG']['db']).'|redlava-v1',true);}
 function wa_encrypt(string $s): string {$iv=random_bytes(12);$tag='';$c=openssl_encrypt($s,'aes-256-gcm',wa_secret(),OPENSSL_RAW_DATA,$iv,$tag);if($c===false)throw new ApiError('Encryption unavailable.',500);return base64_encode($iv.$tag.$c);}
 function wa_decrypt(string $s): string {$v=base64_decode($s,true);$out=$v===false?false:openssl_decrypt(substr($v,28),'aes-256-gcm',wa_secret(),OPENSSL_RAW_DATA,substr($v,0,12),substr($v,12,16));if($out===false)throw new ApiError('Re-enter the API key in Settings.',422);return $out;}
-function wa_settings(): array {$s=db_one('SELECT * FROM whatsapp_settings WHERE id=1');return ['configured'=>!empty($s['api_key']),'phone_id'=>$s['phone_id']??''];}
+function wa_settings(): array {$s=db_one('SELECT * FROM whatsapp_settings WHERE id=1');return ['configured'=>!empty($s['api_key']),'phone_id'=>$s['phone_id']??'','refresh_minutes'=>(int)($s['refresh_minutes']??60)];}
 function wa_save_settings(array $b): array {
  require_admin();$old=db_one('SELECT * FROM whatsapp_settings WHERE id=1');$key=trim((string)($b['api_key']??''));$phone=trim((string)($b['phone_id']??''));
  if(strlen($key)>1000||preg_match('/[\r\n]/',$key)||($phone!==''&&!preg_match('/^\d{1,80}$/',$phone)))throw new ApiError('Invalid API key or Phone ID.',422);
+ $minutes=(int)($b['refresh_minutes']??($old['refresh_minutes']??60));if($minutes<5||$minutes>1440)throw new ApiError('Refresh interval must be 5 to 1440 minutes.',422);
  $enc=$key!==''?wa_encrypt($key):($old['api_key']??'');if($enc==='')throw new ApiError('API key is required.',422);
- db()->prepare('INSERT INTO whatsapp_settings VALUES(1,?,?) ON DUPLICATE KEY UPDATE api_key=VALUES(api_key),phone_id=VALUES(phone_id)')->execute([$enc,$phone]);return ['data'=>wa_settings(),'message'=>'Red Lava settings saved.'];
+ db()->prepare('INSERT INTO whatsapp_settings(id,api_key,phone_id,refresh_minutes) VALUES(1,?,?,?) ON DUPLICATE KEY UPDATE api_key=VALUES(api_key),phone_id=VALUES(phone_id),refresh_minutes=VALUES(refresh_minutes)')->execute([$enc,$phone,$minutes]);return ['data'=>wa_settings(),'message'=>'Red Lava settings saved.'];
 }
 function wa_phone(string $raw): string {$n=preg_replace('/\D/','',$raw);if(strlen($n)===10)$n='91'.$n;return preg_match('/^[1-9]\d{7,14}$/',$n)?$n:'';}
 function wa_create(array $b): array {
@@ -59,11 +62,13 @@ function wa_error_message(array $response): string {
 }
 function wa_apply(int $id,array $r,bool $report=false): void {
  $d=$r['data'];$old=db_one('SELECT * FROM whatsapp_messages WHERE id=?',[$id]);$times=json_decode($old['status_times'],true)?:[];$error=$d['error']??null;
+ if($report&&isset($d['lastStatus'])&&in_array(strtolower((string)$d['lastStatus']),['pending','accepted','sent','delivered','read','deleted','captured'],true))$error=null;
  if(!$report&&$r['code']<300&&!$error&&empty($d['id'])&&empty($d['userMessageId'])&&empty($d['waMessageId']))throw new ApiError('No message ID returned.',502);
  if($error||$r['code']>=300){$status='failed';$text=wa_error_message($r);}else{$status=$report?strtolower((string)($d['lastStatus']??$old['status'])):'accepted';$text=null;}
  if(!in_array($status,['pending','accepted','sent','delivered','read','failed','deleted','captured'],true))$status=$old['status'];
  if(!$report)$times[$status]=now();foreach(($d['statusTime']??[]) as $s=>$t){$parsed=wa_timestamp($t);if($parsed)$times[$s]=$parsed;}foreach(($d['statuses']??[]) as $e){$parsed=wa_timestamp($e['timestamp']??null);if($parsed&&isset($e['status']))$times[strtolower($e['status'])]=$parsed;}
- db()->prepare('UPDATE whatsapp_messages SET status=?,user_message_id=COALESCE(user_message_id,?),provider_id=COALESCE(?,provider_id),wa_id=COALESCE(?,wa_id),status_times=?,error_text=?,updated_at=? WHERE id=?')->execute([$status,$d['userMessageId']??null,$d['id']??null,$d['waMessageId']??$d['waId']??null,json_encode($times),$text,now(),$id]);
+ $failedAt=$status==='failed'?($times['failed']??$old['failed_at']??now()):($old['failed_at']??null);$successTimes=array_filter([$times['delivered']??null,$times['read']??null,$old['success_at']??null]);$successAt=in_array($status,['delivered','read'],true)?($successTimes?max($successTimes):now()):($old['success_at']??null);
+ db()->prepare('UPDATE whatsapp_messages SET failed_at=?,success_at=?,status=?,user_message_id=COALESCE(user_message_id,?),provider_id=COALESCE(?,provider_id),wa_id=COALESCE(?,wa_id),status_times=?,error_text=?,updated_at=? WHERE id=?')->execute([$failedAt,$successAt,$status,$d['userMessageId']??null,$d['id']??null,$d['waMessageId']??$d['waId']??null,json_encode($times),$text,now(),$id]);
 }
 function wa_process(int $campaign): array {
  $row=db_one("SELECT * FROM whatsapp_messages WHERE campaign_id=? AND status='pending' ORDER BY id LIMIT 1",[$campaign]);if(!$row)return ['remaining'=>0];
@@ -77,11 +82,13 @@ function wa_process(int $campaign): array {
 }
 function whatsapp_route(string $method,array $parts): void {
  require_roles(['Admin','Sales']);$first=$parts[0]??'';
+ if($first==='failed-contacts'&&$method==='GET'){json_out(wa_failed_contacts());return;}
+ if($first==='sync'&&$method==='POST'){$body=request_body();json_out(wa_sync_batch(!empty($body['force']),max(0,(int)($body['after']??0))));return;}
  if($method==='GET'&&$first==='contact'){ $contact=(int)($parts[1]??0);$page=max(1,(int)($_GET['page']??1));$total=(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE contact_id=?',[$contact]);$offset=($page-1)*20;$rows=db_all('SELECT m.id,m.status,m.status_times,m.error_text,m.updated_at,c.name AS campaign_name FROM whatsapp_messages m JOIN whatsapp_campaigns c ON c.id=m.campaign_id WHERE m.contact_id=? ORDER BY m.id DESC LIMIT 20 OFFSET '.$offset,[$contact]);foreach($rows as &$r)$r['status_times']=json_decode($r['status_times'],true);json_out(['data'=>$rows,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/20))]);return;}
  if($first==='settings'){require_admin();if($method==='GET')json_out(['data'=>wa_settings()]);elseif($method==='PUT')json_out(wa_save_settings(request_body()));else throw new ApiError('Not found.',404);return;}
  if($first==='campaigns'&&count($parts)===1){if($method==='GET'){json_out(['data'=>db_all('SELECT c.*,(SELECT COUNT(*) FROM whatsapp_messages m WHERE m.campaign_id=c.id) AS recipients FROM whatsapp_campaigns c ORDER BY c.id DESC LIMIT 1000')]);return;}if($method==='POST'){json_out(wa_create(request_body()),201);return;}}
  $id=(int)($parts[1]??0);if($first!=='campaigns'||!db_value('SELECT id FROM whatsapp_campaigns WHERE id=?',[$id]))throw new ApiError('Campaign not found.',404);
  if($method==='POST'&&($parts[2]??'')==='process'){json_out(wa_process($id));return;}
- if($method==='POST'&&($parts[2]??'')==='refresh'){$m=db_one('SELECT * FROM whatsapp_messages WHERE campaign_id=? AND id=?',[$id,(int)(request_body()['message_id']??0)]);if(!$m||!$m['user_message_id'])throw new ApiError('No report ID. Check this message in Red Lava.',422);$r=wa_http('GET','report/userMessageId/'.rawurlencode($m['user_message_id']),null,(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$id]));if($r['code']>=300)throw new ApiError('Could not retrieve report from Red Lava.',502);wa_apply((int)$m['id'],$r,true);json_out(['message'=>'Status refreshed.']);return;}
+ if($method==='POST'&&($parts[2]??'')==='refresh'){$m=db_one('SELECT * FROM whatsapp_messages WHERE campaign_id=? AND id=?',[$id,(int)(request_body()['message_id']??0)]);if(!$m)throw new ApiError('Message not found.',404);wa_check_message($m);json_out(['message'=>'Status refreshed.']);return;}
  if($method==='GET'&&count($parts)===2){$status=(string)($_GET['status']??'');$page=max(1,(int)($_GET['page']??1));$args=[$id];$where='campaign_id=?';if($status!==''){$where.=' AND status=?';$args[]=$status;}$total=(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE '.$where,$args);$offset=($page-1)*20;$rows=db_all('SELECT id,contact_id,contact_name,recipient,status,status_times,error_text,updated_at,user_message_id FROM whatsapp_messages WHERE '.$where." ORDER BY id LIMIT 20 OFFSET $offset",$args);foreach($rows as &$r)$r['status_times']=json_decode($r['status_times'],true);json_out(['data'=>$rows,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/20)),'counts'=>db_all('SELECT status,COUNT(*) AS count FROM whatsapp_messages WHERE campaign_id=? GROUP BY status',[$id])]);return;}throw new ApiError('Not found.',404);
 }

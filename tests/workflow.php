@@ -162,3 +162,5 @@ require __DIR__ . '/permissions.php';
 require __DIR__ . '/booking.php';
 
 require __DIR__ . '/whatsapp.php';
+
+require __DIR__ . '/whatsapp-failed.php';

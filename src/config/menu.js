@@ -23,6 +23,7 @@ export const menu = [
     heading: 'WhatsApp',
     items: [
       { key: 'whatsapp', label: 'WhatsApp Campaigns', path: '/whatsapp', icon: Send, description: 'Send selected contacts template messages through Red Lava and track results.' },
+      { key: 'whatsapp-failed', label: 'Failed Contacts', path: '/whatsapp-failed', icon: AlertOctagon, description: 'Latest unresolved failures per Contact, status checks and retargeting.' },
       { key: 'whatsapp-settings', label: 'Red Lava Settings', path: '/whatsapp-settings', icon: Send, adminOnly: true },
     ],
   },

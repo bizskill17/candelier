@@ -1,0 +1,52 @@
+name: Refresh WhatsApp delivery statuses
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Deploy Candelier to Hostinger]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: candelier-whatsapp-status-sync
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check due Red Lava message statuses
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        shell: python
+        run: |
+          import ftplib, hashlib, hmac, io, json, os, time, urllib.request
+          from urllib.parse import urlparse
+          server = os.environ['FTP_SERVER'].strip()
+          if '://' in server:
+              server = urlparse(server).hostname
+          config = io.BytesIO()
+          with ftplib.FTP(server, timeout=30) as ftp:
+              ftp.login(os.environ['FTP_USERNAME'], os.environ['FTP_PASSWORD'])
+              ftp.cwd('/public_html')
+              ftp.retrbinary('RETR api/config.php', config.write)
+          # Compute a short-lived scheduler token in memory. Never print credentials or tokens.
+          secret = hashlib.sha256(config.getvalue()).hexdigest().encode()
+          config.close()
+          started = time.monotonic()
+          checked = 0
+          while time.monotonic() - started < 240:
+              bucket = int(time.time() // 3600)
+              token = hmac.new(secret, ('whatsapp-status-sync:' + str(bucket)).encode(), hashlib.sha256).hexdigest()
+              req = urllib.request.Request('https://candelier.bizskilledu.com/api/index.php?r=whatsapp-sync', data=b'{}', headers={'Content-Type':'application/json','X-Candelier-Sync':token}, method='POST')
+              with urllib.request.urlopen(req, timeout=150) as response:
+                  result = json.load(response)
+              checked += result.get('checked', 0)
+              if result.get('busy') or not result.get('remaining'):
+                  break
+          print('Status records checked:', checked)
