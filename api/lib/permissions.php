@@ -14,6 +14,7 @@ function require_item_access(int $id): void {
 }
 function authorize_request(string $method, ?string $area, array $parts): void {
     require_roles(['Admin','Store','Sales']);
+    if($area==='enquiries'){require_roles(['Admin','Sales']);if(in_array($parts[0]??'',['settings','connection-script','request-sync'],true))require_admin();if($method==='GET'||($method==='POST'&&(($parts[1]??'')==='followups'||in_array($parts[0]??'',['connection-script','request-sync'],true)))||($method==='PUT'&&($parts[0]??'')==='settings'))return;throw new ApiError('Action not allowed.',403);}
     if($area==='whatsapp'){require_roles(['Admin','Sales']);if(($parts[0]??'')==='settings')require_admin();return;}
     if(app_role()==='Admin')return;
     $sales=app_role()==='Sales';$first=$parts[0]??'';$second=$parts[1]??'';

@@ -180,3 +180,5 @@ export const historyApi = {
 };
 
 export const whatsappApi = { get:(route,params)=>request('GET','whatsapp/'+route,{params}), post:(route,body)=>request('POST','whatsapp/'+route,{body}), settings:(body)=>request('PUT','whatsapp/settings',{body}) };
+
+export const enquiriesApi = {filters:()=>request('GET','enquiries/filters'),list:p=>request('GET','enquiries',{params:p}),get:id=>request('GET',`enquiries/${id}`),followup:(id,body)=>request('POST',`enquiries/${id}/followups`,{body}),settings:()=>request('GET','enquiries/settings'),saveSettings:body=>request('PUT','enquiries/settings',{body}),script:()=>request('POST','enquiries/connection-script',{body:{}}),requestSync:()=>request('POST','enquiries/request-sync',{body:{}}),history:p=>request('GET','enquiries/sync-history',{params:p})};

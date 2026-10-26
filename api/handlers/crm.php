@@ -142,8 +142,8 @@ function lead_delete(int $id): array {
 }
 function lead_customer(int $id): array {$l=lead_find($id);$c=contact_find($l['contact_id']);return ['data'=>['lead'=>$l,'customer'=>['id'=>$c['id'],'name'=>$c['name'],'address'=>$c['address']]]];}
 function crm_insert_followup(array $f): int {
-    $f+=['request_key'=>null,'contact_id'=>null,'lead_id'=>null,'entry_type'=>'Follow-up','method'=>null,'outcome'=>null,'remarks'=>null,'lead_status'=>null,'lead_temperature'=>null,'further_followup_required'=>0,'next_followup_at'=>null,'generated_lead_id'=>null,'recorded_by'=>current_user()['id']??null,'created_at'=>now()];
-    $keys=['request_key','contact_id','lead_id','entry_type','activity_at','method','outcome','remarks','lead_status','lead_temperature','further_followup_required','next_followup_at','generated_lead_id','recorded_by','created_at'];$f=array_intersect_key($f,array_flip($keys));
+    $f+=['enquiry_id'=>null,'enquiry_decision'=>null,'request_key'=>null,'contact_id'=>null,'lead_id'=>null,'entry_type'=>'Follow-up','method'=>null,'outcome'=>null,'remarks'=>null,'lead_status'=>null,'lead_temperature'=>null,'further_followup_required'=>0,'next_followup_at'=>null,'generated_lead_id'=>null,'recorded_by'=>current_user()['id']??null,'created_at'=>now()];
+    $keys=['enquiry_id','enquiry_decision','request_key','contact_id','lead_id','entry_type','activity_at','method','outcome','remarks','lead_status','lead_temperature','further_followup_required','next_followup_at','generated_lead_id','recorded_by','created_at'];$f=array_intersect_key($f,array_flip($keys));
     db()->prepare('INSERT INTO followups('.implode(',',$keys).') VALUES(:'.implode(',:',$keys).')')->execute($f);return(int)db()->lastInsertId();
 }
 function crm_datetime($v): ?string {$v=trim(str_replace('T',' ',(string)($v??'')));if($v==='')return null;if(strlen($v)===16)$v.=':00';$d=DateTime::createFromFormat('!Y-m-d H:i:s',$v);return $d&&$d->format('Y-m-d H:i:s')===$v?$v:null;}
@@ -197,10 +197,10 @@ function followup_logs(): array {
     foreach(['entry_type','outcome']as$k)if(!empty($_GET[$k])){$w[]="f.$k=:$k";$p[$k]=$_GET[$k];}
     if(valid_date($_GET['from']??'')){$w[]='f.activity_at>=:from';$p['from']=$_GET['from'].' 00:00:00';}
     if(valid_date($_GET['to']??'')){$w[]='f.activity_at<=:to';$p['to']=$_GET['to'].' 23:59:59';}
-    crm_where_search($w,$p,['c.name','c.mobile','l.lead_no','l.requirement','f.remarks']);
-    $from=' FROM followups f LEFT JOIN leads l ON l.id=f.lead_id JOIN contacts c ON c.id=COALESCE(f.contact_id,l.contact_id) LEFT JOIN users u ON u.id=f.recorded_by';
+    crm_where_search($w,$p,['c.name','c.mobile','e.name','e.mobile','l.lead_no','l.requirement','f.remarks']);
+    $from=' FROM followups f LEFT JOIN leads l ON l.id=f.lead_id LEFT JOIN contacts c ON c.id=COALESCE(f.contact_id,l.contact_id) LEFT JOIN enquiries e ON e.id=f.enquiry_id LEFT JOIN users u ON u.id=f.recorded_by';
     $where=$w?' WHERE '.implode(' AND ',$w):'';
-    $result=crm_page('SELECT f.*,c.name AS contact_name,l.lead_no,u.name AS recorded_by_name'.$from.$where.' ORDER BY f.activity_at DESC,f.id DESC',$p);
+    $result=crm_page('SELECT f.*,COALESCE(c.name,e.name) AS contact_name,l.lead_no,u.name AS recorded_by_name'.$from.$where.' ORDER BY f.activity_at DESC,f.id DESC',$p);
     // Counts cover all matching pages and actual follow-up attempts, not system/status events.
     $countWhere=$where.($w?' AND ':' WHERE ')."f.entry_type='Follow-up'";
     $people=db_all("SELECT f.recorded_by,COALESCE(u.name,'Unassigned') AS name,COUNT(*) AS count".$from.$countWhere.' GROUP BY f.recorded_by,u.name ORDER BY count DESC,name,f.recorded_by',$p);

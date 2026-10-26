@@ -19,6 +19,7 @@ require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/stock.php';
 require __DIR__ . '/lib/migrate.php';
 require __DIR__ . '/lib/migrate_crm.php';
+require __DIR__ . '/lib/migrate_enquiries.php';
 require __DIR__ . '/entities.php';
 require __DIR__ . '/handlers/auth.php';
 require __DIR__ . '/lib/permissions.php';
@@ -31,6 +32,7 @@ require __DIR__ . '/handlers/boq.php';
 require __DIR__ . '/handlers/stores.php';
 require __DIR__ . '/handlers/inventory.php';
 require __DIR__ . '/handlers/crm.php';
+require __DIR__ . '/handlers/enquiries.php';
 require __DIR__ . '/handlers/whatsapp.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -47,6 +49,20 @@ try {
     migrate_material_media();
     migrate_roles_assignment();
     migrate_whatsapp();
+    migrate_enquiries();
+    if ($area === 'enquiry-sync') {
+        if($method!=='POST')throw new ApiError('Not found.',404);
+        enquiry_sync_auth((string)($_SERVER['HTTP_X_CANDELIER_ENQUIRY_KEY']??''));
+        if((int)($_SERVER['CONTENT_LENGTH']??0)>2000000)throw new ApiError('Sync request is too large.',413);
+        $body=request_body();$connection=db_one('SELECT * FROM enquiry_integration WHERE id=1');
+        if(($body['spreadsheet_id']??'')!==$connection['spreadsheet_id']||($body['tab_name']??'')!==$connection['tab_name'])throw new ApiError('Spreadsheet or tab does not match.',403);
+        if(($body['operation']??'')==='status'){json_out(['full_sync_requested'=>(bool)$connection['full_sync_requested']]);exit;}
+        if(($body['operation']??'')==='failure'){
+            $key=(string)($body['request_key']??'');if(!preg_match('/^[a-zA-Z0-9-]{10,80}$/',$key))throw new ApiError('Invalid sync request key.',422);
+            db()->prepare("INSERT IGNORE INTO enquiry_sync_runs(request_key,received_at,errors_json,status) VALUES(?,?,?,'Failed')")->execute([$key,now(),json_encode([['message'=>'Google script could not finish. Check Apps Script Executions, sheet headings and connection settings.']])]);json_out(['recorded'=>true]);exit;
+        }
+        json_out(enquiry_sync($body));exit;
+    }
     if ($area === 'whatsapp-sync') {
         if($method!=='POST')throw new ApiError('Not found.',404);
         $provided=(string)($_SERVER['HTTP_X_CANDELIER_SYNC']??'');$valid=false;
@@ -81,6 +97,7 @@ try {
             json_out(['data' => $rows]);
             break;
         case 'whatsapp': whatsapp_route($method, $parts); break;
+        case 'enquiries': enquiries_route($method, $parts); break;
         case 'contacts': contacts_route($method, $parts); break;
         case 'crm-followups': crm_followups_route($method, $parts); break;
         case 'leads':           leads_route($method, $parts); break;

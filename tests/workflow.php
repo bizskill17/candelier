@@ -6,7 +6,7 @@ if (!$dsn || !str_contains($dsn, 'candelier_test')) throw new RuntimeException('
 $GLOBALS['CONFIG'] = ['db' => ['dsn' => $dsn, 'user' => 'root', 'password' => '']];
 date_default_timezone_set('Asia/Kolkata');
 $root = dirname(__DIR__);
-foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'lib/migrate_crm', 'lib/permissions', 'entities', 'handlers/auth', 'handlers/crm', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
+foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'lib/migrate_crm', 'lib/migrate_enquiries', 'lib/permissions', 'entities', 'handlers/auth', 'handlers/crm', 'handlers/enquiries', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
 session_begin();
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); echo "PASS: $message\n"; }
 function reject(callable $action, string $message): void {
@@ -60,6 +60,8 @@ migrate_client_categories();
 require __DIR__ . '/crm-fixture.php';
 migrate_crm();
 migrate_crm();
+migrate_enquiries();
+migrate_enquiries();
 migrate_material_media();
 migrate_material_media();
 migrate_roles_assignment();
@@ -168,3 +170,5 @@ require __DIR__ . '/whatsapp-failed.php';
 require __DIR__ . '/whatsapp-templates.php';
 
 require __DIR__ . '/whatsapp-reports.php';
+
+require __DIR__ . '/enquiries.php';

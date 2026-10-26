@@ -1,6 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
 import FailedContacts from './pages/whatsapp/FailedContacts';
 import WhatsAppPage from './pages/whatsapp/WhatsAppPage';
+import EnquiriesPage from './pages/crm/EnquiriesPage';
+import EnquirySettings from './pages/crm/EnquirySettings';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import MasterPage from './pages/MasterPage';
@@ -36,6 +38,9 @@ export default function App() {
           <Route path="whatsapp-failed" element={<FailedContacts />} />
           <Route path="whatsapp" element={<WhatsAppPage key="campaigns" />} />
           <Route path="whatsapp-settings" element={<WhatsAppPage key="settings" settings />} />
+          <Route path="enquiries" element={<EnquiriesPage />} />
+          <Route path="enquiry-settings" element={<EnquirySettings />} />
+          <Route path="enquiry-sync-history" element={<EnquirySettings historyOnly />} />
           <Route path="contacts/*" element={<ContactsPage />} />
           <Route path="customers" element={<ContactsPage customers />} />
           <Route path="leads/*" element={<LeadsPage />} />
