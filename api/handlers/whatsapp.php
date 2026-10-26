@@ -34,10 +34,29 @@ function wa_http(string $method,string $path,?array $body=null,?string $phone=nu
  $ch=curl_init('https://wa.redlava.in/api/v1/whatsapp/'.$path);curl_setopt_array($ch,[CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_HTTPHEADER=>$headers,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>25,CURLOPT_FOLLOWLOCATION=>false]);if($body!==null)curl_setopt($ch,CURLOPT_POSTFIELDS,json_encode($body));$raw=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$err=curl_errno($ch);curl_close($ch);if($err||$raw===false)throw new ApiError('Provider response uncertain.',502);$data=json_decode($raw,true);if(!is_array($data))throw new ApiError('Unreadable provider response.',502);return ['code'=>$code,'data'=>$data];
 }
 function wa_timestamp($v): ?string {if(!is_scalar($v)||$v==='')return null;if(is_numeric($v)){$n=(float)$v;if($n>100000000000)$n/=1000;return $n>0?date('Y-m-d H:i:s',(int)$n):null;}$t=strtotime((string)$v);return $t===false?null:date('Y-m-d H:i:s',$t);}
+function wa_error_message(array $response): string {
+ $d=$response['data'];$e=$d['error']??null;$parts=[];
+ $append=function($v)use(&$parts){if(is_scalar($v)&&trim((string)$v)!=='')$parts[]=trim((string)$v);};
+ if(is_array($e)){
+  foreach(['title','message','details','description'] as $k)$append($e[$k]??null);
+  if(is_array($e['errorData']??null))$append($e['errorData']['details']??null);
+  if(is_array($e['error_data']??null))$append($e['error_data']['details']??null);
+  if(isset($e['code']))$append('Provider code: '.(string)$e['code']);
+  if(isset($e['errorSubcode']))$append('Subcode: '.(string)$e['errorSubcode']);
+ }else $append($e);
+ foreach(['title','detail','message','description','error_description'] as $k)$append($d[$k]??null);
+ if(is_array($d['errors']??null)){foreach($d['errors'] as $v){if(is_array($v)){foreach($v as $message){if(is_array($message))foreach($message as $text)$append($text);else $append($message);}}else $append($v);}}
+ $text=implode(' | ',array_unique($parts));
+ // Never echo credentials that may have been reflected in a provider error.
+ $settings=db_one('SELECT api_key FROM whatsapp_settings WHERE id=1');
+ if($settings){try{$key=wa_decrypt($settings['api_key']);if($key!=='')$text=str_replace($key,'[redacted]',$text);}catch(Throwable $ignored){}}
+ $text=preg_replace('/(Bearer\s+)[^\s,;]+/i','$1[redacted]',$text);
+ return mb_substr('HTTP '.(int)$response['code'].' — '.($text!==''?$text:'Provider rejected the request without an error description. Check the request in Red Lava.'),0,4000);
+}
 function wa_apply(int $id,array $r,bool $report=false): void {
  $d=$r['data'];$old=db_one('SELECT * FROM whatsapp_messages WHERE id=?',[$id]);$times=json_decode($old['status_times'],true)?:[];$error=$d['error']??null;
  if(!$report&&$r['code']<300&&!$error&&empty($d['id'])&&empty($d['userMessageId'])&&empty($d['waMessageId']))throw new ApiError('No message ID returned.',502);
- if($error||$r['code']>=300){$status='failed';$text=is_array($error)?($error['message']??$error['details']??$error['title']??'Provider rejected message'):($d['detail']??$d['message']??'Provider rejected message');}else{$status=$report?strtolower((string)($d['lastStatus']??$old['status'])):'accepted';$text=null;}
+ if($error||$r['code']>=300){$status='failed';$text=wa_error_message($r);}else{$status=$report?strtolower((string)($d['lastStatus']??$old['status'])):'accepted';$text=null;}
  if(!in_array($status,['pending','accepted','sent','delivered','read','failed','deleted','captured'],true))$status=$old['status'];
  if(!$report)$times[$status]=now();foreach(($d['statusTime']??[]) as $s=>$t){$parsed=wa_timestamp($t);if($parsed)$times[$s]=$parsed;}foreach(($d['statuses']??[]) as $e){$parsed=wa_timestamp($e['timestamp']??null);if($parsed&&isset($e['status']))$times[strtolower($e['status'])]=$parsed;}
  db()->prepare('UPDATE whatsapp_messages SET status=?,user_message_id=COALESCE(?,user_message_id),provider_id=COALESCE(?,provider_id),wa_id=COALESCE(?,wa_id),status_times=?,error_text=?,updated_at=? WHERE id=?')->execute([$status,$d['userMessageId']??null,$d['id']??null,$d['waMessageId']??$d['waId']??null,json_encode($times),$text,now(),$id]);

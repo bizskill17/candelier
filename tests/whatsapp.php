@@ -25,3 +25,9 @@ check(wa_timestamp(1755600000000)===wa_timestamp('1755600000'),'Status timestamp
 $b['request_key']='wa-isolated-campaign-2';$b['contact_ids']=[$waIds[0]];$cid2=(int)wa_create($b)['data']['id'];
 $GLOBALS['WA_TEST_TRANSPORT']=function(){throw new RuntimeException('simulated timeout');};wa_process($cid2);check(db_value('SELECT status FROM whatsapp_messages WHERE campaign_id=?',[$cid2])==='unknown','Uncertain send is marked unknown');wa_process($cid2);check((int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE campaign_id=?',[$cid2])===1,'Uncertain message never returns to the send queue');
 unset($GLOBALS['WA_TEST_TRANSPORT']);$_SESSION['uid']=$crmActor;
+
+check(str_contains(wa_error_message(['code'=>400,'data'=>['title'=>'Invalid template','detail'=>'Language does not match']]),'Language does not match'),'WhatsApp top-level provider failure details retained');
+check(str_contains(wa_error_message(['code'=>400,'data'=>['error'=>['code'=>132000,'errorData'=>['details'=>'Variable count mismatch']]]]),'Variable count mismatch'),'WhatsApp nested errorData details and error codes retained');
+check(str_contains(wa_error_message(['code'=>401,'data'=>['error'=>'Invalid API key']]),'HTTP 401'),'WhatsApp authentication failures include HTTP status');
+check(str_contains(wa_error_message(['code'=>422,'data'=>['errors'=>['templateName'=>['Template is required']]]]),'Template is required'),'WhatsApp validation error fields retained');
+check(!str_contains(wa_error_message(['code'=>401,'data'=>['message'=>'Rejected isolated-test-key']]),'isolated-test-key'),'Provider errors redact the configured API key');
