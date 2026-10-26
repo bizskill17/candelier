@@ -50,6 +50,7 @@ jobs:
         run: |
           node tests/materialCsv.test.mjs
           node tests/contactsCsv.test.mjs
+          node tests/enquiry-script.test.cjs
 
       - name: Test migration and BOQ workflow
         env:
