@@ -1,5 +1,9 @@
 <?php
 $_SESSION['uid']=$crmActor;$_GET=[];
+// Host databases may use different defaults for campaign IDs and message IDs.
+db()->exec("ALTER TABLE whatsapp_campaigns CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+db()->exec("ALTER TABLE whatsapp_messages CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+db()->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
 db()->prepare("INSERT INTO contacts(contact_no,name,mobile,is_active,created_at,updated_at) VALUES('WA-REPORT-TEST','Report Match Test','9876543288',1,?,?)")->execute([now(),now()]);$reportContact=(int)db()->lastInsertId();
 $camp=(int)wa_create(['request_key'=>'wa-report-original-one','name'=>'Report original','template_name'=>'designs','language'=>'en','variables'=>[],'contact_ids'=>[$reportContact]])['data']['id'];$mid=(int)db_value('SELECT id FROM whatsapp_messages WHERE campaign_id=?',[$camp]);
 db()->prepare("UPDATE whatsapp_messages SET status='accepted',provider_id='original-provider-id',user_message_id=NULL WHERE id=?")->execute([$mid]);

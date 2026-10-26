@@ -8,7 +8,7 @@ function wa_reconcile_recipient(array $m): bool {
  $found=false;
  foreach($rows as $report){if(!is_array($report))continue;$to=wa_phone((string)($report['to']??$report['message']['to']??''));if($to!==$m['recipient'])continue;$provider=(string)($report['id']??'');$wa=(string)($report['waId']??$report['waMessageId']??'');$user=(string)($report['userMessageId']??'');$status=strtolower((string)($report['lastStatus']??''));if($provider===''||!in_array($status,['accepted','sent','delivered','read','failed','deleted','captured'],true))continue;
  $created=wa_timestamp($report['creationTime']??null);if(!$created)continue;
- $matches=db_all('SELECT wm.* FROM whatsapp_messages wm JOIN whatsapp_campaigns wc ON wc.id=wm.campaign_id WHERE wm.recipient=? AND wc.phone_id=? AND (wm.provider_id=? OR (?<>\'\' AND wm.wa_id=?) OR (?<>\'\' AND wm.user_message_id=? AND (wm.provider_id IS NULL OR wm.provider_id=\'\')))',[$to,$phone,$provider,$wa,$wa,$user,$user]);
+ $matches=db_all('SELECT wm.* FROM whatsapp_messages wm JOIN whatsapp_campaigns wc ON wc.id=wm.campaign_id WHERE BINARY wm.recipient=BINARY ? AND BINARY wc.phone_id=BINARY ? AND (BINARY wm.provider_id=BINARY ? OR (?<>\'\' AND BINARY wm.wa_id=BINARY ?) OR (?<>\'\' AND BINARY wm.user_message_id=BINARY ? AND (wm.provider_id IS NULL OR wm.provider_id=\'\')))',[$to,$phone,$provider,$wa,$wa,$user,$user]);
  if(!$matches){
   // Distinct retry attempts remain distinct history records. They are never queued for sending.
   $template=(string)($report['message']['template']['name']??'Red Lava message');$language=$report['message']['template']['language']['code']??'';if(!is_string($language))$language='';$request='report-sync-'.hash('sha256',$phone.'|'.$provider);

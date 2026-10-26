@@ -13,7 +13,7 @@ function wa_tracking_migrate(): void {
 function wa_check_message(array $m): void {
  try{
   $checked=false;
-  if($m['user_message_id']&&(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE user_message_id=?',[$m['user_message_id']])<=1){try{$r=wa_http('GET','report/userMessageId/'.rawurlencode($m['user_message_id']),null,(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$m['campaign_id']]));if($r['code']<300&&!empty($r['data']['lastStatus'])&&(empty($r['data']['id'])||empty($m['provider_id'])||(string)$r['data']['id']===(string)$m['provider_id']||(!empty($r['data']['waId'])&&$r['data']['waId']===$m['wa_id']))){wa_apply((int)$m['id'],$r,true);$checked=true;}}catch(Throwable $ignored){}}
+  if($m['user_message_id']&&(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE BINARY user_message_id=BINARY ?',[$m['user_message_id']])<=1){try{$r=wa_http('GET','report/userMessageId/'.rawurlencode($m['user_message_id']),null,(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$m['campaign_id']]));if($r['code']<300&&!empty($r['data']['lastStatus'])&&(empty($r['data']['id'])||empty($m['provider_id'])||(string)$r['data']['id']===(string)$m['provider_id']||(!empty($r['data']['waId'])&&$r['data']['waId']===$m['wa_id']))){wa_apply((int)$m['id'],$r,true);$checked=true;}}catch(Throwable $ignored){}}
   // Failed reports are reconciled as well, so separate retry attempts can resolve the Contact.
   $status=db_value('SELECT status FROM whatsapp_messages WHERE id=?',[$m['id']]);
   if(!$checked||$status==='failed'){$matched=wa_reconcile_recipient($m);$checked=$checked||$matched;}
