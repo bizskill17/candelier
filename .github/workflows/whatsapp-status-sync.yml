@@ -44,6 +44,7 @@ jobs:
           cursor = 0
           checked = 0
           errors = 0
+          error_types = {}
           failed_contacts = None
           while time.monotonic() - started < 240:
               bucket = int(time.time() // 3600)
@@ -54,9 +55,12 @@ jobs:
               cursor = result.get('cursor', cursor)
               checked += result.get('checked', 0)
               errors += result.get('errors', 0)
+              for category, count in result.get('error_types', {}).items():
+                  error_types[category] = error_types.get(category, 0) + count
               failed_contacts = result.get('failed_contacts_total', failed_contacts)
               if result.get('busy') or not result.get('remaining'):
                   break
           print('Status records checked:', checked)
           print('Status lookup errors:', errors)
+          print('Status error categories:', json.dumps(error_types))
           print('Unresolved failed contacts:', failed_contacts)
