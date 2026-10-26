@@ -27,9 +27,17 @@ function wa_sync_batch(bool $force=false,int $after=0): array {
  $where="status NOT IN ('pending','read','deleted')";$args=[];
  if($force){$where.=' AND id>?';$args[]=$after;}else{$where.=' AND (last_checked_at IS NULL OR last_checked_at<?)';$args[]=$cutoff;}
  $rows=db_all('SELECT * FROM whatsapp_messages WHERE '.$where.' ORDER BY '.($force?'id':'COALESCE(last_checked_at,\'1970-01-01\'),id').' LIMIT 2',$args);$errors=0;$errorTypes=[];$cursor=$after;
- foreach($rows as $m){$cursor=max($cursor,(int)$m['id']);try{wa_check_message($m);}catch(Throwable $e){$errors++;$message=$e->getMessage();$type=preg_match('/HTTP (\d{3})/',$message,$code)?'provider_http_'.$code[1]:(str_contains($message,'unexpected format')?'report_format':(str_contains($message,'not found')?'not_found':'other'));$errorTypes[$type]=($errorTypes[$type]??0)+1;}}
+ foreach($rows as $m){$cursor=max($cursor,(int)$m['id']);try{wa_check_message($m);}catch(Throwable $e){$errors++;$message=$e->getMessage();if(preg_match('/HTTP (\d{3})/',$message,$code))$type='provider_http_'.$code[1];
+ elseif(preg_match('/undefined function ([a-zA-Z0-9_]+)/i',$message,$code))$type='missing_function_'.$code[1];
+ elseif(preg_match('/SQLSTATE\[([A-Z0-9]+)\]/',$message,$code))$type='database_'.$code[1];
+ elseif(str_contains($message,'unexpected format'))$type='report_format';
+ elseif(str_contains($message,'not found'))$type='not_found';
+ elseif(str_contains($message,'Unreadable'))$type='invalid_provider_json';
+ elseif(str_contains($message,'uncertain'))$type='provider_transport';
+ elseif(str_contains($message,'API key'))$type='api_key_configuration';
+ else $type='other_'.get_class($e);$errorTypes[$type]=($errorTypes[$type]??0)+1;}}
  if($force){$remaining=(int)db_value("SELECT COUNT(*) FROM whatsapp_messages WHERE status NOT IN ('pending','read','deleted') AND id>?",[$cursor]);}else $remaining=(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE '.$where,$args);
- return ['checked'=>count($rows),'errors'=>$errors,'error_types'=>$errorTypes,'remaining'=>$remaining,'cursor'=>$cursor,'refresh_minutes'=>$minutes,'failed_contacts_total'=>wa_failed_contacts()['total']];
+ return ['checked'=>count($rows),'errors'=>$errors,'error_types'=>(object)$errorTypes,'remaining'=>$remaining,'cursor'=>$cursor,'refresh_minutes'=>$minutes,'failed_contacts_total'=>wa_failed_contacts()['total']];
  }finally{db_value('SELECT RELEASE_LOCK(?)',[$lock]);}
 }
 function wa_failed_contacts(): array {
