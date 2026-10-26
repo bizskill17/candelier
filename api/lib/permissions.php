@@ -14,6 +14,7 @@ function require_item_access(int $id): void {
 }
 function authorize_request(string $method, ?string $area, array $parts): void {
     require_roles(['Admin','Store','Sales']);
+    if($area==='whatsapp'){require_roles(['Admin','Sales']);if(($parts[0]??'')==='settings')require_admin();return;}
     if(app_role()==='Admin')return;
     $sales=app_role()==='Sales';$first=$parts[0]??'';$second=$parts[1]??'';
     if($method==='GET') {

@@ -31,6 +31,7 @@ require __DIR__ . '/handlers/boq.php';
 require __DIR__ . '/handlers/stores.php';
 require __DIR__ . '/handlers/inventory.php';
 require __DIR__ . '/handlers/crm.php';
+require __DIR__ . '/handlers/whatsapp.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $route  = trim((string) ($_GET['r'] ?? ''), '/');
@@ -45,6 +46,7 @@ try {
     migrate_crm();
     migrate_material_media();
     migrate_roles_assignment();
+    migrate_whatsapp();
     if ($area === 'auth') { auth_route($method, $parts); exit; }
     if ($area === 'health') { db_value('SELECT 1'); json_out(['ok' => true, 'time' => now()]); exit; }
 
@@ -71,6 +73,7 @@ try {
             foreach ($rows as &$r) { $r['id'] = (int) $r['id']; $r['is_active'] = (bool) $r['is_active']; }
             json_out(['data' => $rows]);
             break;
+        case 'whatsapp': whatsapp_route($method, $parts); break;
         case 'contacts': contacts_route($method, $parts); break;
         case 'crm-followups': crm_followups_route($method, $parts); break;
         case 'leads':           leads_route($method, $parts); break;

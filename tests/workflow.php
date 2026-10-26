@@ -160,3 +160,5 @@ reject(fn () => order_save(null, ['assigned_salesperson_id'=>$salesUser, 'custom
 require __DIR__ . '/permissions.php';
 
 require __DIR__ . '/booking.php';
+
+require __DIR__ . '/whatsapp.php';

@@ -178,3 +178,5 @@ export const historyApi = {
   save: (body) => request('POST', 'crm-followups', { body }),
   list: (params) => request('GET', 'crm-followups', { params }),
 };
+
+export const whatsappApi = { get:(route,params)=>request('GET','whatsapp/'+route,{params}), post:(route,body)=>request('POST','whatsapp/'+route,{body}), settings:(body)=>request('PUT','whatsapp/settings',{body}) };

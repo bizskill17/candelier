@@ -14,6 +14,8 @@ export const menu = [
     heading: 'Contacts',
     items: [
       { key: 'contacts', label: 'All Contacts', path: '/contacts', icon: Contact, description: 'All relationships and contact follow-ups.' },
+      { key: 'whatsapp', label: 'WhatsApp Campaigns', path: '/whatsapp', icon: Send, description: 'Send selected contacts template messages through Red Lava and track results.' },
+      { key: 'whatsapp-settings', label: 'Red Lava Settings', path: '/whatsapp-settings', icon: Send, adminOnly: true },
       { key: 'followup-logs', label: 'Follow Up Log', path: '/followup-logs', icon: ScrollText, description: 'Every follow-up entered, with filters.' },
       { key: 'client_categories', label: 'Contact Categories', path: '/client-categories', icon: Tags, description: 'Groups of customers: Architect, Hotel, Dealer…' },
       { key: 'states', label: 'States', path: '/states', icon: MapPin, description: 'States used on contacts.' },
