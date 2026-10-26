@@ -166,3 +166,5 @@ require __DIR__ . '/whatsapp.php';
 require __DIR__ . '/whatsapp-failed.php';
 
 require __DIR__ . '/whatsapp-templates.php';
+
+require __DIR__ . '/whatsapp-reports.php';
