@@ -29,7 +29,7 @@ function wa_sync_batch(bool $force=false,int $after=0): array {
  $rows=db_all('SELECT * FROM whatsapp_messages WHERE '.$where.' ORDER BY '.($force?'id':'COALESCE(last_checked_at,\'1970-01-01\'),id').' LIMIT 2',$args);$errors=0;$errorTypes=[];$cursor=$after;
  foreach($rows as $m){$cursor=max($cursor,(int)$m['id']);try{wa_check_message($m);}catch(Throwable $e){$errors++;$message=$e->getMessage();if(preg_match('/HTTP (\d{3})/',$message,$code))$type='provider_http_'.$code[1];
  elseif(preg_match('/undefined function ([a-zA-Z0-9_]+)/i',$message,$code))$type='missing_function_'.$code[1];
- elseif(preg_match('/SQLSTATE\[([A-Z0-9]+)\]/',$message,$code))$type='database_'.$code[1];
+ elseif(preg_match('/SQLSTATE\[([A-Z0-9]+)\]/',$message,$code))$type='database_'.$code[1].'_' . (int)($e instanceof PDOException?($e->errorInfo[1]??0):0);
  elseif(str_contains($message,'unexpected format'))$type='report_format';
  elseif(str_contains($message,'not found'))$type='not_found';
  elseif(str_contains($message,'Unreadable'))$type='invalid_provider_json';
