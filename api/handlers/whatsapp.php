@@ -52,6 +52,7 @@ function wa_process(int $campaign): array {
 }
 function whatsapp_route(string $method,array $parts): void {
  require_roles(['Admin','Sales']);$first=$parts[0]??'';
+ if($method==='GET'&&$first==='contact'){ $contact=(int)($parts[1]??0);$page=max(1,(int)($_GET['page']??1));$total=(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE contact_id=?',[$contact]);$offset=($page-1)*20;$rows=db_all('SELECT m.id,m.status,m.status_times,m.error_text,m.updated_at,c.name AS campaign_name FROM whatsapp_messages m JOIN whatsapp_campaigns c ON c.id=m.campaign_id WHERE m.contact_id=? ORDER BY m.id DESC LIMIT 20 OFFSET '.$offset,[$contact]);foreach($rows as &$r)$r['status_times']=json_decode($r['status_times'],true);json_out(['data'=>$rows,'total'=>$total,'page'=>$page,'pages'=>max(1,(int)ceil($total/20))]);return;}
  if($first==='settings'){require_admin();if($method==='GET')json_out(['data'=>wa_settings()]);elseif($method==='PUT')json_out(wa_save_settings(request_body()));else throw new ApiError('Not found.',404);return;}
  if($first==='campaigns'&&count($parts)===1){if($method==='GET'){json_out(['data'=>db_all('SELECT c.*,(SELECT COUNT(*) FROM whatsapp_messages m WHERE m.campaign_id=c.id) AS recipients FROM whatsapp_campaigns c ORDER BY c.id DESC LIMIT 1000')]);return;}if($method==='POST'){json_out(wa_create(request_body()),201);return;}}
  $id=(int)($parts[1]??0);if($first!=='campaigns'||!db_value('SELECT id FROM whatsapp_campaigns WHERE id=?',[$id]))throw new ApiError('Campaign not found.',404);

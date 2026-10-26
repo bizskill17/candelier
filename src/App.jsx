@@ -32,8 +32,8 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="whatsapp" element={<WhatsAppPage />} />
-          <Route path="whatsapp-settings" element={<WhatsAppPage settings />} />
+          <Route path="whatsapp" element={<WhatsAppPage key="campaigns" />} />
+          <Route path="whatsapp-settings" element={<WhatsAppPage key="settings" settings />} />
           <Route path="contacts/*" element={<ContactsPage />} />
           <Route path="customers" element={<ContactsPage customers />} />
           <Route path="leads/*" element={<LeadsPage />} />
