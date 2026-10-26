@@ -43,3 +43,10 @@ try{
  $b['request_key']='wa-image-header-traversal';$b['image_path']='../../config.php';reject(fn()=>wa_create($b),'Template photo rejects paths outside uploads');
  $b['request_key']='wa-image-header-nonexistent';$b['image_path']='uploads/items/2026/10/nonexistent-photo.png';reject(fn()=>wa_create($b),'Template photo must exist and be a valid image');
 }finally{unlink(upload_root().'/'.$waImage);$_SESSION['uid']=$crmActor;}
+
+$_SESSION['uid']=$salesUser;
+$b['request_key']='wa-correlation-check';$b['image_header']=false;$b['image_path']='';$trackCampaign=(int)wa_create($b)['data']['id'];$outboundId=null;
+$GLOBALS['WA_TEST_TRANSPORT']=function($method,$path,$payload)use(&$outboundId,$trackCampaign){$outboundId=$payload['userMessageId']??null;check(is_string($outboundId)&&str_starts_with($outboundId,'cdl-'),'Every outbound WhatsApp request includes a caller-supplied correlation ID');check(db_value('SELECT user_message_id FROM whatsapp_messages WHERE campaign_id=?',[$trackCampaign])===$outboundId,'Correlation ID is persisted before sending');return ['code'=>200,'data'=>['id'=>'provider-only-id','waMessageId'=>'wa-provider-only']];};
+wa_process($trackCampaign);check(db_value('SELECT user_message_id FROM whatsapp_messages WHERE campaign_id=?',[$trackCampaign])===$outboundId,'Tracking remains available when Red Lava omits userMessageId from its response');
+$trackMessage=(int)db_value('SELECT id FROM whatsapp_messages WHERE campaign_id=?',[$trackCampaign]);wa_apply($trackMessage,['code'=>200,'data'=>['lastStatus'=>'delivered','statusTime'=>['delivered'=>'1755600000']]],true);check(db_value('SELECT status FROM whatsapp_messages WHERE id=?',[$trackMessage])==='delivered','Caller-correlated message can receive delivery status');
+unset($GLOBALS['WA_TEST_TRANSPORT']);$_SESSION['uid']=$crmActor;

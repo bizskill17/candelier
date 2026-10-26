@@ -63,13 +63,15 @@ function wa_apply(int $id,array $r,bool $report=false): void {
  if($error||$r['code']>=300){$status='failed';$text=wa_error_message($r);}else{$status=$report?strtolower((string)($d['lastStatus']??$old['status'])):'accepted';$text=null;}
  if(!in_array($status,['pending','accepted','sent','delivered','read','failed','deleted','captured'],true))$status=$old['status'];
  if(!$report)$times[$status]=now();foreach(($d['statusTime']??[]) as $s=>$t){$parsed=wa_timestamp($t);if($parsed)$times[$s]=$parsed;}foreach(($d['statuses']??[]) as $e){$parsed=wa_timestamp($e['timestamp']??null);if($parsed&&isset($e['status']))$times[strtolower($e['status'])]=$parsed;}
- db()->prepare('UPDATE whatsapp_messages SET status=?,user_message_id=COALESCE(?,user_message_id),provider_id=COALESCE(?,provider_id),wa_id=COALESCE(?,wa_id),status_times=?,error_text=?,updated_at=? WHERE id=?')->execute([$status,$d['userMessageId']??null,$d['id']??null,$d['waMessageId']??$d['waId']??null,json_encode($times),$text,now(),$id]);
+ db()->prepare('UPDATE whatsapp_messages SET status=?,user_message_id=COALESCE(user_message_id,?),provider_id=COALESCE(?,provider_id),wa_id=COALESCE(?,wa_id),status_times=?,error_text=?,updated_at=? WHERE id=?')->execute([$status,$d['userMessageId']??null,$d['id']??null,$d['waMessageId']??$d['waId']??null,json_encode($times),$text,now(),$id]);
 }
 function wa_process(int $campaign): array {
- $row=db_one("SELECT id FROM whatsapp_messages WHERE campaign_id=? AND status='pending' ORDER BY id LIMIT 1",[$campaign]);if(!$row)return ['remaining'=>0];
+ $row=db_one("SELECT * FROM whatsapp_messages WHERE campaign_id=? AND status='pending' ORDER BY id LIMIT 1",[$campaign]);if(!$row)return ['remaining'=>0];
  // Validate configuration before claiming; uncertain sends never return to pending automatically.
  $s=db_one('SELECT * FROM whatsapp_settings WHERE id=1');if(!$s)throw new ApiError('Configure Red Lava first.',422);wa_decrypt($s['api_key']);
- $claim=db()->prepare("UPDATE whatsapp_messages SET status='sending',updated_at=? WHERE id=? AND status='pending'");$claim->execute([now(),$row['id']]);if(!$claim->rowCount())return ['remaining'=>1];$m=db_one('SELECT * FROM whatsapp_messages WHERE id=?',[$row['id']]);
+ $correlation=$row['user_message_id']?:('cdl-'.bin2hex(random_bytes(16)));$payload=json_decode($row['payload'],true);$payload['userMessageId']=$correlation;
+ // Persist our correlation ID and the exact outbound payload in the same atomic claim.
+ $claim=db()->prepare("UPDATE whatsapp_messages SET status='sending',user_message_id=?,payload=?,updated_at=? WHERE id=? AND status='pending'");$claim->execute([$correlation,json_encode($payload),now(),$row['id']]);if(!$claim->rowCount())return ['remaining'=>1];$m=db_one('SELECT * FROM whatsapp_messages WHERE id=?',[$row['id']]);
  try{wa_apply((int)$m['id'],wa_http('POST','sendMessage',json_decode($m['payload'],true),(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$campaign])));}catch(Throwable $e){db()->prepare("UPDATE whatsapp_messages SET status='unknown',error_text=?,updated_at=? WHERE id=?")->execute(['Result uncertain. Check Red Lava before resending.',now(),$m['id']]);}
  return ['remaining'=>(int)db_value("SELECT COUNT(*) FROM whatsapp_messages WHERE campaign_id=? AND status='pending'",[$campaign])];
 }
