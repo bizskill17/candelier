@@ -73,7 +73,7 @@ function wa_apply(int $id,array $r,bool $report=false): void {
  db()->prepare('UPDATE whatsapp_messages SET failed_at=?,success_at=?,status=?,user_message_id=COALESCE(user_message_id,?),provider_id=COALESCE(?,provider_id),wa_id=COALESCE(?,wa_id),status_times=?,error_text=?,updated_at=? WHERE id=?')->execute([$failedAt,$successAt,$status,$d['userMessageId']??null,$d['id']??null,$d['waMessageId']??$d['waId']??null,json_encode($times),$text,now(),$id]);
 }
 function wa_process(int $campaign): array {
- $row=db_one("SELECT * FROM whatsapp_messages WHERE campaign_id=? AND status='pending' AND COALESCE(JSON_EXTRACT(payload,'$.__report_only'),false)=false ORDER BY id LIMIT 1",[$campaign]);if(!$row)return ['remaining'=>0];
+ $row=db_one("SELECT * FROM whatsapp_messages WHERE campaign_id=? AND status='pending' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(payload,'$.__report_only')),'false')<>'true' ORDER BY id LIMIT 1",[$campaign]);if(!$row)return ['remaining'=>0];
  // Validate configuration before claiming; uncertain sends never return to pending automatically.
  $s=db_one('SELECT * FROM whatsapp_settings WHERE id=1');if(!$s)throw new ApiError('Configure Red Lava first.',422);wa_decrypt($s['api_key']);
  $correlation=$row['user_message_id']?:('cdl-'.bin2hex(random_bytes(16)));$payload=json_decode($row['payload'],true);$payload['userMessageId']=$correlation;
