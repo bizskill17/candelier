@@ -45,8 +45,8 @@ function enquiry_find(int $id): array {
  $e['history']=db_all('SELECT f.*,u.name AS recorded_by_name,l.lead_no FROM followups f LEFT JOIN users u ON u.id=f.recorded_by LEFT JOIN leads l ON l.id=f.lead_id WHERE f.enquiry_id=? ORDER BY f.activity_at DESC,f.id DESC',[$id]);return $e;
 }
 function enquiry_list(): array {
- $w=[];$p=[];$view=$_GET['view']??'pending';$open="e.contact_id IS NULL AND e.lead_id IS NULL AND e.inbox_status<>'Archived'";
- $filters=['pending'=>$open,'new'=>"$open AND e.inbox_status='New'",'today'=>"$open AND DATE(e.next_followup_at)=CURRENT_DATE()",'overdue'=>"$open AND DATE(e.next_followup_at)<CURRENT_DATE()",'upcoming'=>"$open AND DATE(e.next_followup_at)>CURRENT_DATE()",'converted'=>'e.contact_id IS NOT NULL','archived'=>"e.inbox_status='Archived'",'all'=>'1=1'];
+ $w=[];$p=[];$view=$_GET['view']??'pending';$open="e.contact_id IS NULL AND e.lead_id IS NULL AND BINARY e.inbox_status<>BINARY 'Archived'";
+ $filters=['pending'=>$open,'new'=>"$open AND BINARY e.inbox_status=BINARY 'New'",'today'=>"$open AND DATE(e.next_followup_at)=CURRENT_DATE()",'overdue'=>"$open AND DATE(e.next_followup_at)<CURRENT_DATE()",'upcoming'=>"$open AND DATE(e.next_followup_at)>CURRENT_DATE()",'converted'=>'e.contact_id IS NOT NULL','archived'=>"BINARY e.inbox_status=BINARY 'Archived'",'all'=>'1=1'];
  $w[]=$filters[$view]??$filters['pending'];
  foreach(['source_name','city','assigned_to']as$k)if(($_GET[$k]??'')!==''){$w[]="e.$k=:$k";$p[$k]=$_GET[$k];}
  crm_where_search($w,$p,['e.name','e.mobile','e.email','e.city','e.external_id','e.source_data']);
