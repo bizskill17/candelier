@@ -76,7 +76,7 @@ function enquiry_followup(int $id,array $in): array {
    $data=json_decode($e['source_data'],true);$c=$in['contact']??[];
    $cid=(int)contact_save(null,['name'=>$c['name']??$e['name'],'mobile'=>$c['mobile']??$e['mobile'],'email'=>$c['email']??$e['email'],'city'=>$c['city']??$e['city'],'category_id'=>$c['category_id']??0,'source_id'=>$source,'source_details'=>mb_substr($data['campaign_name']??'',0,150)])['data']['id'];
   }
-  if($decision==='Create Lead'){$temp=$in['temperature']??'';if(!in_array($temp,CRM_TEMPERATURES,true))throw new ApiError('Select Hot, Warm or Cold.',422);$lid=(int)lead_save(null,['contact_id'=>$cid,'enquiry_date'=>date('Y-m-d'),'project_name'=>$in['project_name']??'','requirement'=>$in['requirement']??'','initial_temperature'=>$temp])['data']['id'];}
+  if($decision==='Create Lead'){$temp=$in['temperature']??'';if(!in_array($temp,CRM_TEMPERATURES,true))throw new ApiError('Select Hot, Warm or Cold.',422);$lid=(int)lead_save(null,['contact_id'=>$cid,'enquiry_date'=>($e['enquiry_at']&&substr($e['enquiry_at'],0,10)<=date('Y-m-d')?substr($e['enquiry_at'],0,10):date('Y-m-d')),'project_name'=>$in['project_name']??'','requirement'=>$in['requirement']??'','initial_temperature'=>$temp])['data']['id'];}
   $pdo->prepare('UPDATE enquiries SET contact_id=?,lead_id=? WHERE id=?')->execute([$cid,$lid,$id]);
   // Keep the same history rows, now visible from the qualified Contact/Lead as well.
   $pdo->prepare('UPDATE followups SET contact_id=?,lead_id=? WHERE enquiry_id=?')->execute([$lid?null:$cid,$lid,$id]);
