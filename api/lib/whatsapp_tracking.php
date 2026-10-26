@@ -12,11 +12,11 @@ function wa_tracking_migrate(): void {
 }
 function wa_check_message(array $m): void {
  try{
-  $checked=false;
+  $checked=false;$GLOBALS['WA_SYNC_STAGE']='correlation_lookup';
   if($m['user_message_id']&&(int)db_value('SELECT COUNT(*) FROM whatsapp_messages WHERE BINARY user_message_id=BINARY ?',[$m['user_message_id']])<=1){try{$r=wa_http('GET','report/userMessageId/'.rawurlencode($m['user_message_id']),null,(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$m['campaign_id']]));if($r['code']<300&&!empty($r['data']['lastStatus'])&&(empty($r['data']['id'])||empty($m['provider_id'])||(string)$r['data']['id']===(string)$m['provider_id']||(!empty($r['data']['waId'])&&$r['data']['waId']===$m['wa_id']))){wa_apply((int)$m['id'],$r,true);$checked=true;}}catch(Throwable $ignored){}}
   // Failed reports are reconciled as well, so separate retry attempts can resolve the Contact.
   $status=db_value('SELECT status FROM whatsapp_messages WHERE id=?',[$m['id']]);
-  if(!$checked||$status==='failed'){$matched=wa_reconcile_recipient($m);$checked=$checked||$matched;}
+  if(!$checked||$status==='failed'){$GLOBALS['WA_SYNC_STAGE']='report';$matched=wa_reconcile_recipient($m);$checked=$checked||$matched;}
   if(!$checked)throw new ApiError('Original message not found in the latest 50 recipient reports. Any matched retry records have been synchronised.',422);
   db()->prepare('UPDATE whatsapp_messages SET last_checked_at=?,check_error=NULL WHERE id=?')->execute([now(),$m['id']]);
  }catch(Throwable $e){db()->prepare('UPDATE whatsapp_messages SET last_checked_at=?,check_error=? WHERE id=?')->execute([now(),mb_substr($e->getMessage(),0,4000),$m['id']]);throw $e;}
@@ -29,7 +29,7 @@ function wa_sync_batch(bool $force=false,int $after=0): array {
  $rows=db_all('SELECT * FROM whatsapp_messages WHERE '.$where.' ORDER BY '.($force?'id':'COALESCE(last_checked_at,\'1970-01-01\'),id').' LIMIT 2',$args);$errors=0;$errorTypes=[];$cursor=$after;
  foreach($rows as $m){$cursor=max($cursor,(int)$m['id']);try{wa_check_message($m);}catch(Throwable $e){$errors++;$message=$e->getMessage();if(preg_match('/HTTP (\d{3})/',$message,$code))$type='provider_http_'.$code[1];
  elseif(preg_match('/undefined function ([a-zA-Z0-9_]+)/i',$message,$code))$type='missing_function_'.$code[1];
- elseif(preg_match('/SQLSTATE\[([A-Z0-9]+)\]/',$message,$code))$type='database_'.$code[1].'_' . (int)($e instanceof PDOException?($e->errorInfo[1]??0):0);
+ elseif(preg_match('/SQLSTATE\[([A-Z0-9]+)\]/',$message,$code))$type='database_'.$code[1].'_' . (int)($e instanceof PDOException?($e->errorInfo[1]??0):0).'_'.($GLOBALS['WA_SYNC_STAGE']??'unknown');
  elseif(str_contains($message,'unexpected format'))$type='report_format';
  elseif(str_contains($message,'not found'))$type='not_found';
  elseif(str_contains($message,'Unreadable'))$type='invalid_provider_json';
