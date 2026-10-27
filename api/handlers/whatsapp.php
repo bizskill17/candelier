@@ -79,7 +79,7 @@ function wa_process(int $campaign): array {
  $correlation=$row['user_message_id']?:('cdl-'.bin2hex(random_bytes(16)));$payload=json_decode($row['payload'],true);$payload['userMessageId']=$correlation;
  // Persist our correlation ID and the exact outbound payload in the same atomic claim.
  $claim=db()->prepare("UPDATE whatsapp_messages SET status='sending',user_message_id=?,payload=?,updated_at=? WHERE id=? AND status='pending'");$claim->execute([$correlation,json_encode($payload),now(),$row['id']]);if(!$claim->rowCount())return ['remaining'=>1];$m=db_one('SELECT * FROM whatsapp_messages WHERE id=?',[$row['id']]);
- try{wa_apply((int)$m['id'],wa_http('POST','sendMessage',json_decode($m['payload'],true),(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$campaign])));}catch(Throwable $e){db()->prepare("UPDATE whatsapp_messages SET status='unknown',error_text=?,updated_at=? WHERE id=?")->execute(['Result uncertain. Check Red Lava before resending.',now(),$m['id']]);}
+ try{wa_apply((int)$m['id'],wa_http('POST','sendMessage',json_decode($m['payload'],true),(string)db_value('SELECT phone_id FROM whatsapp_campaigns WHERE id=?',[$campaign])));}catch(Throwable $e){$why=$e instanceof ApiError?preg_replace('/^Provider response uncertain:\s*/','',$e->getMessage()):'unexpected error';db()->prepare("UPDATE whatsapp_messages SET status='unknown',error_text=?,updated_at=? WHERE id=?")->execute([mb_substr('Result uncertain ('.rtrim($why,'.').'). Check Red Lava before resending.',0,250),now(),$m['id']]);}
  return ['remaining'=>(int)db_value("SELECT COUNT(*) FROM whatsapp_messages WHERE campaign_id=? AND status='pending'",[$campaign])];
 }
 function whatsapp_route(string $method,array $parts): void {
