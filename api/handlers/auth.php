@@ -12,7 +12,7 @@
 
 function session_begin(): void
 {
-    if (session_status() === PHP_SESSION_ACTIVE) {
+    if (session_status() === PHP_SESSION_ACTIVE || !empty($GLOBALS['CANDELIER_SESSION_RELEASED'])) {
         return;
     }
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
@@ -59,7 +59,18 @@ function require_login(): array
     if (!$u) {
         throw new ApiError('Please sign in.', 401);
     }
+    session_release();
     return $u;
+}
+
+// Signed-in requests only read the session. Release its lock straight away so one slow request
+// (e.g. a Red Lava status check) does not make every other request from the same browser wait.
+function session_release(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+    $GLOBALS['CANDELIER_SESSION_RELEASED'] = true;
 }
 
 function auth_route(string $method, array $parts): void
