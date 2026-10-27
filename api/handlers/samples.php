@@ -6,7 +6,7 @@ function sample_balances(array $ids,array $except=[]): array {
 }
 function sample_boq_consumed(int $item,int $vid): float {return (float)db_value('SELECT COALESCE(SUM(quantity),0) FROM sample_issues WHERE order_item_id=? AND variant_id=? AND fulfills_boq=1',[$item,$vid]);}
 function sample_issue(array $in): array {
- require_roles(['Admin','Store']);$key=crm_text($in['request_key']??'',64);if(!$key)throw new ApiError('Missing request key.',422);$item=(int)($in['order_item_id']??0);$vid=(int)($in['variant_id']??0);$qty=$in['quantity']??0;$date=$in['issue_date']??date('Y-m-d');$link=!empty($in['fulfills_boq']);
+ require_roles(['Admin','Store']);$key=crm_text($in['request_key']??'',64);if(!$key)throw new ApiError('Missing request key.',422);$item=(int)($in['order_item_id']??0);$vid=(int)($in['variant_id']??0);$qty=$in['quantity']??0;$date=$in['issue_date']??date('Y-m-d');$link=filter_var($in['fulfills_boq']??false,FILTER_VALIDATE_BOOLEAN);
  if(!qty_ok($qty)||!valid_date($date)||$date>date('Y-m-d'))throw new ApiError('Enter a valid issue date and positive quantity.',422);
  stock_transaction_begin();try{
  $old=db_one('SELECT * FROM sample_issues WHERE request_key=?',[$key]);if($old){if((int)$old['order_item_id']!==$item||(int)$old['variant_id']!==$vid)throw new ApiError('Request key already used.',409);db()->commit();return ['message'=>'Sample issue already saved.'];}

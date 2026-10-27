@@ -243,7 +243,7 @@ function doc_save(array $d, ?int $id, array $in): array
                 throw new ApiError('Please fix the highlighted fields.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that line instead.']);
             }
             $duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')]=true;
-            $seen[$l['variant_id']] = $l['n'];
+            if(!isset($seen[$l['variant_id']])||($l['inventory_type']??'Normal')==='Normal')$seen[$l['variant_id']] = $l['n'];
         }
         unset($l);
         $lockIds = array_values(array_unique(array_merge(array_column($lines,'variant_id'),$existing?array_column($existing['lines'],'variant_id'):[])));
@@ -271,6 +271,7 @@ function doc_save(array $d, ?int $id, array $in): array
             if (isset($seen[$vid])) $errors["lines.{$seen[$vid]}.quantity"] = $msg;
             else $errors['lines'] = 'This change would take stock below zero. ' . $msg;
         }
+        if($d['type']==='material-in'&&!$errors){$normal=stock_balances($lockIds,$except);foreach($moves as[$v,$q])$normal[$v]=($normal[$v]??0)+$q;$blocks=booking_figures($lockIds)['all'];foreach($normal as$v=>$q)if($q+0.0005<($blocks[$v]??0))$errors['lines']='This receipt change would remove normal stock blocked for an order.';}
         // An issue may use this item's bookings and the stock available to book, but not other items' bookings
         if ($d['type'] === 'material-issue' && !$errors) {
             $bf = booking_figures(array_keys($seen));
@@ -325,6 +326,7 @@ function doc_delete(array $d,int $id): array {
  require_admin();$pdo=db();stock_transaction_begin();try{$doc=doc_find($d,$id);$ids=array_unique(array_column($doc['lines'],'variant_id'));sort($ids);foreach($ids as$v)db_one('SELECT id FROM material_variants WHERE id=? FOR UPDATE',[$v]);
  if(stock_check([[$d['ref'],$id]],[],$ids))throw new ApiError('This receipt stock has already been used. Correct the stock instead.',409);
  if($d['type']==='material-in'){
+ $normal=stock_balances($ids,[[$d['ref'],$id]]);$blocks=booking_figures($ids)['all'];foreach($normal as$v=>$q)if($q+0.0005<($blocks[$v]??0))throw new ApiError('This receipt stock is blocked for an order.',409);
  foreach($ids as$v)if(db_value('SELECT COUNT(*) FROM sample_legacy_review WHERE variant_id=? AND resolved_at IS NULL',[$v]))throw new ApiError('Complete the historical sample review first.',409);
  foreach(sample_balances($ids,[['receipt',$id]])as$q)if($q< -0.0005)throw new ApiError('Some sample stock from this receipt has already been issued.',409);
  $pdo->prepare("DELETE FROM sample_moves WHERE ref_type='receipt' AND ref_id=?")->execute([$id]);}
@@ -418,7 +420,7 @@ function opening_save(array $in,bool $append=false): array
             $l['variant_id'] = variant_resolve($l['material_id'], $l['values']);
             if (isset($duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that row instead.']);
             $duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')]=true;
-            $seen[$l['variant_id']] = $l['n'];
+            if(!isset($seen[$l['variant_id']])||($l['inventory_type']??'Normal')==='Normal')$seen[$l['variant_id']] = $l['n'];
         }
         unset($l);
         // Stock check: replace all opening moves with the new ones

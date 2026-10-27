@@ -177,4 +177,4 @@ require __DIR__ . '/whatsapp-reports.php';
 
 require __DIR__ . '/enquiries.php';
 
-require __DIR__ . 'operations.php';
+require __DIR__ . '/operations.php';

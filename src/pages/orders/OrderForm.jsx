@@ -268,8 +268,8 @@ export default function OrderForm({ id, leadId }) {
         </div>
       )}
 
-      <ConfirmDialog open={confirm === 'cancel'} title="Cancel this order?" message="Its bookings will stop holding stock. You can reopen it later." confirmLabel="Cancel order" onConfirm={() => setStatus('Cancelled')} onCancel={() => setConfirm(null)} />
-      <ConfirmDialog open={confirm === 'delete'} title="Delete this order?" message={isEdit ? `${order.order_no} and its BOQs will be removed. Orders with bookings or issues can only be cancelled.` : ''} onConfirm={doDelete} onCancel={() => setConfirm(null)} />
+      <ConfirmDialog open={confirm === 'cancel'} title="Cancel this order?" message="Its blocks will stop holding stock. You can reopen it later." confirmLabel="Cancel order" onConfirm={() => setStatus('Cancelled')} onCancel={() => setConfirm(null)} />
+      <ConfirmDialog open={confirm === 'delete'} title="Delete this order?" message={isEdit ? `${order.order_no} and its BOQs will be removed. Orders with blocks or issues can only be cancelled.` : ''} onConfirm={doDelete} onCancel={() => setConfirm(null)} />
       {dispatching && <DispatchDialog item={dispatching} label={`${order.order_no} · #${dispatching.line_no} ${dispatching.item_title}`} onClose={() => setDispatching(null)} onDone={(o) => { setDispatching(null); fill(o); }} />}
     </form>
     {customerOpen && !locked && <ContactForm

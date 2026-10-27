@@ -137,7 +137,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
     try { const r = await inventoryApi.adjust(variant.id, adj); toast(r.message); setD(r.data); setAdj({ adj_date: today(), quantity: '', notes: '' }); setErrors({}); onChanged(); setTab('history'); }
     catch (e) { setErrors(e.fields || {}); if (!e.fields) toast(e.message, 'error'); } finally { setBusy(false); }
   };
-  const tabs = [['history', 'History'], ['bookings', `Bookings${d ? ` (${d.bookings.length})` : ''}`], ...(canEdit ? [['adjust', 'Count Correction']] : [])];
+  const tabs = [['history', 'History'], ['bookings', `Blocks${d ? ` (${d.bookings.length})` : ''}`], ...(canEdit ? [['adjust', 'Count Correction']] : [])];
 
   return (
     <Modal open wide="xl" title={variant.material_name} onClose={onClose} footer={<button onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Close</button>}>
@@ -176,7 +176,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
             )
           )}
           {tab === 'bookings' && (
-            d.bookings.length === 0 ? <p className="py-6 text-center text-gray-500">Not booked for any order item.</p> : (
+            d.bookings.length === 0 ? <p className="py-6 text-center text-gray-500">Not blocked for any order item.</p> : (
               <table className="w-full border-collapse text-sm">
                 <thead><tr className="text-left text-xs uppercase tracking-wide text-gray-500"><th className="border-b border-gray-200 py-2 pr-3">Order Item</th><th className="border-b border-gray-200 py-2 pr-3">Customer</th><th className="border-b border-gray-200 py-2 pr-3 text-right">Blocked</th><th className="border-b border-gray-200 py-2 text-right">Consumed</th></tr></thead>
                 <tbody>

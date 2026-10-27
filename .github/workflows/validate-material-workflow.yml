@@ -67,6 +67,7 @@ jobs:
           node tests/production-ui.cjs
           node tests/crm-ui.cjs
           node tests/enquiries-ui.cjs
+          node tests/operations-ui.cjs
           node tests/material-media-ui.cjs
           node tests/permissions-ui.cjs
           node tests/booking-ui.cjs
