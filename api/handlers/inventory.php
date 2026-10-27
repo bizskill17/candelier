@@ -29,7 +29,7 @@ function inventory_rows(?int $materialId = null, string $q = ''): array
     $rows = db_all(
         "SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.unit, m.sort_order,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'opening' THEN s.quantity END), 0) AS opening,
-                COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' AND r.receipt_type = 'Purchase' THEN s.quantity END), 0) AS purchased,
+                COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' THEN s.quantity END), 0) AS purchased,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' AND r.receipt_type = 'Sample' THEN s.quantity END), 0) AS samples,
                 COALESCE(-SUM(CASE WHEN s.ref_type = 'issue' THEN s.quantity END), 0) AS issued,
                 COALESCE(-SUM(CASE WHEN s.ref_type = 'damage' THEN s.quantity END), 0) AS damaged,
@@ -62,7 +62,7 @@ function inventory_rows(?int $materialId = null, string $q = ''): array
 function inventory_list(): array
 {
     $rows = inventory_rows((int) ($_GET['material_id'] ?? 0) ?: null, trim($_GET['q'] ?? ''));
-    $summary = ['specs' => count($rows), 'in_stock' => 0, 'zero' => 0, 'booked' => 0, 'low' => 0];
+    $summary = ['sample_reviews'=>(int)db_value('SELECT COUNT(*) FROM sample_legacy_review WHERE resolved_at IS NULL'),'specs' => count($rows), 'in_stock' => 0, 'zero' => 0, 'booked' => 0, 'low' => 0];
     $out = [];
     $only = $_GET['only'] ?? '';
     foreach ($rows as $r) {

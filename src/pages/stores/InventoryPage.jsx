@@ -47,7 +47,7 @@ export default function InventoryPage() {
     const g = groups.find((x) => x.material_id === r.material_id);
     if (g) g.rows.push(r); else groups.push({ material_id: r.material_id, name: r.material_name, rows: [r] });
   });
-  const cols = 12;
+  const cols = 11;
 
   return (
     <div className="mx-auto max-w-[90rem] space-y-4">
@@ -63,6 +63,7 @@ export default function InventoryPage() {
       <div className="print:hidden text-sm text-gray-600"><b className="text-gray-900">{filteredRows.length}</b> materials in stock</div>
       <div className="hidden print:block"><h1 className="text-xl font-semibold">Inventory</h1><p className="text-sm text-gray-600">As on {fmtDate(today())}</p></div>
 
+      {Number(summary?.sample_reviews)>0&&<p role="status" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">{summary.sample_reviews} materials have historical sample stock awaiting review. Admin can verify and separate them in Sample Inventory.</p>}
       <div className={tableWrap}>
         <div className="overflow-x-auto">
           <table className="w-full table-fixed border-collapse text-sm" style={{ minWidth: 1040 }}>
@@ -73,7 +74,6 @@ export default function InventoryPage() {
                 <th className={`${th} w-12`}>Unit</th>
                 <th className={`${th} w-20 text-right`}>Opening</th>
                 <th className={`${th} w-[5.25rem] text-right`}>Purchased</th>
-                <th className={`${th} w-20 text-right`}>Samples</th>
                 <th className={`${th} w-20 text-right`}>Issued</th>
                 <th className={`${th} w-20 text-right`}>Damaged</th>
                 <th className={`${th} w-20 text-right`}>In Stock</th>
@@ -96,7 +96,6 @@ export default function InventoryPage() {
                       <td className={td}>{r.unit}</td>
                       <td className={num}>{fmtQty(r.opening)}</td>
                       <td className={num}>{fmtQty(r.purchased)}</td>
-                      <td className={num}>{fmtQty(r.samples)}</td>
                       <td className={num}>{fmtQty(r.issued)}</td>
                       <td className={num}>{fmtQty(r.damaged)}</td>
                       <td className={`${num} font-semibold ${r.in_stock <= 0 ? 'text-gray-400' : 'text-gray-900'}`}>{fmtQty(r.in_stock)}</td>

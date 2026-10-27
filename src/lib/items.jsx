@@ -39,7 +39,7 @@ export function ItemPhotos({ item, className = 'h-12 w-12' }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <PhotoThumb path={item.component_image} title="Component picture" className={className} />
-      <PhotoThumb path={item.reference_image} title="Reference image" className={className} />
+      <PhotoThumb path={item.reference_image} title="Pattern image" className={className} />
       {item.drawing_file && <DrawingLink compact path={item.drawing_file} name={item.drawing_name} title={item.item_title} />}
     </div>
   );

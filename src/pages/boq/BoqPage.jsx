@@ -328,7 +328,7 @@ function BoqEditor({ itemId }) {
         {(data.component_image || data.reference_image) && (
           <div className="flex shrink-0 gap-3">
             {data.component_image && <figure className="text-center"><PhotoThumb path={data.component_image} title="Component picture" className="h-32 w-32" /><figcaption className="mt-1 text-xs text-gray-500">Component</figcaption></figure>}
-            {data.reference_image && <figure className="text-center"><PhotoThumb path={data.reference_image} title="Reference image" className="h-32 w-32" /><figcaption className="mt-1 text-xs text-gray-500">Reference</figcaption></figure>}
+            {data.reference_image && <figure className="text-center"><PhotoThumb path={data.reference_image} title="Pattern image" className="h-32 w-32" /><figcaption className="mt-1 text-xs text-gray-500">Pattern</figcaption></figure>}
           </div>
         )}
       </section>
