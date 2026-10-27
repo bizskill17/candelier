@@ -4,7 +4,9 @@ function migrate_operations(): void {
  $lock='operations_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);if(!db_value('SELECT GET_LOCK(?,30)',[$lock]))throw new ApiError('Application update in progress.',503);
  try{if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$version]))return;
  $column=fn($t,$c)=>db_value('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?',[$t,$c]);
- if(!$column('leads','source_id')){db()->exec('ALTER TABLE leads ADD source_id INT UNSIGNED NULL, ADD CONSTRAINT fk_lead_source FOREIGN KEY(source_id) REFERENCES lead_sources(id)');db()->exec('UPDATE leads l JOIN contacts c ON c.id=l.contact_id SET l.source_id=c.source_id');}
+ if(!$column('leads','source_id'))db()->exec('ALTER TABLE leads ADD source_id INT UNSIGNED NULL, ADD CONSTRAINT fk_lead_source FOREIGN KEY(source_id) REFERENCES lead_sources(id)');
+ $sourceVersion=$version.'_sources';if(!db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$sourceVersion])){db()->beginTransaction();try{db()->exec('UPDATE leads l JOIN contacts c ON c.id=l.contact_id SET l.source_id=c.source_id WHERE l.source_id IS NULL');foreach(db_all('SELECT lead_id,source_name FROM enquiries WHERE lead_id IS NOT NULL')as$e)db()->prepare('UPDATE leads SET source_id=? WHERE id=?')->execute([enquiry_source_id($e),$e['lead_id']]);db()->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$sourceVersion,now()]);db()->commit();}catch(Throwable$e){if(db()->inTransaction())db()->rollBack();throw$e;}}
+
  // Preserve the CRM projection, with the Lead owning its enquiry source independently of the Contact.
  db()->exec("CREATE OR REPLACE VIEW crm_lead_current AS SELECT l.*,l.enquiry_date AS lead_date,l.contact_id AS customer_id,
             c.name AS display_name,c.mobile AS display_phone,c.address AS display_address,c.city AS customer_city,c.city,c.email,c.company_name AS contact_person,c.alternate_mobile AS contact_mobile,c.state_id,
@@ -22,11 +24,11 @@ function migrate_operations(): void {
  db()->exec("CREATE TABLE IF NOT EXISTS sample_issues(id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,issue_no VARCHAR(40) UNIQUE NOT NULL,request_key VARCHAR(64) UNIQUE NOT NULL,issue_date DATE NOT NULL,order_item_id INT UNSIGNED NOT NULL,variant_id INT UNSIGNED NOT NULL,quantity DECIMAL(15,3) NOT NULL,fulfills_boq TINYINT NOT NULL DEFAULT 0,issued_by INT UNSIGNED NOT NULL,notes TEXT NULL,created_at DATETIME NOT NULL,FOREIGN KEY(order_item_id) REFERENCES order_items(id),FOREIGN KEY(variant_id) REFERENCES material_variants(id),FOREIGN KEY(issued_by) REFERENCES users(id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
  db()->exec("CREATE TABLE IF NOT EXISTS sample_legacy_review(variant_id INT UNSIGNED PRIMARY KEY,received_qty DECIMAL(15,3) NOT NULL,resolved_at DATETIME NULL,remaining_qty DECIMAL(15,3) NULL,resolved_by INT UNSIGNED NULL,FOREIGN KEY(variant_id) REFERENCES material_variants(id)) ENGINE=InnoDB");
  $dataVersion=$version.'_data';if(!db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$dataVersion])){
- db()->beginTransaction();try{
- foreach(db_all("SELECT x.variant_id,SUM(x.quantity) AS qty FROM material_receipt_items x JOIN material_receipts h ON h.id=x.receipt_id WHERE h.receipt_type='Sample' GROUP BY x.variant_id") as $r){
-  $v=(int)$r['variant_id'];$ambiguous=db_value('SELECT COUNT(*) FROM stock_moves WHERE variant_id=? AND quantity<0',[$v])||db_value('SELECT COUNT(*) FROM bookings WHERE variant_id=?',[$v]);
-  if($ambiguous){db()->prepare('INSERT IGNORE INTO sample_legacy_review(variant_id,received_qty) VALUES(?,?)')->execute([$v,$r['qty']]);continue;}
-  separate_legacy_samples($v,(float)$r['qty']);
+ stock_transaction_begin();try{
+ foreach(db_all("SELECT x.variant_id,SUM(x.quantity) AS qty FROM material_receipt_items x JOIN material_receipts h ON h.id=x.receipt_id WHERE h.receipt_type='Sample' GROUP BY x.variant_id ORDER BY x.variant_id") as $r){
+  $v=(int)$r['variant_id'];db_one('SELECT id FROM material_variants WHERE id=? FOR UPDATE',[$v]);$received=(float)db_value("SELECT COALESCE(SUM(x.quantity),0) FROM material_receipt_items x JOIN material_receipts h ON h.id=x.receipt_id WHERE x.variant_id=? AND h.receipt_type='Sample' AND x.inventory_type='Normal'",[$v]);$ambiguous=db_value('SELECT COUNT(*) FROM stock_moves WHERE variant_id=? AND quantity<0',[$v])||db_value('SELECT COUNT(*) FROM bookings WHERE variant_id=?',[$v]);
+  if($ambiguous){db()->prepare('INSERT IGNORE INTO sample_legacy_review(variant_id,received_qty) VALUES(?,?)')->execute([$v,$received]);continue;}
+  separate_legacy_samples($v,$received);
  }
  db()->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$dataVersion,now()]);db()->commit();
  }catch(Throwable $e){if(db()->inTransaction())db()->rollBack();throw $e;}}

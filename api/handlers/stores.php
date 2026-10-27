@@ -253,7 +253,7 @@ function doc_save(array $d, ?int $id, array $in): array
             foreach ($lines as $l) {
                 $needed = db_value('SELECT qty_required FROM boq_lines WHERE order_item_id = :i AND variant_id = :v', ['i' => $h['order_item_id'], 'v' => $l['variant_id']]);
                 $issued = (float) db_value('SELECT COALESCE(SUM(x.quantity), 0) FROM material_issue_items x JOIN material_issues h ON h.id = x.issue_id WHERE h.order_item_id = :i AND x.variant_id = :v AND h.id <> :ex', ['i' => $h['order_item_id'], 'v' => $l['variant_id'], 'ex' => $id ?? 0]);
-                if (($needed === false || $needed === null) || $l['quantity'] > (float) $needed - $issued - sample_boq_consumed($h['order_item_id'],$l['variant_id']) + 0.0005) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.quantity" => ($needed === false || $needed === null) ? 'Material is not in the Final BOQ.' : 'Quantity exceeds the remaining BOQ requirement (' . fmt_qty(max(0, (float) $needed - $issued)) . ').']);
+                if (($needed === false || $needed === null) || $l['quantity'] > (float) $needed - $issued - sample_boq_consumed($h['order_item_id'],$l['variant_id']) + 0.0005) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.quantity" => ($needed === false || $needed === null) ? 'Material is not in the Final BOQ.' : 'Quantity exceeds the remaining BOQ requirement (' . fmt_qty(max(0, (float) $needed - $issued - sample_boq_consumed($h['order_item_id'],$l['variant_id']))) . ').']);
             }
         }
         $except = $existing ? [[$d['ref'], $id]] : [];
