@@ -1,6 +1,6 @@
 # Google Sheets enquiry connection
 
-Candelier receives rows from the existing **Contact Information (Responses)** sheet. It does not alter the sheet or automatically create Contacts. Google Apps Script installation and Google account authorisation must be completed by the sheet owner.
+Candelier receives rows from the Meta lead ads sheet **ladecore leads 2026 → Sheet1** (switched on 27-Oct-2026; enquiries imported earlier are kept, and the old key stopped working, so download a new script). It does not alter the sheet or automatically create Contacts. Google Apps Script installation and Google account authorisation must be completed by the sheet owner.
 
 ## Install
 
@@ -22,4 +22,4 @@ Sales and Admin can follow up on enquiries. A follow-up has discussion notes, a 
 
 The integration key is stored only as a SHA-256 hash on the app server. It is generated for an Admin once per script download, never committed in this repository or printed in logs. Treat the downloaded configured script and its Google Script Properties as confidential. The key cannot read CRM data or create Contacts, Leads or follow-ups. Disable it with **Pause Connection**. Source deletions never delete app records. The sheet's `lead_status` is retained as source information and never used to assign Hot/Warm/Cold.
 
-The first six unnamed columns are excluded. All identified fields G:AA are mapped by exact header name, independent of column order. No existing sheet formula, formatting, sharing, trigger or unrelated script is changed by the integration code.
+Columns are mapped by exact header name, independent of column order; unnamed or extra columns are ignored. Blank rows and Meta "test lead" rows are skipped. No existing sheet formula, formatting, sharing, trigger or unrelated script is changed by the integration code.

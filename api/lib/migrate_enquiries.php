@@ -14,3 +14,11 @@ function migrate_enquiries(): void {
  db()->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$version,now()]);
  }finally{db_value('SELECT RELEASE_LOCK(?)',[$lock]);}
 }
+
+// 27-Oct-2026: Meta lead ads now arrive in "ladecore leads 2026" → Sheet1. Enquiries already imported are kept
+// (they are identified by the Meta lead id, not the sheet). The old key is cleared: download a new script.
+function migrate_enquiry_sheet(): void {
+ $version='20261027_enquiry_sheet_ladecore_leads';if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$version]))return;
+ db()->prepare("UPDATE enquiry_integration SET spreadsheet_id=?,tab_name=?,token_hash=NULL,is_enabled=0,full_sync_requested=0 WHERE id=1")->execute(['1XN3UEDu3y2I669-j2KsHB9vdlVKviq6nNWUo-hUnKE8','Sheet1']);
+ db()->prepare('INSERT IGNORE INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$version,now()]);
+}

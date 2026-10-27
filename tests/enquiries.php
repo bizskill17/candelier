@@ -1,10 +1,10 @@
 <?php
 $_SESSION['uid']=$crmActor;$_GET=[];
-migrate_enquiries();$contactsBefore=(int)db_value('SELECT COUNT(*) FROM contacts');$leadsBefore=(int)db_value('SELECT COUNT(*) FROM leads');
+migrate_enquiries();migrate_enquiry_sheet();$contactsBefore=(int)db_value('SELECT COUNT(*) FROM contacts');$leadsBefore=(int)db_value('SELECT COUNT(*) FROM leads');
 $token=str_repeat('a',64);db()->prepare('UPDATE enquiry_integration SET token_hash=?,is_enabled=1 WHERE id=1')->execute([hash('sha256',$token)]);
 reject(fn()=>enquiry_sync_auth('bad'),'Sheet sync rejects missing or wrong keys');enquiry_sync_auth($token);
 $source=['id'=>'meta-sheet-0001','created_time'=>'2026-10-25T09:00:00+00:00','full_name'=>'Inbox Person','phone_number'=>'+91 98765 43287','email'=>'inbox@example.com','city'=>'Guwahati','platform'=>'ig','project_type'=>'Hotel','approximate_customization__chandelier_budget'=>'80000','project_timeline'=>'Next month','how_many_customized_chandeliers_do_you_require?'=>'2','campaign_name'=>'Festival'];
-$body=['spreadsheet_id'=>'1TGNVd26CRgXpXE3K7BFZjnA1MCc6cAdtY71ZdokCje8','tab_name'=>'Form Responses 1','request_key'=>'test-enquiry-sync-001','rows'=>[$source]];
+$body=['spreadsheet_id'=>'1XN3UEDu3y2I669-j2KsHB9vdlVKviq6nNWUo-hUnKE8','tab_name'=>'Sheet1','request_key'=>'test-enquiry-sync-001','rows'=>[$source]];
 reject(fn()=>enquiry_sync(array_replace($body,['spreadsheet_id'=>'another-sheet'])),'Sync key cannot ingest from another spreadsheet');
 $r=enquiry_sync($body);check($r['added']===1&&$r['errors']===[],'Spreadsheet row enters Inbox');
 check((int)db_value('SELECT COUNT(*) FROM contacts')===$contactsBefore&&(int)db_value('SELECT COUNT(*) FROM leads')===$leadsBefore,'Import never auto-creates Contacts or Leads');

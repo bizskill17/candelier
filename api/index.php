@@ -50,6 +50,7 @@ try {
     migrate_roles_assignment();
     migrate_whatsapp();
     migrate_enquiries();
+    migrate_enquiry_sheet();
     if ($area === 'enquiry-sync') {
         if($method!=='POST')throw new ApiError('Not found.',404);
         enquiry_sync_auth((string)($_SERVER['HTTP_X_CANDELIER_ENQUIRY_KEY']??''));

@@ -71,7 +71,8 @@ function candelierRows_(sheet, headings, start, count) {
     const row = {_row: start + i};
     headings.forEach((key, j) => { if (allowed.includes(key)) row[key] = key === 'created_time' && raw[i][j] instanceof Date ? raw[i][j].toISOString() : values[j]; });
     return row;
-  }).filter(row => allowed.some(key => row[key]));
+  }).filter(row => String(row.id || '').trim() !== '' && !/^<test lead/i.test(String(row.full_name || '')));
+  // Rows without a lead id (blank rows) and Meta "test lead" rows are skipped.
 }
 function candelierTestSync() { candelierRun_(true); }
 function candelierSync() { candelierRun_(false); }
