@@ -1,0 +1,33 @@
+<?php
+function sample_post_line(string $type,int $id,string $no,string $date,int $vid,float $qty): void {db()->prepare('INSERT INTO sample_moves(move_date,variant_id,quantity,ref_type,ref_id,ref_no,created_at) VALUES(?,?,?,?,?,?,?)')->execute([$date,$vid,$qty,$type,$id,$no,now()]);}
+function sample_balances(array $ids,array $except=[]): array {
+ $ids=array_values(array_unique(array_map('intval',$ids)));if(!$ids)return [];$p=[];$w='variant_id IN ('.implode(',',$ids).')';foreach($except as $i=>[$t,$id]){$w.=" AND NOT(ref_type=:t$i AND ref_id=:i$i)";$p["t$i"]=$t;$p["i$i"]=$id;}
+ $out=array_fill_keys($ids,0.0);foreach(db_all('SELECT variant_id,SUM(quantity) AS q FROM sample_moves WHERE '.$w.' GROUP BY variant_id',$p)as$r)$out[(int)$r['variant_id']]=round((float)$r['q'],3);return $out;
+}
+function sample_boq_consumed(int $item,int $vid): float {return (float)db_value('SELECT COALESCE(SUM(quantity),0) FROM sample_issues WHERE order_item_id=? AND variant_id=? AND fulfills_boq=1',[$item,$vid]);}
+function sample_issue(array $in): array {
+ require_roles(['Admin','Store']);$key=crm_text($in['request_key']??'',64);if(!$key)throw new ApiError('Missing request key.',422);$item=(int)($in['order_item_id']??0);$vid=(int)($in['variant_id']??0);$qty=$in['quantity']??0;$date=$in['issue_date']??date('Y-m-d');$link=!empty($in['fulfills_boq']);
+ if(!qty_ok($qty)||!valid_date($date)||$date>date('Y-m-d'))throw new ApiError('Enter a valid issue date and positive quantity.',422);
+ stock_transaction_begin();try{
+ $old=db_one('SELECT * FROM sample_issues WHERE request_key=?',[$key]);if($old){if((int)$old['order_item_id']!==$item||(int)$old['variant_id']!==$vid)throw new ApiError('Request key already used.',409);db()->commit();return ['message'=>'Sample issue already saved.'];}
+ $it=db_one('SELECT i.*,o.status AS order_status FROM order_items i JOIN orders o ON o.id=i.order_id WHERE i.id=? FOR UPDATE',[$item]);if(!$it||$it['order_status']==='Cancelled'||db_value('SELECT COUNT(*) FROM dispatches WHERE order_item_id=?',[$item]))throw new ApiError('Choose an open, undispatched order item.',422);
+ if(!db_one('SELECT id FROM material_variants WHERE id=? FOR UPDATE',[$vid]))throw new ApiError('Choose a sample material.',422);
+ if((sample_balances([$vid])[$vid]??0)+0.0005<(float)$qty)throw new ApiError('Quantity exceeds available sample stock.',409);
+ if($link){$required=db_value('SELECT qty_required FROM boq_lines WHERE order_item_id=? AND variant_id=?',[$item,$vid]);$consumed=(float)db_value('SELECT COALESCE(SUM(x.quantity),0) FROM material_issue_items x JOIN material_issues h ON h.id=x.issue_id WHERE h.order_item_id=? AND x.variant_id=?',[$item,$vid])+sample_boq_consumed($item,$vid);if($it['boq_status']!=='Final'||!$required||$consumed+(float)$qty>(float)$required+0.0005)throw new ApiError('The sample exceeds the remaining Final BOQ requirement.',409);}
+ $no=next_doc_no('sample_issues','SIS','issue_no');db()->prepare('INSERT INTO sample_issues(issue_no,request_key,issue_date,order_item_id,variant_id,quantity,fulfills_boq,issued_by,notes,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)')->execute([$no,$key,$date,$item,$vid,round((float)$qty,3),$link?1:0,current_user()['id'],crm_text($in['notes']??'',2000),now()]);$id=(int)db()->lastInsertId();sample_post_line('sample_issue',$id,$no,$date,$vid,-round((float)$qty,3));db()->commit();return ['message'=>'Sample issued. Normal stock was not reduced.'];
+ }catch(Throwable$e){if(db()->inTransaction())db()->rollBack();throw$e;}
+}
+function sample_review(int $vid,array $in): array {
+ require_admin();$qty=$in['remaining_qty']??null;if(!is_numeric($qty)||!is_finite((float)$qty)||(float)$qty<0)throw new ApiError('Enter the verified sample quantity remaining, including zero.',422);
+ stock_transaction_begin();try{db_one('SELECT id FROM material_variants WHERE id=? FOR UPDATE',[$vid]);$r=db_one('SELECT * FROM sample_legacy_review WHERE variant_id=? FOR UPDATE',[$vid]);if(!$r||$r['resolved_at'])throw new ApiError('This review is already complete.',409);$normal=stock_balances([$vid])[$vid]??0;$blocked=booking_figures([$vid])['all'][$vid]??0;
+ if((float)$qty>(float)$r['received_qty']||$normal-(float)$qty<$blocked-0.0005)throw new ApiError('This quantity exceeds historical samples or would use normal stock blocked for orders.',409);
+ separate_legacy_samples($vid,round((float)$qty,3));db()->prepare('UPDATE sample_legacy_review SET remaining_qty=?,resolved_at=?,resolved_by=? WHERE variant_id=?')->execute([$qty,now(),current_user()['id'],$vid]);db()->commit();return ['message'=>'Historical sample stock separated; the reconciliation remains in both ledgers.'];
+ }catch(Throwable$e){if(db()->inTransaction())db()->rollBack();throw$e;}
+}
+function samples_route(string $method,array $parts): void {
+ require_roles(['Admin','Store']);if($method==='GET'&&$parts===['orders']){json_out(['data'=>items_cast(db_all(ITEM_SELECT." WHERE o.status<>'Cancelled' AND d.id IS NULL AND ".order_visibility_sql()." ORDER BY o.id DESC,i.line_no"))]);return;}if($method==='POST'&&$parts===['issue']){json_out(sample_issue(request_body()));return;}
+ if($method==='POST'&&($parts[1]??'')==='review'){json_out(sample_review((int)$parts[0],request_body()));return;}
+ if($method==='GET'&&$parts===['history']){json_out(crm_page('SELECT s.*,o.order_no,i.line_no,m.name AS material_name,u.name AS issued_by_name FROM sample_issues s JOIN order_items i ON i.id=s.order_item_id JOIN orders o ON o.id=i.order_id JOIN material_variants v ON v.id=s.variant_id JOIN materials m ON m.id=v.material_id JOIN users u ON u.id=s.issued_by ORDER BY s.id DESC'));return;}
+ if($method==='GET'&&!$parts){$w=[];$p=[];crm_where_search($w,$p,['m.name','m.material_code','c.name']);$sql='SELECT v.id,m.name AS material_name,m.material_code,m.photo_path,m.unit,c.name AS category_name,COALESCE(SUM(s.quantity),0) AS in_stock FROM material_variants v JOIN materials m ON m.id=v.material_id LEFT JOIN material_categories c ON c.id=m.category_id JOIN sample_moves s ON s.variant_id=v.id'.($w?' WHERE '.implode(' AND ',$w):'').' GROUP BY v.id,m.id,c.id HAVING SUM(s.quantity)>0 ORDER BY m.name,v.id';$r=crm_page($sql,$p);$r['reviews']=db_all('SELECT r.*,m.name AS material_name FROM sample_legacy_review r JOIN material_variants v ON v.id=r.variant_id JOIN materials m ON m.id=v.material_id WHERE r.resolved_at IS NULL ORDER BY m.name');json_out($r);return;}
+ throw new ApiError('Not found.',404);
+}

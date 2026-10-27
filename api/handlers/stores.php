@@ -84,6 +84,7 @@ function issue_filter_options(): array
 
 function doc_list(array $d): array
 {
+    if($d['type']==='material-in')return receipt_item_list();
     $where = [];
     $params = [];
     $q = trim($_GET['q'] ?? '');
@@ -128,7 +129,7 @@ function doc_list(array $d): array
 
 function doc_lines(array $d, int $id): array
 {
-    $extra = $d['type'] === 'damage' ? ', x.reason' : '';
+    $extra = $d['type'] === 'damage' ? ', x.reason' : ($d['type']==='material-in'?', x.inventory_type,x.project_name,x.order_by_id':'');
     $lines = db_all(
         "SELECT x.id, x.variant_id, x.quantity, x.remarks$extra, v.material_id, v.spec_text, m.name AS material_name, m.unit
            FROM {$d['items']} x JOIN material_variants v ON v.id = x.variant_id JOIN materials m ON m.id = v.material_id
@@ -203,6 +204,12 @@ function doc_validate(array $d, ?array $existing, array $in): array
         $chk = spec_line_check($row, "lines.$n", $errors, $existingMaterials);
         if (!qty_ok($qty)) $errors["lines.$n.quantity"] = 'Enter a quantity above 0.';
         $line = ['n' => $n, 'quantity' => round((float) $qty, 3), 'remarks' => mb_substr(trim((string) ($row['remarks'] ?? '')), 0, 255) ?: null];
+        if($d['type']==='material-in'){
+            $pool=$row['inventory_type']??($h['receipt_type']==='Sample'?'Sample':'Normal');if(!in_array($pool,['Normal','Sample'],true))$errors["lines.$n.inventory_type"]='Choose Normal or Sample.';
+            $by=(int)($row['order_by_id']??0);if($by&&!db_value('SELECT COUNT(*) FROM users WHERE id=?',[$by]))$errors["lines.$n.order_by_id"]='Choose a user.';
+            $project=trim((string)($row['project_name']??''));if(mb_strlen($project)>150)$errors["lines.$n.project_name"]='Keep project name under 150 characters.';
+            $line+=['inventory_type'=>$pool,'project_name'=>$project?:null,'order_by_id'=>$by?:null];
+        }
         if ($d['type'] === 'damage') {
             $reason = $row['reason'] ?? 'Broken';
             if (!in_array($reason, DAMAGE_REASONS, true)) $errors["lines.$n.reason"] = 'Choose a reason.';
@@ -229,12 +236,13 @@ function doc_save(array $d, ?int $id, array $in): array
             if (!$lockedItem || $lockedItem['boq_status'] !== 'Final') throw new ApiError('Finalise the BOQ before issuing materials.', 409);
         }
         // Resolve specifications (creates new ones) and merge duplicate lines check
-        $seen = [];
+        $seen = [];$duplicates=[];
         foreach ($lines as &$l) {
             $l['variant_id'] = variant_resolve($l['material_id'], $l['values']);
-            if (isset($seen[$l['variant_id']])) {
+            if (isset($duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')])) {
                 throw new ApiError('Please fix the highlighted fields.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that line instead.']);
             }
+            $duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')]=true;
             $seen[$l['variant_id']] = $l['n'];
         }
         unset($l);
@@ -245,11 +253,18 @@ function doc_save(array $d, ?int $id, array $in): array
             foreach ($lines as $l) {
                 $needed = db_value('SELECT qty_required FROM boq_lines WHERE order_item_id = :i AND variant_id = :v', ['i' => $h['order_item_id'], 'v' => $l['variant_id']]);
                 $issued = (float) db_value('SELECT COALESCE(SUM(x.quantity), 0) FROM material_issue_items x JOIN material_issues h ON h.id = x.issue_id WHERE h.order_item_id = :i AND x.variant_id = :v AND h.id <> :ex', ['i' => $h['order_item_id'], 'v' => $l['variant_id'], 'ex' => $id ?? 0]);
-                if (($needed === false || $needed === null) || $l['quantity'] > (float) $needed - $issued + 0.0005) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.quantity" => ($needed === false || $needed === null) ? 'Material is not in the Final BOQ.' : 'Quantity exceeds the remaining BOQ requirement (' . fmt_qty(max(0, (float) $needed - $issued)) . ').']);
+                if (($needed === false || $needed === null) || $l['quantity'] > (float) $needed - $issued - sample_boq_consumed($h['order_item_id'],$l['variant_id']) + 0.0005) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.quantity" => ($needed === false || $needed === null) ? 'Material is not in the Final BOQ.' : 'Quantity exceeds the remaining BOQ requirement (' . fmt_qty(max(0, (float) $needed - $issued)) . ').']);
             }
         }
         $except = $existing ? [[$d['ref'], $id]] : [];
-        $moves = array_map(fn ($l) => [$l['variant_id'], $d['sign'] * $l['quantity']], $lines);
+        $normalLines=$d['type']==='material-in'?array_values(array_filter($lines,fn($l)=>$l['inventory_type']==='Normal')):$lines;
+        $sampleLines=$d['type']==='material-in'?array_values(array_filter($lines,fn($l)=>$l['inventory_type']==='Sample')):[];
+        $moves = array_map(fn ($l) => [$l['variant_id'], $d['sign'] * $l['quantity']], $normalLines);
+        if($d['type']==='material-in'){
+            foreach($lockIds as $vid)if(db_value('SELECT COUNT(*) FROM sample_legacy_review WHERE variant_id=? AND resolved_at IS NULL',[$vid])&&$existing)throw new ApiError('Review historical sample stock in Sample Inventory before editing this receipt.',409);
+            $sampleBefore=sample_balances($lockIds,$except);foreach($sampleLines as $l)$sampleBefore[$l['variant_id']]=($sampleBefore[$l['variant_id']]??0)+$l['quantity'];
+            foreach($sampleBefore as $qty)if($qty< -0.0005)throw new ApiError('This receipt change would reduce sample stock below zero.',409);
+        }
         $also = $existing ? array_column($existing['lines'], 'variant_id') : [];
         $errors = [];
         foreach (stock_check($except, $moves, $also) as $vid => $msg) {
@@ -265,7 +280,7 @@ function doc_save(array $d, ?int $id, array $in): array
                 $othersOpen = ($bf['all'][$vid] ?? 0) - ($bf['items'][$h['order_item_id']][$vid]['open'] ?? 0);
                 $limit = round(($stock[$vid] ?? 0) - $othersOpen, 3);
                 if ($l['quantity'] > $limit + 0.0005) {
-                    $errors["lines.{$l['n']}.quantity"] = $limit > 0 ? 'Only ' . fmt_qty($limit) . ' can be issued (the rest is booked for other orders).' : 'All stock of this material is booked for other orders.';
+                    $errors["lines.{$l['n']}.quantity"] = $limit > 0 ? 'Only ' . fmt_qty($limit) . ' can be issued (the rest is blocked for other orders).' : 'All stock of this material is blocked for other orders.';
                 }
             }
         }
@@ -287,15 +302,17 @@ function doc_save(array $d, ?int $id, array $in): array
             $no = $existing[$d['no']];
             $msg = "{$d['label']} $no updated.";
         }
-        $extraCol = $d['type'] === 'damage' ? ', reason' : '';
-        $extraVal = $d['type'] === 'damage' ? ', :reason' : '';
+        $extraCol = $d['type'] === 'damage' ? ', reason' : ($d['type']==='material-in'?', inventory_type,project_name,order_by_id':'');
+        $extraVal = $d['type'] === 'damage' ? ', :reason' : ($d['type']==='material-in'?', :pool,:project,:by':'');
         $ins = $pdo->prepare("INSERT INTO {$d['items']} ({$d['fk']}, line_no, variant_id, quantity, remarks$extraCol, created_at, updated_at) VALUES (:doc, :l, :v, :q, :r$extraVal, :c, :u)");
         foreach ($lines as $n => $l) {
             $p = ['doc' => $id, 'l' => $n + 1, 'v' => $l['variant_id'], 'q' => $l['quantity'], 'r' => $l['remarks'], 'c' => now(), 'u' => now()];
             if ($d['type'] === 'damage') $p['reason'] = $l['reason'];
+            if($d['type']==='material-in')$p+=['pool'=>$l['inventory_type'],'project'=>$l['project_name'],'by'=>$l['order_by_id']];
             $ins->execute($p);
         }
         stock_post($d['ref'], $id, $no, $h[$d['date']], $moves);
+        if($d['type']==='material-in'){db()->prepare("DELETE FROM sample_moves WHERE ref_type='receipt' AND ref_id=?")->execute([$id]);foreach($sampleLines as $l)sample_post_line('receipt',$id,$no,$h[$d['date']],$l['variant_id'],$l['quantity']);}
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -304,25 +321,15 @@ function doc_save(array $d, ?int $id, array $in): array
     return ['data' => doc_find($d, $id), 'message' => $msg];
 }
 
-function doc_delete(array $d, int $id): array
-{
-    require_admin();
-    $doc = doc_find($d, $id);
-    if (stock_check([[$d['ref'], $id]], [], array_column($doc['lines'], 'variant_id'))) {
-        throw new ApiError("{$d['label']} {$doc[$d['no']]} can't be deleted because some of this stock has already been used. Correct it with a stock adjustment instead.", 409);
-    }
-    $pdo = db();
-    $pdo->beginTransaction();
-    try {
-        stock_clear($d['ref'], $id);
-        $pdo->prepare("DELETE FROM {$d['items']} WHERE {$d['fk']} = :id")->execute(['id' => $id]);
-        $pdo->prepare("DELETE FROM {$d['table']} WHERE id = :id")->execute(['id' => $id]);
-        $pdo->commit();
-    } catch (Throwable $e) {
-        $pdo->rollBack();
-        throw $e;
-    }
-    return ['message' => "{$d['label']} {$doc[$d['no']]} deleted."];
+function doc_delete(array $d,int $id): array {
+ require_admin();$pdo=db();stock_transaction_begin();try{$doc=doc_find($d,$id);$ids=array_unique(array_column($doc['lines'],'variant_id'));sort($ids);foreach($ids as$v)db_one('SELECT id FROM material_variants WHERE id=? FOR UPDATE',[$v]);
+ if(stock_check([[$d['ref'],$id]],[],$ids))throw new ApiError('This receipt stock has already been used. Correct the stock instead.',409);
+ if($d['type']==='material-in'){
+ foreach($ids as$v)if(db_value('SELECT COUNT(*) FROM sample_legacy_review WHERE variant_id=? AND resolved_at IS NULL',[$v]))throw new ApiError('Complete the historical sample review first.',409);
+ foreach(sample_balances($ids,[['receipt',$id]])as$q)if($q< -0.0005)throw new ApiError('Some sample stock from this receipt has already been issued.',409);
+ $pdo->prepare("DELETE FROM sample_moves WHERE ref_type='receipt' AND ref_id=?")->execute([$id]);}
+ stock_clear($d['ref'],$id);$pdo->prepare("DELETE FROM {$d['items']} WHERE {$d['fk']}=?")->execute([$id]);$pdo->prepare("DELETE FROM {$d['table']} WHERE id=?")->execute([$id]);$pdo->commit();return ['message'=>"{$d['label']} deleted."];
+ }catch(Throwable$e){if($pdo->inTransaction())$pdo->rollBack();throw$e;}
 }
 
 // The order item's BOQ with what is consumed and still to issue.
@@ -406,10 +413,11 @@ function opening_save(array $in,bool $append=false): array
     $pdo = db();
     $pdo->beginTransaction();
     try {
-        $seen = [];
+        $seen = [];$duplicates=[];
         foreach ($lines as &$l) {
             $l['variant_id'] = variant_resolve($l['material_id'], $l['values']);
-            if (isset($seen[$l['variant_id']])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that row instead.']);
+            if (isset($duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that row instead.']);
+            $duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')]=true;
             $seen[$l['variant_id']] = $l['n'];
         }
         unset($l);
@@ -455,4 +463,12 @@ function opening_save(array $in,bool $append=false): array
         throw $e;
     }
     return ['data' => opening_list(), 'message' => 'Opening stock saved (' . count($lines) . ' ' . (count($lines) === 1 ? 'line' : 'lines') . ').'];
+}
+
+function receipt_item_list(): array {
+ $w=[];$p=[];crm_where_search($w,$p,['h.receipt_no','h.challan_no','s.name','m.name','m.material_code','x.project_name']);
+ if(!empty($_GET['party_id'])){$w[]='h.supplier_id=:supplier';$p['supplier']=(int)$_GET['party_id'];}
+ if(in_array($_GET['receipt_type']??'',['Sample','Purchase'],true)){$w[]='x.inventory_type=:pool';$p['pool']=$_GET['receipt_type']==='Sample'?'Sample':'Normal';}
+ foreach(['from'=>'>=','to'=>'<=']as$key=>$op)if(valid_date($_GET[$key]??'')){$w[]="h.receipt_date $op :$key";$p[$key]=$_GET[$key];}
+ return crm_page('SELECT h.id,h.receipt_no,h.receipt_date,h.challan_no,h.notes,h.supplier_id,s.name AS supplier_name,x.id AS receipt_item_id,x.line_no,x.quantity,x.remarks,x.inventory_type,x.project_name,x.order_by_id,u.name AS order_by_name,m.name AS material_name,m.material_code,m.photo_path,m.unit,c.name AS category_name FROM material_receipts h JOIN material_receipt_items x ON x.receipt_id=h.id JOIN suppliers s ON s.id=h.supplier_id JOIN material_variants v ON v.id=x.variant_id JOIN materials m ON m.id=v.material_id LEFT JOIN material_categories c ON c.id=m.category_id LEFT JOIN users u ON u.id=x.order_by_id'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY h.receipt_date DESC,h.id DESC,x.line_no',$p);
 }

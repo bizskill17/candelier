@@ -39,6 +39,7 @@ function order_items_route(string $method, array $parts): void
     $id = isset($parts[0]) ? (int) $parts[0] : null;
     $sub = $parts[1] ?? null;
     if ($id === null && $method === 'GET') { json_out(order_items_lookup()); return; }
+    if($id!==null&&$sub==='drawing'&&$method==='PUT'){json_out(order_drawing_save($id,request_body()));return;}
     if ($id !== null && $sub === 'production-status' && $method === 'PATCH') {
         json_out(production_set_status($id, request_body())); return;
     }
@@ -94,6 +95,7 @@ function order_list(): array
 function item_stage(array $it): string
 {
     if (!empty($it['dispatch'])) return 'Dispatched';
+    if($it['boq_status']==='Pending'&&empty($it['drawing_file']))return 'Pending Drawing';
     return 'BOQ ' . $it['boq_status'];
 }
 
@@ -218,7 +220,7 @@ function order_validate(?array $existing, array $in): array
         $kept = array_filter(array_column($items, 'id'));
         foreach ($existing['items'] as $old) {
             if (in_array($old['id'], $kept, true)) continue;
-            if ($old['dispatch'] || $old['issue_count'] > 0) {
+            if ($old['dispatch'] || $old['issue_count'] > 0 || db_value('SELECT COUNT(*) FROM sample_issues WHERE order_item_id=?',[$old['id']])) {
                 $errors['items'] = "Item {$old['line_no']} ({$old['item_title']}) already has materials issued or is dispatched, so it can't be removed.";
             }
         }
@@ -310,7 +312,7 @@ function order_set_status(int $id, array $in): array
     if ($action === 'Cancelled') {
         if ($o['dispatched_count'] > 0) throw new ApiError("Order {$o['order_no']} has dispatched items, so it can't be cancelled.", 409);
         db()->prepare("UPDATE orders SET status = 'Cancelled', updated_at = :u WHERE id = :id")->execute(['u' => now(), 'id' => $id]);
-        return ['data' => order_find($id), 'message' => "Order {$o['order_no']} cancelled. Its bookings no longer hold stock."];
+        return ['data' => order_find($id), 'message' => "Order {$o['order_no']} cancelled. Its blocks no longer hold stock."];
     }
     if ($action === 'Reopen') {
         db()->prepare("UPDATE orders SET status = 'Open', updated_at = :u WHERE id = :id")->execute(['u' => now(), 'id' => $id]);
@@ -327,7 +329,7 @@ function order_delete(int $id): array
     $ids = array_column($o['items'], 'id');
     if ($ids) {
         $in = implode(',', array_map('intval', $ids));
-        if (db_value("SELECT COUNT(*) FROM bookings WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM material_issues WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM dispatches WHERE order_item_id IN ($in)")) {
+        if (db_value("SELECT COUNT(*) FROM sample_issues WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM bookings WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM material_issues WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM dispatches WHERE order_item_id IN ($in)")) {
             throw new ApiError("Order {$o['order_no']} has bookings, issues or dispatches, so it can't be deleted. Cancel it instead.", 409);
         }
         db()->exec("DELETE FROM boq_lines WHERE order_item_id IN ($in)");
@@ -380,6 +382,7 @@ function order_items_lookup(): array
 {
     if (!empty($_GET['pending_issue'])) return pending_material_issue();
     if (!empty($_GET['saved_boq'])) return saved_boq();
+    if (!empty($_GET['pending_drawing'])) return pending_boq(true);
     if (!empty($_GET['pending_boq'])) return pending_boq();
     $inc = (int) ($_GET['include'] ?? 0);
     $final = (app_role()==='Store'||!empty($_GET['final_boq'])) ? " AND i.boq_status = 'Final'" : '';
@@ -388,10 +391,11 @@ function order_items_lookup(): array
 }
 
 // Pending BOQ: items of open orders whose BOQ is not saved yet, earliest delivery first.
-function pending_boq(): array
+function pending_boq(bool $drawing=false): array
 {
     $where = "i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND d.id IS NULL AND ".order_visibility_sql();
-    if(app_role()==='Store')$where.=' AND 1=0';
+    $where.=$drawing?" AND i.boq_status='Pending' AND (i.drawing_file IS NULL OR i.drawing_file='')":" AND (i.boq_status='Draft' OR (i.drawing_file IS NOT NULL AND i.drawing_file<>''))";
+    if(app_role()==='Store'&&!$drawing)$where.=' AND 1=0';
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {
@@ -434,7 +438,7 @@ function dispatch_save(int $itemId, array $in): array
         db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $itemId]);
         $it = item_find($itemId);
         if ($it['order_status'] === 'Cancelled') throw new ApiError('This order is cancelled.', 409);
-        if(app_role()==='Store'&&!$it['dispatch_id']&&($it['production_status']!=='Complete'||!db_value('SELECT COUNT(*) FROM material_issues WHERE order_item_id=:i',['i'=>$itemId])))throw new ApiError('Complete production before dispatching this item.',409);
+        if(app_role()==='Store'&&!$it['dispatch_id']&&($it['production_status']!=='Complete'||!production_issue_count($itemId)))throw new ApiError('Complete production before dispatching this item.',409);
         $h['updated_at'] = now();
         if ($it['dispatch_id']) {
             require_admin();
@@ -511,10 +515,17 @@ function saved_boq(): array
 function pending_material_issue(): array
 {
     $where=order_visibility_sql()." AND i.boq_status='Final' AND o.status<>'Cancelled' AND d.id IS NULL AND EXISTS (
-        SELECT 1 FROM boq_lines b WHERE b.order_item_id=i.id AND b.qty_required>(SELECT COALESCE(SUM(x.quantity),0) FROM material_issue_items x JOIN material_issues h ON h.id=x.issue_id WHERE h.order_item_id=i.id AND x.variant_id=b.variant_id))";
+        SELECT 1 FROM boq_lines b WHERE b.order_item_id=i.id AND b.qty_required>(SELECT COALESCE(SUM(x.quantity),0) FROM material_issue_items x JOIN material_issues h ON h.id=x.issue_id WHERE h.order_item_id=i.id AND x.variant_id=b.variant_id)+(SELECT COALESCE(SUM(si.quantity),0) FROM sample_issues si WHERE si.order_item_id=i.id AND si.variant_id=b.variant_id AND si.fulfills_boq=1))";
     $params=[];$q=trim((string)($_GET['q']??''));
     if($q!==''){$where.=' AND (o.order_no LIKE :q1 OR c.name LIKE :q2 OR o.project_name LIKE :q3 OR i.area LIKE :q4)';for($n=1;$n<=4;$n++)$params['q'.$n]="%$q%";}
     $rows=items_cast(db_all(ITEM_SELECT." WHERE $where ORDER BY o.delivery_date IS NULL,o.delivery_date,o.id,i.line_no",$params));
-    foreach($rows as&$row)$row['issue_status']=db_value('SELECT COUNT(*) FROM material_issues h JOIN material_issue_items x ON x.issue_id=h.id WHERE h.order_item_id=:i AND x.quantity>0',['i'=>$row['id']])?'Partially Issued':'Not Issued';
+    foreach($rows as&$row)$row['issue_status']=production_issue_count((int)$row['id'])?'Partially Issued':'Not Issued';
     return ['data'=>$rows];
+}
+
+function order_drawing_save(int $id,array $in): array {
+ require_roles(['Admin','Sales','Store']);require_item_access($id);$path=clean_drawing_path($in['drawing_file']??'');if(!$path||!is_file(upload_root().'/'.$path))throw new ApiError('Upload a drawing PDF or image first.',422);
+ db()->beginTransaction();try{db_one('SELECT id FROM order_items WHERE id=? FOR UPDATE',[$id]);$it=item_find($id);if($it['order_status']==='Cancelled'||$it['dispatch_id'])throw new ApiError('This order item is closed.',409);if($it['drawing_file'])require_admin();
+ db()->prepare('UPDATE order_items SET drawing_file=?,drawing_name=?,updated_at=? WHERE id=?')->execute([$path,crm_text($in['drawing_name']??'Drawing',150),now(),$id]);db()->commit();return ['data'=>item_find($id),'message'=>'Drawing saved. The item is now available for BOQ.'];
+ }catch(Throwable$e){if(db()->inTransaction())db()->rollBack();throw$e;}
 }

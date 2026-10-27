@@ -1,3 +1,11 @@
+import {useState} from 'react';
+import {MaterialForm} from '../pages/materials/MaterialsPage';
+import MasterForm from './MasterForm';
+import {masters} from '../config/masters';
+import Modal from './Modal';
+import MaterialPhoto from './MaterialPhoto';
+import {PhotoThumb} from './Photo';
+import {materialPhotoApi} from '../api/client';
 import { Plus, Trash2, Copy } from 'lucide-react';
 import SearchSelect from './SearchSelect';
 import AutoTextarea from './AutoTextarea';
@@ -14,8 +22,10 @@ export const DAMAGE_REASONS = ['Broken', 'Defective', 'Lost', 'Other'];
 
 // Lines of material + specification + quantity, used by Opening Stock, Material In, Material Issue and Damage.
 //   infoColumns: [{ label, render: (line) => node }]  read-only columns before Quantity
-export default function StockLines({ title = 'Materials', lines, onChange, errors = {}, readOnly, infoColumns = [], showDate, showReason, orderItemId, emptyHint, allowedMaterialIds }) {
+export default function StockLines({ title = 'Materials', lines, onChange, errors = {}, readOnly, infoColumns = [], showDate, showReason, orderItemId, emptyHint, allowedMaterialIds, receipt=false, users=[], defaultInventoryType='Normal' }) {
   const cat = useCatalog();
+  const [adding,setAdding]=useState(null),[photo,setPhoto]=useState(null),[photoBusy,setPhotoBusy]=useState(false),[photoError,setPhotoError]=useState('');
+  const savePhoto=async()=>{setPhotoBusy(true);setPhotoError('');try{await materialPhotoApi(photo.id,photo.path);await cat.refresh();setPhoto(null);}catch(e){setPhotoError(e.message);}finally{setPhotoBusy(false);}};
   const filled = lines.filter((l) => l.material_id).length;
   const setLine = (idx, patch) => onChange(lines.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
   const extra = () => ({ ...(showDate ? { entry_date: today() } : {}), ...(showReason ? { reason: 'Broken' } : {}) });
@@ -29,10 +39,10 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
   const th = 'border border-blue-400 px-3 py-2 text-left font-semibold';
   const td = 'border border-blue-200 px-2 py-2 align-top';
   const err = (idx, k) => errors[`lines.${idx}.${k}`];
-  const minW = 760 + infoColumns.length * 90 + (showDate ? 140 : 0) + (showReason ? 120 : 0);
+  const minW = 760 + (receipt?750:0) + infoColumns.length * 90 + (showDate ? 140 : 0) + (showReason ? 120 : 0);
 
   return (
-    <section className="overflow-hidden rounded-xl border border-blue-300 bg-white">
+    <><section className="overflow-hidden rounded-xl border border-blue-300 bg-white">
       <div className="flex items-center justify-between px-5 py-3">
         <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
         <span className="text-xs text-gray-500">{filled} {filled === 1 ? 'line' : 'lines'}</span>
@@ -45,6 +55,7 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
               {showDate && <th className={`${th} w-36`}>Date</th>}
               <th className={`${th} w-44`}>Material Category</th>
               <th className={th}>Material</th>
+              {receipt&&<><th className={`${th} w-32`}>Photo</th><th className={`${th} w-32`}>Inventory</th><th className={`${th} w-48`}>Project Name</th><th className={`${th} w-44`}>Order By</th></>}
               {infoColumns.map((c) => <th key={c.label} className={`${th} w-[5.5rem] text-right`}>{c.label}</th>)}
               <th className={`${th} w-28 text-right`}>Quantity</th>
               <th className={`${th} w-16`}>Unit</th>
@@ -69,12 +80,13 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
                     </td>
                   )}
                   <td className={td}>
-                    {readOnly ? <span>{cat.categories.find((c) => String(c.id) === String(categoryId))?.name || '—'}</span> : <SearchSelect id={`line-${idx}-category`} options={categories.map((c) => ({ value: c.id, label: c.name }))} value={categoryId} onChange={(v) => setLine(idx, { category_id: v, material_id: '', values: {} })} disabled={!cat.loaded} placeholder="Select category" />}
+                    {receipt&&!readOnly&&<button type="button" aria-label={`Add material category, line ${idx+1}`} onClick={()=>setAdding({type:'category',idx})} className="float-right ml-1 rounded border px-2 py-1 text-brand-600">+</button>}{readOnly ? <span>{cat.categories.find((c) => String(c.id) === String(categoryId))?.name || '—'}</span> : <SearchSelect id={`line-${idx}-category`} options={categories.map((c) => ({ value: c.id, label: c.name }))} value={categoryId} onChange={(v) => setLine(idx, { category_id: v, material_id: '', values: {} })} disabled={!cat.loaded} placeholder="Select category" />}
                   </td>
                   <td className={td}>
-                    {readOnly ? <div className="px-1 py-1.5 font-medium text-gray-900">{m?.name || l.material_name}</div> : <SearchSelect id={`line-${idx}-material`} options={matOptions} value={l.material_id} onChange={(v) => setLine(idx, { category_id: categoryId, material_id: v, values: {} })} error={err(idx, 'material_id')} disabled={!cat.loaded || !categoryId} placeholder="Select material" />}
+                    {receipt&&!readOnly&&<button type="button" aria-label={`Add material, line ${idx+1}`} onClick={()=>setAdding({type:'material',idx,category_id:categoryId})} className="float-right ml-1 rounded border px-2 py-1 text-brand-600">+</button>}{readOnly ? <div className="px-1 py-1.5 font-medium text-gray-900">{m?.name || l.material_name}</div> : <SearchSelect id={`line-${idx}-material`} options={matOptions} value={l.material_id} onChange={(v) => setLine(idx, { category_id: categoryId, material_id: v, values: {} })} error={err(idx, 'material_id')} disabled={!cat.loaded || !categoryId} placeholder="Select material" />}
                     {err(idx, 'material_id') && <p className="mt-1 text-xs text-red-600">{err(idx, 'material_id')}</p>}
                   </td>
+                  {receipt&&<><td className={td}>{m?.photo_path&&<PhotoThumb path={m.photo_path} title={m.name}/>} {!readOnly&&m&&<button type="button" aria-label={`Update material photo, line ${idx+1}`} onClick={()=>{setPhotoError('');setPhoto({id:m.id,name:m.name,path:m.photo_path||''});}} className="mt-1 block text-xs text-brand-700">Update Photo</button>}</td><td className={td}><select aria-label={`Inventory type, line ${idx+1}`} disabled={readOnly} value={l.inventory_type||defaultInventoryType} onChange={e=>setLine(idx,{inventory_type:e.target.value})} className={inputCls()}><option>Normal</option><option>Sample</option></select></td><td className={td}><input aria-label={`Project name, line ${idx+1}`} disabled={readOnly} maxLength={150} value={l.project_name||''} onChange={e=>setLine(idx,{project_name:e.target.value})} className={inputCls()}/></td><td className={td}><SearchSelect aria-label={`Order by, line ${idx+1}`} options={users.filter(u=>u.is_active||String(u.id)===String(l.order_by_id)).map(u=>({value:u.id,label:u.name}))} value={l.order_by_id||''} onChange={v=>setLine(idx,{order_by_id:v})} disabled={readOnly} placeholder="Select user" clearable/></td></>}
                   {infoColumns.map((c) => <td key={c.label} className={`${td} px-3 py-3 text-right tabular-nums`}>{c.render(l)}</td>)}
                   <td className={td}>
                     {readOnly ? <span className="block px-1 py-1.5 text-right tabular-nums">{l.quantity}</span> : (
@@ -119,5 +131,9 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
         </div>
       )}
     </section>
+    {adding?.type==='category'&&<MasterForm entity="material_categories" def={masters.material_categories} onClose={()=>setAdding(null)} onSaved={async row=>{await cat.refresh();setLine(adding.idx,{category_id:row.id,material_id:'',values:{}});setAdding(null);}}/>}
+    {adding?.type==='material'&&<MaterialForm material={{category_id:adding.category_id}} readOnly={false} onClose={()=>setAdding(null)} onSaved={async row=>{await cat.refresh();setLine(adding.idx,{category_id:row.category_id,material_id:row.id,values:{}});setAdding(null);}}/>}
+    {photo&&<Modal open title={`Update Material Photo · ${photo.name}`} onClose={()=>!photoBusy&&setPhoto(null)} footer={<><button type="button" disabled={photoBusy} onClick={()=>setPhoto(null)} className="px-3 py-2">Cancel</button><button type="button" disabled={photoBusy||!photo.path} onClick={savePhoto} className="rounded bg-brand-600 px-4 py-2 text-white">{photoBusy?'Saving…':'Update Material Photo'}</button></>}><MaterialPhoto value={photo.path} onChange={path=>setPhoto(x=>({...x,path}))} onBusyChange={setPhotoBusy}/><p className="mt-3 text-sm">This will replace the current photo in the Material master.</p>{photoError&&<p role="alert" className="text-red-600">{photoError}</p>}</Modal>}
+    </>
   );
 }

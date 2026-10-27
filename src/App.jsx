@@ -13,6 +13,7 @@ import OrdersPage from './pages/orders/OrdersPage';
 import BoqPage from './pages/boq/BoqPage';
 import BoqMaster from './pages/boq/BoqMaster';
 import DispatchList from './pages/orders/DispatchList';
+import SamplesPage from './pages/stores/SamplesPage';
 import PendingBoq from './pages/orders/PendingBoq';
 import ProductionPage from './pages/orders/ProductionPage';
 import DocsPage from './pages/stores/DocsPage';
@@ -53,6 +54,9 @@ export default function App() {
           <Route path="production-in-progress" element={<ProductionPage key="in-progress" status="In Progress" />} />
           <Route path="ready-to-dispatch" element={<ProductionPage key="complete" status="Complete" />} />
           <Route path="dispatches" element={<DispatchList />} />
+          <Route path="sample-inventory" element={<SamplesPage key="inventory"/>}/>
+          <Route path="sample-issues" element={<SamplesPage key="history" history/>}/>
+          <Route path="pending-drawing" element={<PendingBoq drawing key="drawing"/>}/>
           <Route path="pending-boq" element={<PendingBoq />} />
           <Route path="opening-stock" element={<OpeningStock />} />
           <Route path="material-in/*" element={<DocsPage key="material-in" type="material-in" />} />

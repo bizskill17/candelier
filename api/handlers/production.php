@@ -18,7 +18,7 @@ function production_status($value): string
 function production_scope(): string
 {
     return order_visibility_sql()." AND o.status <> 'Cancelled' AND d.id IS NULL AND i.production_status = :status
-            AND EXISTS (SELECT 1 FROM material_issues mi WHERE mi.order_item_id = i.id)";
+            AND (EXISTS (SELECT 1 FROM material_issues mi WHERE mi.order_item_id = i.id) OR EXISTS(SELECT 1 FROM sample_issues si WHERE si.order_item_id=i.id AND si.fulfills_boq=1))";
 }
 
 function production_filters(): array
@@ -67,7 +67,7 @@ function production_set_status(int $id, array $in): array
         $item = item_find($id);
         if ($item['dispatch_id']) throw new ApiError('Dispatched items cannot change production status.', 409);
         if ($item['order_status'] === 'Cancelled') throw new ApiError('This order is cancelled.', 409);
-        if (!db_value('SELECT COUNT(*) FROM material_issues WHERE order_item_id = :i', ['i' => $id])) throw new ApiError('Save a Material Issue before updating production status.', 409);
+        if (!production_issue_count($id)) throw new ApiError('Save a Material Issue before updating production status.', 409);
         $pdo->prepare('UPDATE order_items SET production_status = :s, updated_at = :t WHERE id = :i')->execute(['s' => $status, 't' => now(), 'i' => $id]);
         $pdo->commit();
     } catch (Throwable $e) {
@@ -102,7 +102,7 @@ function production_bulk_update(array $in): array
             if (!db_one('SELECT id FROM order_items WHERE id = :i FOR UPDATE', ['i' => $id])) throw new ApiError('An order item no longer exists. Refresh and try again.', 409);
             $item = item_find($id);
             if ($item['dispatch_id'] || $item['order_status'] === 'Cancelled') throw new ApiError("{$item['label']} is dispatched or cancelled. No changes were saved.", 409);
-            if (!db_value('SELECT COUNT(*) FROM material_issues WHERE order_item_id = :i', ['i' => $id])) throw new ApiError('Every updated item must have a saved Material Issue.', 409);
+            if (!production_issue_count($id)) throw new ApiError('Every updated item must have a saved Material Issue.', 409);
             foreach (['status' => 'production_status', 'remarks' => 'remarks'] as $field => $column) {
                 if (array_key_exists($field, $row) && array_key_exists('expected_' . $field, $row) && (string) ($item[$column] ?? '') !== (string) $row['expected_' . $field]) throw new ApiError("{$item['label']} was changed by another update. Refresh, discard changes and try again. No changes were saved.", 409);
             }
@@ -120,3 +120,5 @@ function production_bulk_update(array $in): array
     $count = count($seen);
     return ['updated' => $count, 'message' => $count . ($count === 1 ? ' item updated.' : ' items updated.')];
 }
+
+function production_issue_count(int $id): int {return (int)db_value('SELECT COUNT(*) FROM material_issues WHERE order_item_id=?',[$id])+(int)db_value('SELECT COUNT(*) FROM sample_issues WHERE order_item_id=? AND fulfills_boq=1',[$id]);}

@@ -233,6 +233,7 @@ function booking_figures(?array $variantIds = null): array
         $items[$i][$v] ??= ['booked' => 0.0, 'consumed' => 0.0, 'open' => 0.0];
         $items[$i][$v]['consumed'] = round((float) $r['q'], 3);
     }
+    foreach(db_all("SELECT x.order_item_id,x.variant_id,SUM(x.quantity) AS q FROM sample_issues x WHERE x.fulfills_boq=1$filter GROUP BY x.order_item_id,x.variant_id")as$r){$i=(int)$r['order_item_id'];$v=(int)$r['variant_id'];$items[$i][$v]??=['booked'=>0.0,'consumed'=>0.0,'open'=>0.0];$items[$i][$v]['consumed']+=(float)$r['q'];}
     // Items whose bookings no longer count: dispatched, or order cancelled
     $closed = [];
     if ($items) {
@@ -268,6 +269,7 @@ function variant_stats(array $variantIds, ?int $orderItemId = null): array
             'in_stock'    => $stock[$v] ?? 0.0,
             'booked_all'  => $all,
             'available'   => round(($stock[$v] ?? 0) - $all, 3),
+            'available_for_issue'=>round(($stock[$v]??0)-$all+($f['open']??0),3),
             'booked_item' => $f['open'] ?? 0.0,
             'consumed'    => $f['consumed'] ?? 0.0,
         ];

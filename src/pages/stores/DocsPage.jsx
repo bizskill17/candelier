@@ -1,3 +1,4 @@
+import ReceiptPagination from '../../components/Pagination';
 import MasterForm from '../../components/MasterForm';
 import { masters } from '../../config/masters';
 import { ItemDetailLines } from '../../lib/items';
@@ -24,7 +25,7 @@ export default function DocsPage({ type }) {
   const parts = pathname.replace(new RegExp(`^/${type}/?`), '').split('/').filter(Boolean);
   if (parts[0] === 'new') return <DocForm key={`new-${parts.join('-')}`} type={type} presetItem={parts[1] === 'item' ? Number(parts[2]) : null} />;
   if (/^\d+$/.test(parts[0] || '')) return <DocForm key={parts[0]} type={type} id={Number(parts[0])} />;
-  return <DocList type={type} />;
+  return type==='material-in'?<ReceiptItems/>:<DocList type={type} />;
 }
 
 const PER_PAGE = 20;
@@ -195,7 +196,7 @@ function DocForm({ type, id, presetItem }) {
   };
 
   useEffect(() => {
-    if (type === 'material-issue' || type === 'damage') ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
+    if (['material-issue','damage','material-in'].includes(type)) ordersApi.users().then((r) => setUsers(r.data)).catch((e) => { setUsers([]); toast(e.message, 'error'); });
     if (type === 'material-in') api.lookup('suppliers').then((r) => setSuppliers(r.data)).catch(() => setSuppliers([]));
     if (type === 'material-issue') ordersApi.openItems(presetItem || undefined, true).then((r) => setItems(r.data)).catch(() => setItems([]));
   }, [type]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -224,7 +225,7 @@ function DocForm({ type, id, presetItem }) {
       const h = emptyHeader(type);
       Object.keys(h).forEach((k) => { if (d[k] !== undefined && d[k] !== null) h[k] = d[k]; });
       setHeader(h);
-      setLines(toStockLines(d.lines.map((l) => ({ material_id: l.material_id, values: l.values, quantity: l.quantity, remarks: l.remarks || '', reason: l.reason }))));
+      setLines(toStockLines(d.lines.map((l) => ({ material_id: l.material_id, values: l.values, quantity: l.quantity, remarks: l.remarks || '', reason: l.reason,inventory_type:l.inventory_type,project_name:l.project_name||'',order_by_id:l.order_by_id||'' }))));
       if (type === 'material-issue') {
         ordersApi.openItems(d.order_item_id, true).then((x) => setItems(x.data)).catch(() => {});
         loadPrefill(d.order_item_id, false);
@@ -262,7 +263,7 @@ function DocForm({ type, id, presetItem }) {
     const p = (l) => { const v = cat.findVariant(l.material_id, l.values); return v ? prefBy[v.id] : null; };
     infoColumns.push({ label: 'Qty Req.', render: (l) => (p(l) ? fmtQty(p(l).qty_required) : '—') });
     infoColumns.push({ label: 'Consumed', render: (l) => (p(l) ? fmtQty(p(l).consumed) : '—') });
-    infoColumns.push({ label: 'Booked', render: (l) => (p(l) ? fmtQty(p(l).booked_item) : '—') });
+    infoColumns.push({ label: 'Blocked', render: (l) => (p(l) ? fmtQty(p(l).booked_item) : '—') });
   }
 
   const save = async (e) => {
@@ -270,7 +271,7 @@ function DocForm({ type, id, presetItem }) {
     setSaving(true);
     setFormError('');
     if (type === 'material-issue' && (!prefill || prefill.blocked)) { setFormError('Finalise the BOQ before issuing materials.'); setSaving(false); return; }
-    const body = { ...header, lines: lines.map(({ material_id, values, quantity, remarks, reason }) => ({ material_id, values, quantity, remarks, reason })) };
+    const body = { ...header, lines: lines.map(({ material_id, values, quantity, remarks, reason,inventory_type,project_name,order_by_id }) => ({ material_id, values, quantity, remarks, reason,inventory_type:inventory_type||(header.receipt_type==='Sample'?'Sample':'Normal'),project_name,order_by_id })) };
     try {
       const r = isEdit ? await docsApi.update(type, id, body) : await docsApi.create(type, body);
       toast(r.message);
@@ -315,7 +316,7 @@ function DocForm({ type, id, presetItem }) {
               <Field label="Type" required>
                 <div role="radiogroup" aria-label="Type" className="inline-flex rounded-lg border border-gray-300 p-0.5 text-sm">
                   {['Purchase', 'Sample'].map((t) => (
-                    <button key={t} type="button" role="radio" aria-checked={header.receipt_type === t} disabled={readOnly} onClick={() => setH('receipt_type', t)}
+                    <button key={t} type="button" role="radio" aria-checked={header.receipt_type === t} disabled={readOnly} onClick={() => {setH('receipt_type',t);setLines(ls=>ls.map(l=>({...l,inventory_type:t==='Sample'?'Sample':'Normal'})));}}
                       className={`rounded-md px-4 py-1.5 font-medium ${header.receipt_type === t ? 'bg-brand-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>{t}</button>
                   ))}
                 </div>
@@ -387,7 +388,7 @@ function DocForm({ type, id, presetItem }) {
       </section>
 
       <StockLines lines={lines} onChange={(ls) => { setLines(ls); if (Object.keys(errors).some((k) => k.startsWith('lines'))) setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !k.startsWith('lines')))); }}
-        errors={errors} readOnly={readOnly} infoColumns={infoColumns} showReason={type === 'damage'} orderItemId={type === 'material-issue' ? header.order_item_id || undefined : undefined}
+        receipt={type==='material-in'} users={users||[]} defaultInventoryType={header.receipt_type==='Sample'?'Sample':'Normal'} errors={errors} readOnly={readOnly} infoColumns={infoColumns} showReason={type === 'damage'} orderItemId={type === 'material-issue' ? header.order_item_id || undefined : undefined}
         allowedMaterialIds={type === 'material-issue' ? (prefill?.lines || []).map((l) => l.material_id) : undefined} />
 
       {!readOnly && (
@@ -418,4 +419,11 @@ function Field({ label, htmlFor, required, error, help, className = '', children
       {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : help ? <p className="mt-1 text-xs text-gray-500">{help}</p> : null}
     </div>
   );
+}
+
+function ReceiptItems(){
+ const navigate=useNavigate();const {canCreateStock,canEdit}=useAuth();const [rows,setRows]=useState(null),[error,setError]=useState(''),[q,setQ]=useState(''),[search,setSearch]=useState(''),[pool,setPool]=useState(''),[page,setPage]=useState(1),[result,setResult]=useState(null),[from,setFrom]=useState(''),[to,setTo]=useState('');
+ useEffect(()=>{const t=setTimeout(()=>{setQ(search);setPage(1);},300);return()=>clearTimeout(t);},[search]);
+ const load=useCallback(()=>{setError('');docsApi.list('material-in',{q,receipt_type:pool,page,from,to}).then(r=>{setResult(r);setRows(r.data);}).catch(e=>setError(e.message));},[q,pool,page,from,to]);useEffect(load,[load]);
+ return <div className="mx-auto max-w-7xl space-y-4"><div className="flex flex-wrap gap-3"><input aria-label="Search material receipts" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search receipt, supplier, material or project…" className={inputCls()+' max-w-md'}/><select aria-label="Receipt inventory filter" value={pool} onChange={e=>{setPool(e.target.value);setPage(1);}} className="rounded border px-3"><option value="">All inventory</option><option value="Purchase">Normal</option><option value="Sample">Sample</option></select><DateInput aria-label="From date" value={from} onChange={v=>{setFrom(v);setPage(1);}}/><DateInput aria-label="To date" value={to} onChange={v=>{setTo(v);setPage(1);}}/>{canCreateStock&&<button onClick={()=>navigate('/material-in/new')} className="rounded bg-brand-600 px-4 py-2 text-white">Add Material In</button>}</div>{error&&<p role="alert" className="text-red-600">{error}<button onClick={load}>Retry</button></p>}<div className={tableWrap}><div className="overflow-auto"><table className="w-full min-w-[1500px] text-sm"><thead className={theadCls}><tr>{['Receipt No.','Date','Supplier','Invoice / Challan','Material Category','Material Code','Material','Inventory','Quantity','Unit','Project Name','Order By','Remarks','Action'].map(h=><th key={h} className={thCls}>{h}</th>)}</tr></thead><tbody>{rows?.map(l=><tr key={l.receipt_item_id}>{[l.receipt_no,fmtDate(l.receipt_date),l.supplier_name,l.challan_no,l.category_name,l.material_code,l.material_name,l.inventory_type,fmtQty(l.quantity),l.unit,l.project_name,l.order_by_name,l.remarks].map((v,i)=><td key={i} className={tdCls}>{v||'—'}</td>)}<td className={tdCls}><button onClick={()=>navigate('/material-in/'+l.id)} className="text-brand-700">{canEdit?'Edit Receipt':'Open Receipt'}</button></td></tr>)}{rows?.length===0&&<tr><td colSpan={14} className={tdCls}>No receipts match.</td></tr>}{!rows&&<tr><td className={tdCls}>Loading…</td></tr>}</tbody></table></div>{result&&<ReceiptPagination {...result} setPage={setPage}/>}</div></div>;
 }

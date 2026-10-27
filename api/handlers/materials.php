@@ -17,6 +17,7 @@ function materials_route(string $method, array $parts): void
     if (($parts[0] ?? '') === 'bulk' && $method === 'POST') { json_out(material_bulk(request_body())); return; }
     $id = isset($parts[0]) ? (int) $parts[0] : null;
     $sub = $parts[1] ?? null;
+    if($id&&$sub==='photo'&&$method==='PATCH'){require_roles(['Admin','Store']);$p=clean_image_path(request_body()['photo_path']??'');if(!$p||!is_file(upload_root().'/'.$p)||!@getimagesize(upload_root().'/'.$p))throw new ApiError('Upload a valid material photo first.',422);material_find($id);db()->prepare('UPDATE materials SET photo_path=?,updated_at=? WHERE id=?')->execute([$p,now(),$id]);json_out(['data'=>material_find($id),'message'=>'Material photo updated.']);return;}
     if ($id === null) {
         if ($method === 'GET')  { json_out(['data' => material_list()]); return; }
         if ($method === 'POST') { json_out(material_save(null, request_body()), 201); return; }
@@ -147,7 +148,7 @@ function material_delete(int $id): array
             if ((int) ($line['material_id'] ?? 0) === $id) throw new ApiError('This material is used in a Draft BOQ. Deactivate it instead.', 409);
         }
     }
-    foreach (['boq_lines', 'bookings', 'stock_moves', 'opening_stock', 'material_receipt_items', 'material_issue_items', 'damage_items', 'stock_adjustments'] as $table) {
+    foreach (['sample_moves','sample_issues','sample_legacy_review','boq_lines', 'bookings', 'stock_moves', 'opening_stock', 'material_receipt_items', 'material_issue_items', 'damage_items', 'stock_adjustments'] as $table) {
         if (db_value("SELECT COUNT(*) FROM $table WHERE variant_id IN (SELECT id FROM material_variants WHERE material_id = :m)", ['m' => $id])) throw new ApiError('This material is in use. Deactivate it instead.', 409);
     }
     $pdo = db(); $pdo->beginTransaction();

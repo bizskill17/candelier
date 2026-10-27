@@ -5,7 +5,7 @@ material_bulk(['rows'=>[['category'=>db_value('SELECT name FROM material_categor
 $bookMaterial=(int)db_value("SELECT id FROM materials WHERE material_code='BOOK-CHECK-001'");$bookVariant=variant_resolve($bookMaterial,[]);
 doc_save(doc_def('material-in'),null,['receipt_date'=>date('Y-m-d'),'supplier_id'=>$supplier,'receipt_type'=>'Purchase','challan_no'=>'BOOKING-TEST','lines'=>[['material_id'=>$bookMaterial,'quantity'=>10]]]);
 $bookItems=[];
-foreach(['A','B','C']as$letter){$o=order_save(null,['assigned_salesperson_id'=>$salesUser,'customer_id'=>$customer,'project_name'=>'Booking '.$letter,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'Booking '.$letter]]])['data'];$bookItems[$letter]=(int)$o['items'][0]['id'];$bookOrders[$letter]=(int)$o['id'];boq_save($bookItems[$letter],['status'=>'Final','lines'=>[['category_id'=>$category,'material_id'=>$bookMaterial,'qty_required'=>8]]]);}
+foreach(['A','B','C']as$letter){$o=order_save(null,['assigned_salesperson_id'=>$salesUser,'customer_id'=>$customer,'project_name'=>'Booking '.$letter,'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'Booking '.$letter]]])['data'];$bookItems[$letter]=(int)$o['items'][0]['id'];$bookOrders[$letter]=(int)$o['id'];test_drawing($bookItems[$letter]);boq_save($bookItems[$letter],['status'=>'Final','lines'=>[['category_id'=>$category,'material_id'=>$bookMaterial,'qty_required'=>8]]]);}
 $stats=fn($i)=>variant_stats([$bookVariant],$i)[$bookVariant];
 $ledger=db_all('SELECT * FROM stock_moves WHERE variant_id=:v ORDER BY id',['v'=>$bookVariant]);
 boq_book($bookItems['A'],['variant_id'=>$bookVariant,'quantity'=>3]);

@@ -13,6 +13,8 @@ import { useItemFields } from '../../lib/items';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { inputCls } from '../../components/table';
 import { today, OrderStatus, ItemStage, fmtDate } from '../../lib/util';
+import DrawingAction from './DrawingAction';
+import {downloadOrderPdf} from './OrderPrint';
 import DispatchDialog from './DispatchDialog';
 import { ContactForm } from '../crm/CrmShared';
 import { masters } from '../../config/masters';
@@ -147,7 +149,7 @@ export default function OrderForm({ id, leadId }) {
           <button type="button" onClick={back} className="inline-flex items-center gap-1 rounded-md py-1 pr-2 text-sm font-medium text-gray-600 hover:text-gray-900"><ChevronLeft size={16} /> Orders</button>
           <h2 className="min-w-0 flex-1 truncate text-lg font-semibold text-gray-900">Order {order.order_no}</h2>
           {order.lead && <button type="button" onClick={() => navigate(`/leads/${order.lead.id}`)} className="text-xs font-medium text-brand-600 hover:underline">From lead {order.lead.lead_no}</button>}
-          <OrderStatus status={order.status} />
+          <button type="button" onClick={()=>downloadOrderPdf(order.id).catch(e=>toast(e.message,'error'))} className="rounded border px-3 py-2 text-sm">Print / Download Order</button><OrderStatus status={order.status} />
         </div>
       )}
       {!isEdit && fromLead && (
@@ -199,7 +201,8 @@ export default function OrderForm({ id, leadId }) {
                   <th className={`${th} ${isEdit ? 'w-48' : 'w-[20%]'}`}>Area</th>
                   <th className={th}>Order Item</th>
                   <th className={`${th} ${isEdit ? 'w-60' : 'w-[26%]'}`}>Remarks</th>
-                  <th className={`${th} w-32`}>Reference Image</th>
+                  <th className={`${th} w-32`}>Pattern Image</th>
+                  <th className={`${th} w-32`}>Component Image</th>
                   {isEdit && <th className={`${th} w-28`}>Stage</th>}
                   {isEdit && <th className={`${th} w-[10.5rem] text-center`}>BOQ / Dispatch</th>}
                   {!locked && <th className={`${th} w-24 border-r-0 text-center`}>Action</th>}
@@ -219,14 +222,15 @@ export default function OrderForm({ id, leadId }) {
                       </td>
                       <td className={td}><AutoTextarea aria-label={`Remarks, item ${n}`} disabled={locked} value={it.remarks} onChange={(v) => setItem(i, 'remarks', v)} placeholder="e.g. Hang height 14 ft" className={inputCls(errors[`items.${i}.remarks`])} /></td>
                       <td className={td}>
-                        <PhotoSlot id={`o-item-${i}-reference`} label="Reference Image" value={it.reference_image} onChange={(v) => setItem(i, 'reference_image', v)} disabled={locked} error={errors[`items.${i}.reference_image`]} />
+                        <PhotoSlot id={`o-item-${i}-reference`} label="Pattern Image" value={it.reference_image} onChange={(v) => setItem(i, 'reference_image', v)} disabled={locked} error={errors[`items.${i}.reference_image`]} />
                       </td>
+                      <td className={td}><PhotoSlot id={`o-item-${i}-component`} label="Component Image" value={it.component_image} onChange={v=>setItem(i,'component_image',v)} disabled={locked} error={errors[`items.${i}.component_image`]} /></td>
                       {isEdit && <td className={`${td} px-3 py-3`}>{s ? <><ItemStage stage={s.stage} />{s.dispatch && <div className="mt-1 text-xs text-gray-500">{fmtDate(s.dispatch.dispatch_date)}</div>}</> : <span className="text-xs text-gray-400">New</span>}</td>}
                       {isEdit && (
                         <td className={`${td} py-2.5 text-center`}>
                           {s ? (
                             <div className="inline-flex gap-1.5" title={dirty ? 'Save your changes first' : undefined}>
-                              <button type="button" disabled={dirty} onClick={() => navigate(`/boq/${s.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-40"><ClipboardList size={13} /> BOQ · {s.boq_status}</button>
+                              <DrawingAction item={s} disabled={dirty} onSaved={load}/><button type="button" disabled={dirty||s.stage==='Pending Drawing'} onClick={() => navigate(`/boq/${s.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-40"><ClipboardList size={13} /> BOQ · {s.boq_status}</button>
                               {canCreateStock && (canEdit || (!s.dispatch&&s.production_status==='Complete')) && !cancelled && <button type="button" disabled={dirty} onClick={() => setDispatching(s)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium disabled:opacity-40 ${s.dispatch ? 'text-brand-600 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'}`}><Truck size={13} /> {s.dispatch ? 'Dispatched' : 'Dispatch'}</button>}
                             </div>
                           ) : <span className="text-xs text-gray-400">Save first</span>}

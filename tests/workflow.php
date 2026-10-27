@@ -6,7 +6,7 @@ if (!$dsn || !str_contains($dsn, 'candelier_test')) throw new RuntimeException('
 $GLOBALS['CONFIG'] = ['db' => ['dsn' => $dsn, 'user' => 'root', 'password' => '']];
 date_default_timezone_set('Asia/Kolkata');
 $root = dirname(__DIR__);
-foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'lib/migrate_crm', 'lib/migrate_enquiries', 'lib/permissions', 'entities', 'handlers/auth', 'handlers/crm', 'handlers/enquiries', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
+foreach (['lib/http', 'lib/db', 'lib/stock', 'lib/migrate', 'lib/migrate_crm', 'lib/migrate_enquiries','lib/migrate_operations', 'lib/permissions', 'entities', 'handlers/auth', 'handlers/crm', 'handlers/enquiries','handlers/samples', 'handlers/masters', 'handlers/materials', 'handlers/items', 'handlers/orders', 'handlers/production', 'handlers/boq', 'handlers/stores', 'handlers/inventory'] as $file) require "$root/api/$file.php";
 session_begin();
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); echo "PASS: $message\n"; }
 function reject(callable $action, string $message): void {
@@ -62,6 +62,10 @@ migrate_crm();
 migrate_crm();
 migrate_enquiries();
 migrate_enquiries();
+migrate_operations();
+migrate_operations();
+function test_drawing(int $id): void {db()->prepare('UPDATE order_items SET drawing_file=? WHERE id=?')->execute(['uploads/drawings/2026/10/fixture.pdf',$id]);}
+test_drawing($item);
 migrate_material_media();
 migrate_material_media();
 migrate_roles_assignment();
@@ -136,7 +140,7 @@ check(!array_key_exists('production_date', $newOrder['data']['items'][0]), 'Orde
 $pdo->prepare("UPDATE order_items SET production_date = '2020-01-01' WHERE id = :i")->execute(['i' => $newItemId]);
 $editedOrder = order_save($newOrderId, ['assigned_salesperson_id'=>$salesUser, 'customer_id' => $customer, 'order_date' => date('Y-m-d'), 'delivery_date' => date('Y-m-d'), 'items' => [['id' => $newItemId, 'area' => 'Updated room']]]);
 check($editedOrder['data']['items'][0]['area'] === 'Updated room', 'Orders remain editable without scheduling dates');
-check($editedOrder['data']['items'][0]['stage'] === 'BOQ Pending', 'Archived dates do not change item stage');
+check($editedOrder['data']['items'][0]['stage'] === 'Pending Drawing', 'Archived dates do not change item stage');
 check(!array_key_exists('production_date', item_find($newItemId)), 'BOQ and item responses omit retired field');
 check(!array_key_exists('planned_week', dashboard()['data']), 'Dashboard omits retired planning count');
 
@@ -172,3 +176,5 @@ require __DIR__ . '/whatsapp-templates.php';
 require __DIR__ . '/whatsapp-reports.php';
 
 require __DIR__ . '/enquiries.php';
+
+require __DIR__ . 'operations.php';

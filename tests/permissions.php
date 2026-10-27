@@ -10,7 +10,7 @@ $sharedLead=lead_save(null,['contact_id'=>$permContact['id'],'enquiry_date'=>dat
 $mine=order_save(null,['customer_id'=>$permContact['id'],'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'Private Sales One room','remarks'=>'SALES_ONE_SECRET_REMARK']]])['data'];
 check((int)$mine['assigned_salesperson_id']===$salesUser,'Sales-created Order is assigned to the authenticated salesperson');
 reject(fn()=>order_save(null,['assigned_salesperson_id'=>$salesTwo,'customer_id'=>$permContact['id'],'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'Forged assignment']]]),'Sales cannot forge another salesperson assignment');
-$mineItem=(int)$mine['items'][0]['id'];
+$mineItem=(int)$mine['items'][0]['id'];test_drawing($mineItem);
 boq_save($mineItem,['status'=>'Draft','lines'=>[['category_id'=>$category,'material_id'=>'','qty_required'=>'']]]);
 boq_save($mineItem,['status'=>'Draft','lines'=>[['category_id'=>$category,'material_id'=>$wire,'qty_required'=>2]]]);
 check(boq_find($mineItem)['boq_status']==='Draft','Sales can continue their own Draft BOQ');
@@ -38,7 +38,7 @@ check(!in_array('SALES_ONE_SECRET_REMARK',item_fields_list()['suggestions']['rem
 check(contact_find((int)$permContact['id'])['orders']===[],'Shared Contact detail does not reveal another salesperson Orders');
 $theirs=order_save(null,['customer_id'=>$permContact['id'],'order_date'=>date('Y-m-d'),'delivery_date'=>date('Y-m-d'),'items'=>[['area'=>'Sales Two room']]])['data'];
 $theirItem=(int)$theirs['items'][0]['id'];
-boq_save($theirItem,['status'=>'Draft','lines'=>[['category_id'=>$category,'material_id'=>'','qty_required'=>'']]]);
+test_drawing($theirItem);boq_save($theirItem,['status'=>'Draft','lines'=>[['category_id'=>$category,'material_id'=>'','qty_required'=>'']]]);
 $_SESSION['uid']=$storeUser;
 check((int)order_find($mine['id'])['id']===$mine['id'],'Store can read Orders across salespeople');
 check(boq_find($mineItem)['boq_status']==='Final','Store may read Final BOQs');

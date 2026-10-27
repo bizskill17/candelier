@@ -20,6 +20,7 @@ require __DIR__ . '/lib/stock.php';
 require __DIR__ . '/lib/migrate.php';
 require __DIR__ . '/lib/migrate_crm.php';
 require __DIR__ . '/lib/migrate_enquiries.php';
+require __DIR__ . '/lib/migrate_operations.php';
 require __DIR__ . '/entities.php';
 require __DIR__ . '/handlers/auth.php';
 require __DIR__ . '/lib/permissions.php';
@@ -33,6 +34,7 @@ require __DIR__ . '/handlers/stores.php';
 require __DIR__ . '/handlers/inventory.php';
 require __DIR__ . '/handlers/crm.php';
 require __DIR__ . '/handlers/enquiries.php';
+require __DIR__ . '/handlers/samples.php';
 require __DIR__ . '/handlers/whatsapp.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -50,6 +52,7 @@ try {
     migrate_roles_assignment();
     migrate_whatsapp();
     migrate_enquiries();
+    migrate_operations();
     migrate_enquiry_sheet();
     if ($area === 'enquiry-sync') {
         if($method!=='POST')throw new ApiError('Not found.',404);
@@ -98,6 +101,7 @@ try {
             json_out(['data' => $rows]);
             break;
         case 'whatsapp': whatsapp_route($method, $parts); break;
+        case 'samples': samples_route($method,$parts); break;
         case 'enquiries': enquiries_route($method, $parts); break;
         case 'contacts': contacts_route($method, $parts); break;
         case 'crm-followups': crm_followups_route($method, $parts); break;

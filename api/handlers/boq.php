@@ -66,6 +66,7 @@ function boq_find(int $id): array
     }
     $draft = db_value('SELECT boq_draft_json FROM order_items WHERE id = :i', ['i' => $id]);
     $item['lines'] = $item['boq_status'] === 'Draft' && $draft !== null ? json_decode($draft, true) : $lines;
+    $item['drawing_required']=$item['boq_status']==='Pending'&&empty($item['drawing_file']);
     $item['extra'] = $extra;
     $item['stats'] = (object) variant_stats(array_merge($onBoq, $extraIds), $id);
     return $item;
@@ -84,6 +85,7 @@ function boq_save(int $id, array $in): array
         require_roles(['Admin','Sales']);
         if(app_role()==='Sales'&&$item['boq_status']==='Final')throw new ApiError('Only Admin may correct a Final BOQ.',403);
         if ($item['order_status'] === 'Cancelled') throw new ApiError('Reopen the cancelled order before editing its BOQ.', 409);
+        if($item['boq_status']==='Pending'&&empty($item['drawing_file']))throw new ApiError('Upload the order item drawing before adding a BOQ.',409);
         $rows = []; $draft = []; $errors = []; $seen = [];
         $old = array_map('intval', array_column(db_all('SELECT material_id FROM boq_lines WHERE order_item_id = :i', ['i' => $id]), 'material_id'));
         $inputRows = $in['lines'] ?? [];
@@ -117,7 +119,7 @@ function boq_save(int $id, array $in): array
         $figures = booking_figures();
         foreach ($figures['items'][$id] ?? [] as $vid => $f) {
             if (($quantities[$vid] ?? 0) + 0.0005 < $f['consumed']) throw new ApiError('An issued material cannot be removed or reduced below the quantity already issued.', 409);
-            if ($status === 'Final' && ($quantities[$vid] ?? 0) + 0.0005 < $f['consumed'] + $f['open']) throw new ApiError('Release excess booked stock before reducing or removing this material.', 409);
+            if ($status === 'Final' && ($quantities[$vid] ?? 0) + 0.0005 < $f['consumed'] + $f['open']) throw new ApiError('Release excess blocked stock before reducing or removing this material.', 409);
         }
         // Draft rows (including category-only rows) are stored independently of the last complete plan.
         if ($status === 'Final') {
@@ -174,7 +176,7 @@ function boq_book(int $id, array $in): array
         $pdo->prepare('INSERT INTO bookings (order_item_id, variant_id, quantity, booked_on, booked_by, created_at, updated_at) VALUES (:i, :v, :q, :t, :u, :t2, :t3)')->execute(['i' => $id, 'v' => $vid, 'q' => $entryQty, 't' => now(), 'u' => current_user()['id'] ?? null, 't2' => now(), 't3' => now()]);
         $pdo->commit();
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
-    return ['data' => boq_find($id), 'message' => 'Stock booked.'];
+    return ['data' => boq_find($id), 'message' => 'Stock blocked.'];
 }
 
 function boq_release(int $id, array $in): array
@@ -188,7 +190,7 @@ function boq_release(int $id, array $in): array
         $vid=(int)($in['variant_id']??0);
         db_one('SELECT id FROM material_variants WHERE id=:v FOR UPDATE',['v'=>$vid]);
         $st=variant_stats([$vid],$id)[$vid]??null;
-        if(!$st||$st['booked_item']<=0)throw new ApiError('Nothing is booked for this material.',409);
+        if(!$st||$st['booked_item']<=0)throw new ApiError('Nothing is blocked for this material.',409);
         $qty=($in['quantity']??'')===''?$st['booked_item']:$in['quantity'];
         if(!qty_ok($qty)||(float)$qty>$st['booked_item']+0.0005)throw new ApiError('Please fix the highlighted fields.',422,['quantity'=>'Enter up to '.fmt_qty($st['booked_item']).'.']);
         $qty=round((float)$qty,3);

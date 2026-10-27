@@ -68,12 +68,12 @@ export default function MaterialsPage() {
     </Modal>}
   </div>;
 }
-function MaterialForm({ material, readOnly, onClose, onSaved }) {
+export function MaterialForm({ material, readOnly, onClose, onSaved }) {
   const cat = useCatalog(); const toast = useToast();
   const [f, setF] = useState({ material_code: material.material_code || '', photo_path: material.photo_path || '', name: material.name || '', category_id: material.category_id || '', unit: material.unit || 'Pcs' });
   const [photoBusy, setPhotoBusy] = useState(false);
   const [errors, setErrors] = useState({}); const [busy, setBusy] = useState(false); const [confirm, setConfirm] = useState(false);
-  const save = async () => { if (photoBusy || busy) return; const required = {}; if (!f.material_code.trim()) required.material_code = 'Enter the material code.'; if (!f.photo_path) required.photo_path = 'Upload or take a material photo.'; if (Object.keys(required).length) { setErrors(required); return; } setBusy(true); try { const r = material.id ? await materialsApi.update(material.id, f) : await materialsApi.create(f); toast(r.message); onSaved(); } catch (e) { setErrors(e.fields || {}); toast(e.message, 'error'); } finally { setBusy(false); } };
+  const save = async () => { if (photoBusy || busy) return; const required = {}; if (!f.material_code.trim()) required.material_code = 'Enter the material code.'; if (!f.photo_path) required.photo_path = 'Upload or take a material photo.'; if (Object.keys(required).length) { setErrors(required); return; } setBusy(true); try { const r = material.id ? await materialsApi.update(material.id, f) : await materialsApi.create(f); toast(r.message); onSaved(r.data); } catch (e) { setErrors(e.fields || {}); toast(e.message, 'error'); } finally { setBusy(false); } };
   const remove = async () => { try { await materialsApi.remove(material.id); onSaved(); } catch (e) { toast(e.message, 'error'); setConfirm(false); } };
   return <Modal open title={material.id ? 'Edit Material' : 'New Material'} onClose={() => !busy && !photoBusy && onClose()} footer={<>{material.id && !readOnly && <button onClick={() => setConfirm(true)} className="mr-auto text-red-600"><Trash2 size={16} /></button>}<button disabled={busy || photoBusy} onClick={onClose} className="px-3 py-2">Cancel</button>{!readOnly && <button onClick={save} disabled={busy || photoBusy} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy ? 'Saving…' : 'Save'}</button>}</>}>
     <div className="space-y-4">

@@ -2,6 +2,7 @@ export function canAccessPath(path, role) {
  if(role==='Admin')return true;
  if(!['Sales','Store'].includes(role))return false;
  const base=path.split('/')[1]||'';
+ if(['sample-inventory','sample-issues'].includes(base)&&role==='Sales')return false;
  if(base==='enquiry-settings')return false;
  if(['enquiries','enquiry-sync-history'].includes(base)&&role==='Store')return false;
  if(base==='whatsapp-settings')return false;

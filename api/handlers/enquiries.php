@@ -46,12 +46,13 @@ function enquiry_find(int $id): array {
 }
 function enquiry_list(): array {
  $w=[];$p=[];$view=$_GET['view']??'pending';$open="e.contact_id IS NULL AND e.lead_id IS NULL AND BINARY e.inbox_status<>BINARY 'Archived'";
- $filters=['pending'=>$open,'new'=>"$open AND BINARY e.inbox_status=BINARY 'New'",'today'=>"$open AND DATE(e.next_followup_at)=CURRENT_DATE()",'overdue'=>"$open AND DATE(e.next_followup_at)<CURRENT_DATE()",'upcoming'=>"$open AND DATE(e.next_followup_at)>CURRENT_DATE()",'converted'=>'e.contact_id IS NOT NULL','archived'=>"BINARY e.inbox_status=BINARY 'Archived'",'all'=>'1=1'];
- $w[]=$filters[$view]??$filters['pending'];
- foreach(['source_name','city','assigned_to']as$k)if(($_GET[$k]??'')!==''){$w[]="e.$k=:$k";$p[$k]=$_GET[$k];}
+ $filters=['added-today'=>'e.created_at>=CURRENT_DATE() AND e.created_at<CURRENT_DATE()+INTERVAL 1 DAY','pending'=>$open,'new'=>"$open AND BINARY e.inbox_status=BINARY 'New'",'today'=>"$open AND DATE(e.next_followup_at)=CURRENT_DATE()",'overdue'=>"$open AND DATE(e.next_followup_at)<CURRENT_DATE()",'upcoming'=>"$open AND DATE(e.next_followup_at)>CURRENT_DATE()",'converted'=>'e.contact_id IS NOT NULL','archived'=>"BINARY e.inbox_status=BINARY 'Archived'",'all'=>'1=1'];
+
+ foreach(['source_name','city','followup_by_id']as$k)if(($_GET[$k]??'')!==''){$w[]="e.$k=:$k";$p[$k]=$_GET[$k];}
  crm_where_search($w,$p,['e.name','e.mobile','e.email','e.city','e.external_id','e.source_data']);
+ $counts=crm_view_counts('crm_enquiry_current e',$filters,$w,$p);$w[]=$filters[$view]??$filters['pending'];
  $result=crm_page('SELECT e.* FROM crm_enquiry_current e WHERE '.implode(' AND ',$w).' ORDER BY e.created_at DESC,e.id DESC',$p);
- foreach($result['data'] as &$r){$r['source_data']=json_decode($r['source_data'],true);unset($r['source_hash']);}return $result;
+ foreach($result['data'] as &$r){$r['source_data']=json_decode($r['source_data'],true);unset($r['source_hash']);}$result['view_counts']=$counts;return $result;
 }
 function enquiry_followup(int $id,array $in): array {
  require_roles(['Admin','Sales']);$decision=$in['decision']??'';if(!in_array($decision,['Create Lead','Keep as Contact','Follow up Later','Archive'],true))throw new ApiError('Choose a qualification decision.',422);
@@ -76,14 +77,10 @@ function enquiry_followup(int $id,array $in): array {
    $data=json_decode($e['source_data'],true);$c=$in['contact']??[];
    $cid=(int)contact_save(null,['name'=>$c['name']??$e['name'],'mobile'=>$c['mobile']??$e['mobile'],'email'=>$c['email']??$e['email'],'city'=>$c['city']??$e['city'],'category_id'=>$c['category_id']??0,'source_id'=>$source,'source_details'=>mb_substr($data['campaign_name']??'',0,150)])['data']['id'];
   }
-  if($decision==='Create Lead'){$temp=$in['temperature']??'';if(!in_array($temp,CRM_TEMPERATURES,true))throw new ApiError('Select Hot, Warm or Cold.',422);$lid=(int)lead_save(null,['contact_id'=>$cid,'enquiry_date'=>($e['enquiry_at']&&substr($e['enquiry_at'],0,10)<=date('Y-m-d')?substr($e['enquiry_at'],0,10):date('Y-m-d')),'project_name'=>$in['project_name']??'','requirement'=>$in['requirement']??'','initial_temperature'=>$temp])['data']['id'];}
+  if($decision==='Create Lead'){$temp=$in['temperature']??'';if(!in_array($temp,CRM_TEMPERATURES,true))throw new ApiError('Select Hot, Warm or Cold.',422);$lid=(int)lead_save(null,['contact_id'=>$cid,'enquiry_date'=>($e['enquiry_at']&&substr($e['enquiry_at'],0,10)<=date('Y-m-d')?substr($e['enquiry_at'],0,10):date('Y-m-d')),'project_name'=>$in['project_name']??'','requirement'=>$in['requirement']??'','initial_temperature'=>$temp,'source_id'=>enquiry_source_id($e)])['data']['id'];}
   $pdo->prepare('UPDATE enquiries SET contact_id=?,lead_id=? WHERE id=?')->execute([$cid,$lid,$id]);
   // Keep the same history rows, now visible from the qualified Contact/Lead as well.
   $pdo->prepare('UPDATE followups SET contact_id=?,lead_id=? WHERE enquiry_id=?')->execute([$lid?null:$cid,$lid,$id]);
- }
- $assigned=$in['assigned_to']??null;if($assigned!==null&&$assigned!==''){
-  $assigned=(int)$assigned;if(!db_value("SELECT COUNT(*) FROM users WHERE id=? AND is_active=1 AND role IN ('Admin','Sales')",[$assigned]))throw new ApiError('Choose an active Sales or Admin user.',422);
-  if($e['assigned_to']&&$assigned!==(int)$e['assigned_to'])require_admin();$pdo->prepare('UPDATE enquiries SET assigned_to=? WHERE id=?')->execute([$assigned,$id]);
  }
  crm_insert_followup(['request_key'=>$key,'enquiry_id'=>$id,'enquiry_decision'=>$decision,'contact_id'=>$lid?null:$cid,'lead_id'=>$lid,'activity_at'=>now(),'method'=>$method,'remarks'=>$remarks,'lead_status'=>$lid?'Open':null,'lead_temperature'=>$temp,'further_followup_required'=>$next?1:0,'next_followup_at'=>$next]);
  $pdo->commit();return ['data'=>enquiry_find($id),'message'=>$decision==='Create Lead'?'Follow-up saved and Lead created.':($decision==='Keep as Contact'?'Follow-up saved and Contact linked.':'Follow-up saved.')];
@@ -108,4 +105,9 @@ function enquiries_route(string $method,array $parts): void {
  if(ctype_digit($first)&&($parts[1]??'')==='followups'&&$method==='POST'){json_out(enquiry_followup((int)$first,request_body()));return;}
  if(ctype_digit($first)&&count($parts)===1&&$method==='GET'){json_out(['data'=>enquiry_find((int)$first)]);return;}
  throw new ApiError('Not found.',404);
+}
+
+function enquiry_source_id(array $e): int {
+ $id=(int)db_value('SELECT id FROM lead_sources WHERE name=?',[$e['source_name']]);
+ if(!$id){db()->prepare('INSERT INTO lead_sources(code,name,is_active) VALUES(?,?,1)')->execute([next_doc_no('lead_sources','SRC','code'),$e['source_name']]);$id=(int)db()->lastInsertId();}return $id;
 }

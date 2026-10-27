@@ -77,8 +77,8 @@ export default function InventoryPage() {
                 <th className={`${th} w-20 text-right`}>Issued</th>
                 <th className={`${th} w-20 text-right`}>Damaged</th>
                 <th className={`${th} w-20 text-right`}>In Stock</th>
-                <th className={`${th} w-20 text-right`}>Booked</th>
-                <th className={`${th} w-24 text-right`}>Available to Book</th>
+                <th className={`${th} w-20 text-right`}>Blocked</th>
+                <th className={`${th} w-24 text-right`}>Available to Block</th>
                 <th className={`${th} print:hidden w-20 text-center`}>History</th>
               </tr>
             </thead>
@@ -144,7 +144,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
       {!d ? <div className="h-32 animate-pulse rounded bg-gray-100" /> : (
         <>
           <div className="mb-4 grid grid-cols-3 gap-3 text-center">
-            {[['In Stock', d.in_stock], ['Booked', d.booked], ['Available to Book', d.available]].map(([l, v]) => (
+            {[['In Stock', d.in_stock], ['Blocked', d.booked], ['Available to Block', d.available]].map(([l, v]) => (
               <div key={l} className="rounded-lg bg-gray-50 p-3"><div className="text-xs text-gray-500">{l}</div><div className="text-lg font-semibold tabular-nums text-gray-900">{fmtQty(v)} <span className="text-sm font-normal text-gray-500">{d.unit}</span></div></div>
             ))}
           </div>
@@ -178,7 +178,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
           {tab === 'bookings' && (
             d.bookings.length === 0 ? <p className="py-6 text-center text-gray-500">Not booked for any order item.</p> : (
               <table className="w-full border-collapse text-sm">
-                <thead><tr className="text-left text-xs uppercase tracking-wide text-gray-500"><th className="border-b border-gray-200 py-2 pr-3">Order Item</th><th className="border-b border-gray-200 py-2 pr-3">Customer</th><th className="border-b border-gray-200 py-2 pr-3 text-right">Booked</th><th className="border-b border-gray-200 py-2 text-right">Consumed</th></tr></thead>
+                <thead><tr className="text-left text-xs uppercase tracking-wide text-gray-500"><th className="border-b border-gray-200 py-2 pr-3">Order Item</th><th className="border-b border-gray-200 py-2 pr-3">Customer</th><th className="border-b border-gray-200 py-2 pr-3 text-right">Blocked</th><th className="border-b border-gray-200 py-2 text-right">Consumed</th></tr></thead>
                 <tbody>
                   {d.bookings.map((b) => (
                     <tr key={b.order_item_id} className="border-b border-gray-100">

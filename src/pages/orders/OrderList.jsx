@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, ChevronLeft, ChevronRight, RefreshCw, Pencil, ClipboardList, Truck, AlertTriangle } from 'lucide-react';
+import DrawingAction from './DrawingAction';
+import {downloadOrderPdf} from './OrderPrint';
 import { api, ordersApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import SearchSelect from '../../components/SearchSelect';
@@ -71,7 +73,7 @@ export default function OrderList() {
   const pages = Math.max(1, Math.ceil(total / PER_PAGE));
   const currentPage = Math.min(page, pages);
   const visibleRows = rows.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
-  const columns = 13;
+  const columns = 14;
   const orderByName = (o) => o.order_by_name || users.find(u => String(u.id) === String(o.order_by_id))?.name || '—';
 
   return (
@@ -92,7 +94,7 @@ export default function OrderList() {
           <table className="w-full min-w-[1280px] border-collapse text-sm">
             <thead className={theadCls}>
               <tr>
-                {['Order No.', 'Item', 'Order Date', 'Customer', 'Project', 'Area', 'Order Item', 'Reference Image', 'Remarks', 'Order By', 'Delivery Date', 'Stage', 'Action'].map(label =>
+                {['Order No.', 'Item', 'Order Date', 'Customer', 'Project', 'Area', 'Order Item', 'Pattern Image', 'Component Image', 'Remarks', 'Order By', 'Delivery Date', 'Stage', 'Action'].map(label =>
                   <th key={label} className={thCls}>{label}</th>
                 )}
               </tr>
@@ -112,7 +114,8 @@ export default function OrderList() {
                   <td className={tdCls}>{o.project_name || '—'}</td>
                   <td className={tdCls}>{it.area || '—'}</td>
                   <td className={`${tdCls} min-w-[215px]`}><ItemText item={it}/></td>
-                  <td className={tdCls}>{it.reference_image ? <PhotoThumb path={it.reference_image} title={`Reference Image — ${o.order_no} item ${it.line_no}`} /> : <span className="text-gray-300">—</span>}</td>
+                  <td className={tdCls}>{it.reference_image ? <PhotoThumb path={it.reference_image} title={`Pattern Image — ${o.order_no} item ${it.line_no}`} /> : <span className="text-gray-300">—</span>}</td>
+                  <td className={tdCls}>{it.component_image?<PhotoThumb path={it.component_image} title={`Component Image — ${o.order_no} item ${it.line_no}`}/>:'—'}</td>
                   <td className={`${tdCls} min-w-[120px] whitespace-pre-wrap`}>{it.remarks || '—'}</td>
                   <td className={tdCls}>{orderByName(o)}</td>
                   <td className={`${tdCls} whitespace-nowrap`}>{late && <AlertTriangle size={13} className="mr-1 inline text-red-600"/>}{fmtDate(o.delivery_date)}</td>
@@ -121,7 +124,7 @@ export default function OrderList() {
                     <div className="flex flex-wrap gap-1">
                       <button onClick={() => navigate(`/orders/${o.id}`)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs text-brand-600"><Pencil size={12}/>{canEdit ? 'Edit' : 'Open'}</button>
                       {['Draft', 'Final'].includes(it.boq_status) && <button type="button" title="Download BOQ PDF" aria-label={`Download BOQ PDF for item ${it.line_no}`} onClick={() => downloadPdf(it.id)} className="inline-flex items-center gap-1 rounded border border-blue-200 px-2 py-1 text-xs font-medium text-brand-600 hover:bg-blue-50"><FileDown size={14}/> PDF</button>}
-                      <button onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs"><ClipboardList size={12}/>BOQ · {it.boq_status}</button>
+                      <DrawingAction item={it} onSaved={()=>setRevision(n=>n+1)}/><button type="button" onClick={()=>downloadOrderPdf(o.id).catch(e=>setPdfError(e.message))} className="rounded border px-2 py-1 text-xs">Print / Download Order</button><button disabled={it.stage==='Pending Drawing'} onClick={() => navigate(`/boq/${it.id}`)} className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs"><ClipboardList size={12}/>BOQ · {it.boq_status}</button>
                       {canCreateStock && (canEdit || (!it.dispatch && it.production_status === 'Complete')) && o.status !== 'Cancelled' && <button onClick={() => setDispatching(it)} className="inline-flex items-center gap-1 rounded bg-brand-600 px-2 py-1 text-xs text-white"><Truck size={12}/>{it.dispatch ? 'Dispatched' : 'Dispatch'}</button>}
                     </div>
                   </td>

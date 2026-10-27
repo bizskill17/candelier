@@ -123,6 +123,8 @@ function lead_save(?int $id,array $in): array {
     if($id)require_admin();else require_roles(['Admin','Sales']);
     $old=$id?lead_find($id):null;$h=['contact_id'=>(int)($in['contact_id']??0),'enquiry_date'=>trim((string)($in['enquiry_date']??$in['lead_date']??'')),'project_name'=>crm_text($in['project_name']??'',150),'requirement'=>crm_text($in['requirement']??'',10000)];
     if(!db_value('SELECT COUNT(*) FROM contacts WHERE id=:id AND is_active=1',['id'=>$h['contact_id']])&&(!$old||$old['contact_id']!==$h['contact_id']))throw new ApiError('Choose an active Contact.',422);
+    $h['source_id']=(int)($in['source_id']??($old['source_id']??db_value('SELECT source_id FROM contacts WHERE id=?',[$h['contact_id']])))?:null;
+    if($h['source_id']&&!db_value('SELECT COUNT(*) FROM lead_sources WHERE id=?',[$h['source_id']]))throw new ApiError('Choose a valid Lead Source.',422);
     if(!$h['requirement'])throw new ApiError('Enter the requirement.',422);
     if(!valid_date($h['enquiry_date'])||$h['enquiry_date']>date('Y-m-d'))throw new ApiError('Enter a valid enquiry date.',422);
     if($old&&$old['contact_id']!==$h['contact_id'])throw new ApiError('The Contact of an existing Lead cannot be changed.',409);

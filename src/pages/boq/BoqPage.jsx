@@ -238,7 +238,7 @@ function BoqEditor({ itemId }) {
 
   const dirty = rows.length > 0 && snap(rows) !== savedSnap;
   const showStockDetails = data?.boq_status === 'Final' && !dirty;
-  const readOnly = !(canEdit || (canCreateSales && data && data.boq_status!=='Final' && !data.closed)) || (data && data.order_status === 'Cancelled');
+  const readOnly = !(canEdit || (canCreateSales && data && data.boq_status!=='Final' && !data.closed)) || (data && (data.order_status === 'Cancelled'||data.drawing_required));
   const setRow = (key, patch) => { setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r))); setErrors({}); };
   const addRow = () => setRows((rs) => [...rs, row({})]);
   const removeRow = (idx) => setRows((rs) => rs.length > 1 ? rs.filter((_, i) => i !== idx) : [row({})]);
@@ -333,6 +333,7 @@ function BoqEditor({ itemId }) {
         )}
       </section>
 
+      {data.drawing_required&&<p className="rounded-lg bg-amber-50 p-3 text-amber-900">Upload the item drawing in Pending Drawing before preparing its BOQ.</p>}
       {data.boq_status === 'Draft' && <p className="print:hidden rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">Draft BOQ. Finalise the BOQ before issuing materials.</p>}
       {formError && <div className="print:hidden rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
 
@@ -347,7 +348,7 @@ function BoqEditor({ itemId }) {
       <section className="boq-screen-table overflow-hidden rounded-xl border border-blue-300 bg-white">
         <div className="overflow-x-auto"><table className={`w-full ${showStockDetails ? 'min-w-[1100px]' : 'min-w-[760px]'} border-collapse text-sm`}>
           <thead className="bg-brand-600 text-xs uppercase text-white"><tr>
-            {['#', 'Material Category', 'Material', 'Photo', 'Quantity', 'Unit', 'In Stock', ...(showStockDetails ? ['Booked (All)', 'Available', 'Booked (Item)', 'Remaining to Book', 'Consumed'] : []), 'Action'].map((t, i) => <th key={t} className={`${th} ${i > 5 ? 'print:hidden' : ''}`}>{t}</th>)}
+            {['#', 'Material Category', 'Material', 'Photo', 'Quantity', 'Unit', 'In Stock', 'Blocked', 'Available for Issue', ...(showStockDetails ? ['Blocked (Item)', 'Remaining to Block', 'Consumed'] : []), 'Action'].map((t, i) => <th key={t} className={`${th} ${i > 5 ? 'print:hidden' : ''}`}>{t}</th>)}
           </tr></thead><tbody>
             {rows.map((r, idx) => {
               const m = cat.material(r.material_id);
@@ -364,12 +365,12 @@ function BoqEditor({ itemId }) {
                 <td className={`${td} w-24`}>{m?.photo_path ? <PhotoThumb path={m.photo_path} title={m.name} className="h-16 w-16"/> : <span className="text-xs text-gray-400">{m ? 'Photo pending' : '—'}</span>}</td>
                 <td className={`${td} w-28`}>{readOnly ? fmtQty(r.qty) : <input aria-label={`Quantity, row ${idx + 1}`} type="number" min="0" step="0.001" value={r.qty} onChange={(e) => setRow(r.key, { qty: e.target.value })} className={`${inputCls(errors[`${r.key}.qty_required`])} text-right`} />}{errors[`${r.key}.qty_required`] && <p className="text-xs text-red-600">{errors[`${r.key}.qty_required`]}</p>}</td>
                 <td className={td}>{m?.unit || '—'}</td>
-                {[st?.in_stock, ...(showStockDetails ? [st?.booked_all, st?.available, st?.booked_item, r.material_id ? required : null, st?.consumed] : [])].map((n, i) => <td key={i} className={`${num} print:hidden`}>{n == null ? '—' : fmtQty(n)}</td>)}
+                {[st?.in_stock, st?.booked_all, st?.available_for_issue??(st?st.in_stock-st.booked_all+(st.booked_item||0):null), ...(showStockDetails ? [st?.booked_item, r.material_id ? required : null, st?.consumed] : [])].map((n, i) => <td key={i} className={`${num} print:hidden`}>{n == null ? '—' : fmtQty(n)}</td>)}
                 <td className={`${td} print:hidden`}><div className="flex items-center gap-1">
                   {!readOnly && <button onClick={() => removeRow(idx)} title="Remove row" aria-label={`Remove row ${idx + 1}`} className="p-1 text-red-500"><Trash2 size={15} /></button>}
                   {showStockDetails && canCreateStock && !data.closed && v && st && <>
-                    {data.boq_status === 'Final' && !dirty && required > 0 && <button disabled={st.available <= 0} onClick={() => setBooking({ mode: 'book', row: r, variant: v, st, required })} className="rounded bg-brand-600 px-2 py-1 text-xs text-white disabled:opacity-40">Book</button>}
-                    {canEdit && st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release booked stock" className="p-1 text-gray-500"><Unlock size={14} /></button>}
+                    {data.boq_status === 'Final' && !dirty && required > 0 && <button disabled={st.available <= 0} onClick={() => setBooking({ mode: 'book', row: r, variant: v, st, required })} className="rounded bg-brand-600 px-2 py-1 text-xs text-white disabled:opacity-40">Block</button>}
+                    {canEdit && st.booked_item > 0 && <button onClick={() => setBooking({ mode: 'release', row: r, variant: v, st, required })} title="Release blocked stock" className="p-1 text-gray-500"><Unlock size={14} /></button>}
                   </>}
                 </div></td>
               </tr>;
@@ -443,19 +444,19 @@ function BookDialog({ itemId, booking, onClose, onDone }) {
     } catch (e) { setError(e.fields?.quantity || e.message); } finally { inFlight.current=false;setBusy(false); }
   };
   return (
-    <Modal open title={mode === 'book' ? 'Book stock' : 'Release booked stock'} onClose={() => !inFlight.current && onClose()}
+    <Modal open title={mode === 'book' ? 'Block stock' : 'Release blocked stock'} onClose={() => !inFlight.current && onClose()}
       footer={<>
         <button disabled={busy} onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
-        <button onClick={go} disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : mode === 'book' ? 'Book' : 'Release'}</button>
+        <button onClick={go} disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : mode === 'book' ? 'Block' : 'Release'}</button>
       </>}>
       <p className="font-medium text-gray-900">{m?.name}</p>
       <dl className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3 text-sm">
         <dt className="text-gray-500">In stock</dt><dd className="text-right tabular-nums">{fmtQty(st.in_stock)} {m?.unit}</dd>
-        <dt className="text-gray-500">Available to book</dt><dd className="text-right font-medium tabular-nums">{fmtQty(st.available)}</dd>
-        <dt className="text-gray-500">Booked for this item</dt><dd className="text-right tabular-nums">{fmtQty(st.booked_item)}</dd>
+        <dt className="text-gray-500">Available to block</dt><dd className="text-right font-medium tabular-nums">{fmtQty(st.available)}</dd>
+        <dt className="text-gray-500">Blocked for this item</dt><dd className="text-right tabular-nums">{fmtQty(st.booked_item)}</dd>
         {mode === 'book' && <><dt className="text-gray-500">Still required</dt><dd className="text-right tabular-nums">{fmtQty(Math.max(0, required || 0))}</dd></>}
       </dl>
-      <label htmlFor="book-qty" className="mb-1 mt-4 block text-sm font-medium text-gray-700">{mode === 'book' ? 'Quantity to book' : 'Quantity to release'}</label>
+      <label htmlFor="book-qty" className="mb-1 mt-4 block text-sm font-medium text-gray-700">{mode === 'book' ? 'Quantity to block' : 'Quantity to release'}</label>
       <input id="book-qty" disabled={busy} autoFocus type="number" min="0" step="any" inputMode="decimal" value={qty} onChange={(e) => { setQty(e.target.value); setError(''); }} onKeyDown={(e) => { if (e.key === 'Enter') {e.preventDefault();go();} }} className={`${inputCls(error)} text-right tabular-nums`} />
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </Modal>

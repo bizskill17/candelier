@@ -8,7 +8,7 @@ import SearchSelect from '../../components/SearchSelect';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { today, fmtDate, fmtQty } from '../../lib/util';
 
-// Specifications whose Available to Book has fallen below their reorder level.
+// Specifications whose Available to Block has fallen below their reorder level.
 export default function LowStock() {
   const navigate = useNavigate();
   const cat = useCatalog();
@@ -43,8 +43,8 @@ export default function LowStock() {
                 <th className={thCls}>Material</th>
                 <th className={`${thCls} w-16`}>Unit</th>
                 <th className={`${thCls} w-24 text-right`}>In Stock</th>
-                <th className={`${thCls} w-24 text-right`}>Booked</th>
-                <th className={`${thCls} w-28 text-right`}>Available to Book</th>
+                <th className={`${thCls} w-24 text-right`}>Blocked</th>
+                <th className={`${thCls} w-28 text-right`}>Available to Block</th>
                 <th className={`${thCls} w-28 text-right`}>Reorder Level</th>
                 <th className={`${thCls} w-24 text-right`}>Short By</th>
                 <th className={thCls}>Last Supplier</th>

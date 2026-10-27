@@ -3,7 +3,7 @@
 $dsn=getenv('TEST_DB_DSN');if(!$dsn||!str_contains($dsn,'candelier_test'))throw new RuntimeException('Isolated test DB required.');
 $GLOBALS['CONFIG']=['db'=>['dsn'=>$dsn,'user'=>'root','password'=>'']];date_default_timezone_set('Asia/Kolkata');
 $root=dirname(__DIR__);
-foreach(['lib/http','lib/db','lib/stock','lib/permissions','entities','handlers/auth','handlers/items','handlers/materials','handlers/orders','handlers/boq','handlers/stores']as$f)require "$root/api/$f.php";
+foreach(['lib/http','lib/db','lib/stock','lib/permissions','entities','handlers/auth','handlers/items','handlers/materials','handlers/orders','handlers/boq','handlers/stores','handlers/samples']as$f)require "$root/api/$f.php";
 session_begin();$_SESSION['uid']=(int)$argv[5];
 fwrite(STDOUT,"READY\n");fflush(STDOUT);
 try {

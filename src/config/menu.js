@@ -53,6 +53,7 @@ export const menu = [
   {
     heading: 'BOQ',
     items: [
+      {key:'pending-drawing',label:'Pending Drawing',path:'/pending-drawing',icon:ClipboardList,description:'Upload each order item drawing before preparing the BOQ.'},
       { key: 'pending-boq', label: 'Pending BOQ', path: '/pending-boq', icon: ClipboardList, description: 'Order items with no BOQ or a Draft BOQ.' },
       { key: 'boq-master', label: 'Orders with BOQ', path: '/boq-master', icon: ClipboardList, description: 'Draft and Final BOQs for every order item.' },
     ],
@@ -92,6 +93,8 @@ export const menu = [
   {
     heading: 'Stores',
     items: [
+      {key:'sample-inventory',label:'Sample Inventory',path:'/sample-inventory',icon:Warehouse,description:'Separate sample stock and issues against orders.'},
+      {key:'sample-issues',label:'Sample Issue History',path:'/sample-issues',icon:PackageMinus},
       { key: 'inventory', label: 'Inventory', path: '/inventory', icon: Warehouse, description: 'Stock per material.' },
     ],
   },

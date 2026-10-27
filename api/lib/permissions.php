@@ -14,6 +14,9 @@ function require_item_access(int $id): void {
 }
 function authorize_request(string $method, ?string $area, array $parts): void {
     require_roles(['Admin','Store','Sales']);
+    if($area==='samples'){require_roles(['Admin','Store']);if($method==='GET'||($method==='POST'&&$parts===['issue']))return;if(($parts[1]??'')==='review'&&$method==='POST'){require_admin();return;}throw new ApiError('Action not allowed.',403);}
+    if($area==='materials'&&($parts[1]??'')==='photo'&&$method==='PATCH'){require_roles(['Admin','Store']);return;}
+    if($area==='order-items'&&($parts[1]??'')==='drawing'&&$method==='PUT'){require_roles(['Admin','Sales','Store']);return;}
     if($area==='enquiries'){require_roles(['Admin','Sales']);if(in_array($parts[0]??'',['settings','connection-script','request-sync'],true))require_admin();if($method==='GET'||($method==='POST'&&(($parts[1]??'')==='followups'||in_array($parts[0]??'',['connection-script','request-sync'],true)))||($method==='PUT'&&($parts[0]??'')==='settings'))return;throw new ApiError('Action not allowed.',403);}
     if($area==='whatsapp'){require_roles(['Admin','Sales']);if(($parts[0]??'')==='settings')require_admin();return;}
     if(app_role()==='Admin')return;
