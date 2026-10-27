@@ -25,13 +25,13 @@ function wa_templates(int $page=1): array {
  if($page>1)return ['data'=>[],'page'=>$page,'has_more'=>false];
  $out=[];$seen=[];$received=0;$fields=[];$started=microtime(true);
  for($p=1;$p<=30;$p++){
-  $r=wa_http('POST','/api/v1/messageTemplate/getTemplates',['pagination'=>['current'=>$p,'pageSize'=>10],'order'=>[['fieldName'=>'creationTime','dir'=>'desc']],'search'=>[]]);
+  $r=wa_http('POST','/api/v1/messageTemplate/getTemplates',['pagination'=>['current'=>$p,'pageSize'=>10],'order'=>[['fieldName'=>'creationTime','dir'=>'desc']],'search'=>[]],null,55);
   if($r['code']>=300||!empty($r['data']['error']))throw new ApiError(wa_error_message($r),502);
   $rows=wa_template_rows($r['data']);$signature=hash('sha256',json_encode($rows));if(isset($seen[$signature]))break;$seen[$signature]=true;
   $received+=count($rows);if(!$fields&&$rows&&is_array($rows[0]))$fields=array_slice(array_keys(is_array($rows[0]['template']??null)?$rows[0]['template']:$rows[0]),0,12);
   foreach($rows as $t){$parsed=wa_template_parse($t);if($parsed)$out[$parsed['name'].'|'.$parsed['language']]=$parsed;}
   $total=wa_template_total($r['data']);
-  if(count($rows)<10||($total!==null&&$p*10>=$total)||microtime(true)-$started>40)break;
+  if(count($rows)<10||($total!==null&&$p*10>=$total)||microtime(true)-$started>60)break;
  }
  $result=['data'=>array_values($out),'page'=>1,'has_more'=>false,'received'=>$received];
  if(!$out)$result['notice']=$received?"Red Lava sent $received template record(s), but none could be read as an approved template. Fields received: ".implode(', ',$fields).'.':'Red Lava returned no templates for this WhatsApp number.';
