@@ -142,3 +142,5 @@ $_GET=['contact_id'=>$viewContact,'enquiry_from'=>date('Y-m-d'),'enquiry_to'=>da
 $_GET=['contact_id'=>$viewContact,'enquiry_to'=>date('Y-m-d',strtotime('-1 day'))];check(lead_list()['total']===0,'Enquiry To date excludes later enquiries');
 $_GET=['enquiry_from'=>'2026-10-28','enquiry_to'=>'2026-10-25'];reject(fn()=>lead_list(),'Reversed Enquiry Date range rejected');
 $_GET=['enquiry_from'=>'not-a-date'];reject(fn()=>lead_list(),'Invalid Enquiry Date filter rejected');$_GET=[];
+
+foreach([[],['q'=>'View'],['temperature'=>'Cold']]as$scope){$_GET=$scope;$dueCounts=followups_due()['view_counts'];foreach($dueCounts as$tab=>$count){$_GET=$scope+['tab'=>$tab];check(followups_due()['total']===$count,'Follow-up button count matches '.$tab.' in current scope');}}$_GET=[];

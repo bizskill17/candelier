@@ -222,10 +222,11 @@ function followup_logs(): array {
 }
 function followups_due(): array {
     $w=["l.status='Open'","l.further_followup_required=1"];$p=[];$tab=$_GET['tab']??'today';
-    $conditions=['today'=>'DATE(l.next_followup_at)=CURRENT_DATE()','overdue'=>'DATE(l.next_followup_at)<CURRENT_DATE()','upcoming'=>'DATE(l.next_followup_at)>CURRENT_DATE()','missing'=>'l.next_followup_at IS NULL'];if(isset($conditions[$tab]))$w[]=$conditions[$tab];
+    $conditions=['today'=>'DATE(l.next_followup_at)=CURRENT_DATE()','overdue'=>'DATE(l.next_followup_at)<CURRENT_DATE()','upcoming'=>'DATE(l.next_followup_at)>CURRENT_DATE()','missing'=>'l.next_followup_at IS NULL','all'=>'1=1'];
     if(in_array($_GET['temperature']??'',CRM_TEMPERATURES,true)){$w[]='l.temperature=:temp';$p['temp']=$_GET['temperature'];}
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.requirement']);
-    $result=crm_page(LEAD_SELECT.' WHERE '.implode(' AND ',$w).' ORDER BY l.next_followup_at IS NULL,l.next_followup_at,l.id',$p);$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+    $counts=crm_view_counts('crm_lead_current l',$conditions,$w,$p);if(isset($conditions[$tab]))$w[]=$conditions[$tab];
+    $result=crm_page(LEAD_SELECT.' WHERE '.implode(' AND ',$w).' ORDER BY l.next_followup_at IS NULL,l.next_followup_at,l.id',$p);$result['view_counts']=$counts;$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
 }
 
 // Shared CRM does not expose another salesperson's linked Order details.
