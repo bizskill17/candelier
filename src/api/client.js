@@ -183,6 +183,6 @@ export const whatsappApi = { get:(route,params)=>request('GET','whatsapp/'+route
 
 export const enquiriesApi = {filters:()=>request('GET','enquiries/filters'),list:p=>request('GET','enquiries',{params:p}),get:id=>request('GET',`enquiries/${id}`),followup:(id,body)=>request('POST',`enquiries/${id}/followups`,{body}),settings:()=>request('GET','enquiries/settings'),saveSettings:body=>request('PUT','enquiries/settings',{body}),script:()=>request('POST','enquiries/connection-script',{body:{}}),requestSync:()=>request('POST','enquiries/request-sync',{body:{}}),history:p=>request('GET','enquiries/sync-history',{params:p})};
 
-export const samplesApi={orders:()=>request('GET','samples/orders'),list:p=>request('GET','samples',{params:p}),history:p=>request('GET','samples/history',{params:p}),issue:body=>request('POST','samples/issue',{body}),review:(id,body)=>request('POST',`samples/${id}/review`,{body})};
+export const samplesApi={orders:p=>request('GET','samples/orders',{params:p}),list:p=>request('GET','samples',{params:p}),history:p=>request('GET','samples/history',{params:p}),issue:body=>request('POST','samples/issue',{body}),review:(id,body)=>request('POST',`samples/${id}/review`,{body})};
 export const drawingApi={save:(id,body)=>request('PUT',`order-items/${id}/drawing`,{body}),pending:q=>request('GET','order-items',{params:{pending_drawing:1,q}})};
 export const materialPhotoApi=(id,photo_path)=>request('PATCH',`materials/${id}/photo`,{body:{photo_path}});
