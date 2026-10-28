@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { canAccessPath } from '../auth/permissions';
 import { menu } from '../config/menu';
@@ -20,25 +20,15 @@ const sectionColors = {
   Administration: ['#f1f5f9', '#334155'],
 };
 
-const STORAGE_KEY = 'ims.sidebar.closedGroups';
-
-function loadClosed() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
 export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }) {
-  const [closed, setClosed] = useState(loadClosed);
+  const { pathname } = useLocation();
+  const selectedGroup = menu.find(g => g.heading && g.items.some(i => i.path !== '/' && (pathname === i.path || pathname.startsWith(i.path + '/'))))?.heading
+    || menu.find(g => g.heading && g.items.some(i => i.path.split('/')[1] === pathname.split('/')[1]))?.heading
+    || null;
+  const [openGroup, setOpenGroup] = useState(selectedGroup);
   const [query, setQuery] = useState('');
-
-  const toggleGroup = (heading) => {
-    const next = { ...closed, [heading]: !closed[heading] };
-    setClosed(next);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-  };
+  useEffect(() => { setOpenGroup(selectedGroup); }, [pathname, selectedGroup]);
+  const toggleGroup = heading => setOpenGroup(current => current === heading ? null : heading);
 
   const { isAdmin, user } = useAuth();
   const q = query.trim().toLowerCase();
@@ -103,7 +93,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-3">
           {groups.map((group, gi) => {
             const colors = sectionColors[group.heading] || ['#f8fafc', '#334155'];
-            const isClosed = group.heading && closed[group.heading] && !q;
+            const isClosed = Boolean(group.heading && openGroup !== group.heading && !q && !narrow);
             return (
               <div key={group.heading || gi} className="mb-2 rounded-xl border border-black/5 p-1" style={{backgroundColor: colors[0]}}>
                 {group.heading && !narrow && (
