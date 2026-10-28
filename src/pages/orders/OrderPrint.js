@@ -53,7 +53,7 @@ export async function downloadOrderPdf(id){
   const details=[...(it.details||[])];
   const colW=(PAGE_W-2*M-80)/2;let leftH=0,rightH=0;
   details.forEach((d,i)=>{ctx.font='20px Arial';const lines=wrap(ctx,d.value||'â',colW-20).length;const ht=25+Math.max(1,lines)*24+16;if(i%2)rightH+=ht;else leftH+=ht;});
-  const detailsH=Math.max(leftH,rightH,54)+30;ctx.font='23px Arial';const remarks=it.remarks?Math.max(64,wrap(ctx,`Remarks - ${it.remarks}`,(PAGE_W-2*M)-88).length*30+30):0;
+  const detailsH=Math.max(leftH,rightH,54)+30;ctx.font='23px Arial';const remarks=it.remarks?Math.max(32,wrap(ctx,`Remarks - ${it.remarks}`,(PAGE_W-2*M)-88).length*30):0;
   return {details,detailsH,remarksH:remarks,imageH:390,total:58+detailsH+remarks+22+390+28};
  };
  const drawItem=(it)=>{
@@ -67,7 +67,7 @@ export async function downloadOrderPdf(id){
    ctx.fillStyle=INK;ctx.font='19px Arial';const lines=wrap(ctx,d.value||'',colW-labelW-10);lines.forEach((line,n)=>ctx.fillText(line,fx+labelW,cy[c]+n*23));cy[c]+=25+Math.max(1,lines.length)*23+12;
   });
   fy=y+58+dim.detailsH;
-  if(it.remarks){roundRect(ctx,x+24,fy,w-48,dim.remarksH,10,'#f6fbff','#d8eafa');ctx.fillStyle=NAVY;ctx.font='bold 21px Arial';const label='Remarks -';ctx.fillText(label,x+40,fy+39);ctx.fillStyle=INK;ctx.font='23px Arial';const lines=wrap(ctx,it.remarks,w-160);lines.forEach((line,n)=>ctx.fillText(line,x+40+ctx.measureText(label+' ').width,fy+39+n*30));fy+=dim.remarksH+17;}
+  if(it.remarks){const label='Remarks -';ctx.fillStyle=NAVY;ctx.font='bold 21px Arial';const labelW=ctx.measureText(label+' ').width;ctx.fillText(label,x+28,fy+25);ctx.fillStyle=INK;ctx.font='23px Arial';const lines=wrap(ctx,it.remarks,w-56-labelW);lines.forEach((line,n)=>ctx.fillText(line,n===0?x+28+labelW:x+28,fy+25+n*30));fy+=dim.remarksH+8;}
   const gap=22,panelW=(w-gap)/2,panelH=390;
   [[it.pattern,'Pattern Image'],[it.component,'Component Image']].forEach(([img,label],index)=>{
    const px=x+index*(panelW+gap);roundRect(ctx,px,fy,panelW,panelH,13,'#fff','#c8e4f7');roundRect(ctx,px,fy,panelW,45,13,'#e8f5ff');ctx.fillStyle=NAVY;ctx.font='bold 18px Arial';ctx.fillText(label,px+18,fy+29);
