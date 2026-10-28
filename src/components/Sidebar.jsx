@@ -5,6 +5,21 @@ import { canAccessPath } from '../auth/permissions';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
 
+const sectionColors = {
+  Enquiries: ['#eff6ff', '#1e40af'],
+  Contacts: ['#ecfeff', '#155e75'],
+  WhatsApp: ['#f0fdf4', '#166534'],
+  Leads: ['#fdf2f8', '#9d174d'],
+  Orders: ['#f5f3ff', '#5b21b6'],
+  BOQ: ['#fffbeb', '#92400e'],
+  Purchase: ['#fff1f2', '#9f1239'],
+  Issue: ['#fff7ed', '#9a3412'],
+  Production: ['#f7fee7', '#3f6212'],
+  Dispatch: ['#eef2ff', '#3730a3'],
+  Stores: ['#f0f9ff', '#075985'],
+  Administration: ['#f1f5f9', '#334155'],
+};
+
 const STORAGE_KEY = 'ims.sidebar.closedGroups';
 
 function loadClosed() {
@@ -43,14 +58,14 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-40 flex flex-col bg-sidebar text-gray-200 transition-all duration-200',
+          'fixed inset-y-0 left-0 z-40 flex flex-col border-r border-slate-200 bg-white text-slate-700 transition-all duration-200',
           'lg:static lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
           narrow ? 'lg:w-[72px]' : 'w-64',
         ].join(' ')}
       >
         {/* Brand */}
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 px-4">
+        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-white/10 bg-sidebar px-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
             C
           </div>
@@ -72,13 +87,13 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         {/* Menu search */}
         {!narrow && (
           <div className="px-3 pt-3">
-            <div className="flex items-center gap-2 rounded-md bg-sidebar-hover px-2.5 py-1.5">
-              <Search size={15} className="text-sidebar-muted" />
+            <div className="flex items-center gap-2 rounded-md bg-slate-100 px-2.5 py-1.5">
+              <Search size={15} className="text-slate-500" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Find a module…"
-                className="w-full bg-transparent text-sm text-white placeholder:text-sidebar-muted focus:outline-none"
+                className="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none"
               />
             </div>
           </div>
@@ -87,19 +102,22 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         {/* Navigation */}
         <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-3">
           {groups.map((group, gi) => {
+            const colors = sectionColors[group.heading] || ['#f8fafc', '#334155'];
             const isClosed = group.heading && closed[group.heading] && !q;
             return (
-              <div key={group.heading || gi} className="mb-2">
+              <div key={group.heading || gi} className="mb-2 rounded-xl border border-black/5 p-1" style={{backgroundColor: colors[0]}}>
                 {group.heading && !narrow && (
                   <button
                     onClick={() => toggleGroup(group.heading)}
-                    className="flex w-full items-center justify-between px-2 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-sidebar-heading hover:text-gray-300"
+                    aria-expanded={!isClosed}
+                    style={{color: colors[1]}}
+                    className="flex w-full items-center justify-between px-2 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider hover:opacity-80"
                   >
                     {group.heading}
                     <ChevronDown size={14} className={`transition-transform ${isClosed ? '-rotate-90' : ''}`} />
                   </button>
                 )}
-                {group.heading && narrow && gi > 0 && <div className="mx-2 my-2 border-t border-white/10" />}
+                {group.heading && narrow && gi > 0 && <div className="mx-2 my-2 border-t border-slate-200" />}
 
                 {!isClosed && (
                   <ul className="space-y-0.5">
@@ -118,7 +136,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                                 narrow ? 'justify-center' : '',
                                 isActive
                                   ? 'bg-sidebar-active font-medium text-white'
-                                  : 'text-gray-300 hover:bg-sidebar-hover hover:text-white',
+                                  : 'text-slate-700 hover:bg-white/70 hover:text-slate-950',
                               ].join(' ')
                             }
                           >
@@ -141,7 +159,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
         {/* Collapse toggle (desktop only) */}
         <button
           onClick={onToggleCollapse}
-          className="hidden h-12 shrink-0 items-center gap-2 border-t border-white/10 px-5 text-sm text-sidebar-muted hover:text-white lg:flex"
+          className="hidden h-12 shrink-0 items-center gap-2 border-t border-slate-200 px-5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 lg:flex"
         >
           {narrow ? <ChevronsRight size={18} /> : <><ChevronsLeft size={18} /> Collapse</>}
         </button>
