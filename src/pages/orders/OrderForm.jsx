@@ -98,7 +98,7 @@ export default function OrderForm({ id, leadId }) {
     try {
       const r = isEdit ? await ordersApi.update(id, body) : await ordersApi.create(body);
       toast(r.message);
-      if (isEdit) fill(r.data); else navigate('/orders/all');
+      navigate('/orders/all');
     } catch (err) {
       setErrors(err.fields || {});
       setFormError(err.fields?.lead_id || err.message);
