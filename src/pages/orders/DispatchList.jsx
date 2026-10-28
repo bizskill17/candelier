@@ -9,12 +9,14 @@ import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
 import { tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import { fmtDate } from '../../lib/util';
+import { DrawingViewer } from '../../components/Drawing';
 
 // Every dispatched order item.
 export default function DispatchList() {
   const { canEdit } = useAuth();
   const toast = useToast();
   const [editing, setEditing] = useState(null);
+  const [viewing, setViewing] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState([]);
@@ -31,7 +33,7 @@ export default function DispatchList() {
   }, [q, from, to]);
   useEffect(() => { load(); }, [load]);
   const pagination = usePagination(rows, JSON.stringify([q, from, to]));
-  const cols = canEdit ? 11 : 10;
+  const cols = canEdit ? 13 : 12;
   const removeDispatch = async () => {
     if (!deleting || busy) return;
     setBusy(true);
@@ -66,6 +68,8 @@ export default function DispatchList() {
                 <th className={thCls}>Transporter</th>
                 <th className={`${thCls} w-28`}>Vehicle No.</th>
                 <th className={`${thCls} w-32`}>Docket / LR No.</th>
+                <th className={`${thCls} w-36`}>Dispatch Document</th>
+                <th className={`${thCls} w-28`}>LR Copy</th>
                 {canEdit && <th className={`${thCls} w-24 text-center`}>Action</th>}
               </tr>
             </thead>
@@ -85,6 +89,8 @@ export default function DispatchList() {
                   <td className={tdCls}>{d.transporter_name || <span className="text-gray-300">—</span>}</td>
                   <td className={`${tdCls} font-mono text-xs`}>{d.vehicle_no || <span className="text-gray-300">—</span>}</td>
                   <td className={tdCls}>{d.docket_no || <span className="text-gray-300">—</span>}</td>
+                  <td className={tdCls}>{d.dispatch_document ? <button type="button" onClick={() => setViewing({ path: d.dispatch_document, name: d.dispatch_document_name, title: 'Dispatch Document' })} className="text-brand-600 underline">View document</button> : <span className="text-gray-300">—</span>}</td>
+                  <td className={tdCls}>{d.dispatch_lr_copy ? <button type="button" onClick={() => setViewing({ path: d.dispatch_lr_copy, name: d.dispatch_lr_copy_name, title: 'LR Copy' })} className="text-brand-600 underline">View LR Copy</button> : <span className="text-gray-300">—</span>}</td>
                   {canEdit && <td className={tdCls}><div className="flex items-center justify-center gap-1">
                     <button type="button" title="Edit dispatch" aria-label={`Edit dispatch ${d.dispatch_no}`} disabled={busy} onClick={() => setEditing(d)} className="rounded-md p-1.5 text-brand-600 hover:bg-brand-50 disabled:opacity-50"><Pencil size={16} /></button>
                     <button type="button" title="Delete dispatch" aria-label={`Delete dispatch ${d.dispatch_no}`} disabled={busy} onClick={() => setDeleting(d)} className="rounded-md p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"><Trash2 size={16} /></button>
@@ -98,6 +104,7 @@ export default function DispatchList() {
       </div>
       {editing && <DispatchDialog item={{ ...editing, id: editing.order_item_id, dispatch: editing }} label={`${editing.order_no} · #${editing.line_no} ${editing.item_title || ''}`} onClose={() => setEditing(null)} onDone={() => { setEditing(null); load(); }} />}
       <ConfirmDialog open={Boolean(deleting)} title="Delete dispatch?" message={deleting ? `${deleting.dispatch_no} will be removed. The order item will return to its previous production status.` : ''} confirmLabel={busy ? 'Deleting…' : 'Delete'} onConfirm={removeDispatch} onCancel={() => { if (!busy) setDeleting(null); }} />
+      {viewing && <DrawingViewer path={viewing.path} name={viewing.name} title={viewing.title} onClose={() => setViewing(null)} />}
     </div>
   );
 }
