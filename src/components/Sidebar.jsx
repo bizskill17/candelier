@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronsLeft, ChevronsRight, X } from 'lucide-react';
 import { canAccessPath } from '../auth/permissions';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
@@ -26,14 +26,12 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
     || menu.find(g => g.heading && g.items.some(i => i.path.split('/')[1] === pathname.split('/')[1]))?.heading
     || null;
   const [openGroup, setOpenGroup] = useState(selectedGroup);
-  const [query, setQuery] = useState('');
   useEffect(() => { setOpenGroup(selectedGroup); }, [pathname, selectedGroup]);
   const toggleGroup = heading => setOpenGroup(current => current === heading ? null : heading);
 
   const { isAdmin, user } = useAuth();
-  const q = query.trim().toLowerCase();
   const groups = menu
-    .map((g) => ({ ...g, items: g.items.filter((i) => (isAdmin || !i.adminOnly) && canAccessPath(i.path,user?.role) && (!q || i.label.toLowerCase().includes(q))) }))
+    .map((g) => ({ ...g, items: g.items.filter((i) => (isAdmin || !i.adminOnly) && canAccessPath(i.path,user?.role)) }))
     .filter((g) => g.items.length > 0);
 
   // On desktop the collapsed state shows icons only; the mobile drawer is always full width.
@@ -74,26 +72,11 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
           </button>
         </div>
 
-        {/* Menu search */}
-        {!narrow && (
-          <div className="px-3 pt-3">
-            <div className="flex items-center gap-2 rounded-md bg-slate-100 px-2.5 py-1.5">
-              <Search size={15} className="text-slate-500" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Find a module…"
-                className="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-500 focus:outline-none"
-              />
-            </div>
-          </div>
-        )}
-
         {/* Navigation */}
         <nav className="sidebar-scroll flex-1 overflow-y-auto px-3 py-3">
           {groups.map((group, gi) => {
             const colors = sectionColors[group.heading] || ['#f8fafc', '#334155'];
-            const isClosed = Boolean(group.heading && openGroup !== group.heading && !q && !narrow);
+            const isClosed = Boolean(group.heading && openGroup !== group.heading && !narrow);
             return (
               <div key={group.heading || gi} className="mb-2 rounded-xl border border-black/5 p-1" style={{backgroundColor: colors[0]}}>
                 {group.heading && !narrow && (
@@ -142,7 +125,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
             );
           })}
           {groups.length === 0 && (
-            <p className="px-2 py-4 text-sm text-sidebar-muted">No module matches “{query}”.</p>
+            <p className="px-2 py-4 text-sm text-sidebar-muted">No modules available.</p>
           )}
         </nav>
 
