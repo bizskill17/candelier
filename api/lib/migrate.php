@@ -90,12 +90,12 @@ function migrate_production_status(): void
 
 function migrate_dispatch_fields(): void
 {
-    $version = '20261024_dispatch_form_fields';
+    $version = '20261028_dispatch_lr_copy';
     if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version = :v', ['v' => $version])) return;
     $lock = 'candelier_dispatch_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
     if (!(int) db_value('SELECT GET_LOCK(:k, 30)', ['k' => $lock])) throw new ApiError('Database update in progress. Please retry shortly.', 503);
     try {
-        foreach (['dispatch_by' => 100, 'dispatch_document' => 255, 'dispatch_document_name' => 150] as $column => $size) {
+        foreach (['dispatch_by' => 100, 'dispatch_document' => 255, 'dispatch_document_name' => 150, 'dispatch_lr_copy' => 255, 'dispatch_lr_copy_name' => 150] as $column => $size) {
             if (!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dispatches' AND COLUMN_NAME = :c", ['c' => $column])) db()->exec("ALTER TABLE dispatches ADD COLUMN $column VARCHAR($size) NULL");
         }
         db()->prepare('INSERT IGNORE INTO app_migrations (version, applied_at) VALUES (:v, :t)')->execute(['v' => $version, 't' => now()]);

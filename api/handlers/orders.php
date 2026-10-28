@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 8114)
+Total output lines: 536
+
 <?php
 // Orders, order items (each exactly one piece), dispatch.
 //
@@ -104,7 +107,7 @@ function order_items_of(int $orderId): array
     require_order_access($orderId);
     $items = db_all(
         'SELECT i.*, i.id AS order_item_id,
-                d.id AS dispatch_id, d.dispatch_no, d.dispatch_date, d.transporter_id, t.name AS transporter_name, d.vehicle_no, d.docket_no, d.dispatch_by, d.dispatch_document, d.dispatch_document_name, d.remarks AS dispatch_remarks,
+                d.id AS dispatch_id, d.dispatch_no, d.dispatch_date, d.transporter_id, t.name AS transporter_name, d.vehicle_no, d.docket_no, d.dispatch_by, d.dispatch_document, d.dispatch_document_name, d.dispatch_lr_copy, d.dispatch_lr_copy_name, d.remarks AS dispatch_remarks,
                 (SELECT COUNT(*) FROM material_issues mi WHERE mi.order_item_id = i.id) AS issue_count,
                 (SELECT COUNT(*) FROM boq_lines b WHERE b.order_item_id = i.id) AS boq_lines
            FROM order_items i
@@ -126,7 +129,7 @@ function order_items_of(int $orderId): array
             'dispatch' => $i['dispatch_id'] ? [
                 'id' => (int) $i['dispatch_id'], 'dispatch_no' => $i['dispatch_no'], 'dispatch_date' => $i['dispatch_date'],
                 'transporter_id' => $i['transporter_id'] === null ? null : (int) $i['transporter_id'], 'transporter_name' => $i['transporter_name'],
-                'vehicle_no' => $i['vehicle_no'], 'docket_no' => $i['docket_no'], 'dispatch_by' => $i['dispatch_by'], 'dispatch_document' => $i['dispatch_document'], 'dispatch_document_name' => $i['dispatch_document_name'], 'remarks' => $i['dispatch_remarks'],
+                'vehicle_no' => $i['vehicle_no'], 'docket_no' => $i['docket_no'], 'dispatch_by' => $i['dispatch_by'], 'dispatch_document' => $i['dispatch_document'], 'dispatch_document_name' => $i['dispatch_document_name'], 'dispatch_lr_copy' => $i['dispatch_lr_copy'], 'dispatch_lr_copy_name' => $i['dispatch_lr_copy_name'], 'remarks' => $i['dispatch_remarks'],
             ] : null,
         ];
         $out['stage'] = item_stage($out);
@@ -192,148 +195,7 @@ function order_validate(?array $existing, array $in): array
     foreach (is_array($in['items'] ?? null) ? $in['items'] : [] as $n => $row) {
         $iid = (int) ($row['id'] ?? 0);
         $remarks = trim((string) ($row['remarks'] ?? ''));
-        $area = preg_replace('/\s+/', ' ', trim((string) ($row['area'] ?? '')));
-        if (mb_strlen($area) > 100) $errors["items.$n.area"] = 'Keep this under 100 characters.';
-        $values = [];
-        foreach (is_array($row['values'] ?? null) ? $row['values'] : [] as $fid => $v) {
-            $v = preg_replace('/\s+/', ' ', trim((string) $v));
-            if ($v === '') continue;
-            if (mb_strlen($v) > 150) $errors["items.$n.values.$fid"] = 'Keep this under 150 characters.';
-            $values[(string) $fid] = $v;
-        }
-        $imgs = [];
-        foreach (['component_image', 'reference_image'] as $k) {
-            $imgs[$k] = clean_image_path($row[$k] ?? '');
-            if ($imgs[$k] === false) { $errors["items.$n.$k"] = 'Upload this photo again.'; $imgs[$k] = null; }
-        }
-        $imgs['drawing_file'] = clean_drawing_path($row['drawing_file'] ?? '');
-        if ($imgs['drawing_file'] === false) { $errors["items.$n.drawing_file"] = 'Upload this drawing again.'; $imgs['drawing_file'] = null; }
-        $dn = mb_substr(trim((string) ($row['drawing_name'] ?? '')), 0, 150);
-        $imgs['drawing_name'] = $imgs['drawing_file'] ? ($dn !== '' ? $dn : 'Drawing') : null;
-        if (!$iid && $area === '' && !$values && $remarks === '' && !$imgs['component_image'] && !$imgs['reference_image'] && !$imgs['drawing_file']) continue;
-        if (!$values && $area === '') $errors["items.$n.values"] = 'Fill the area or the item details.';
-        if (mb_strlen($remarks) > 255) $errors["items.$n.remarks"] = 'Keep this under 255 characters.';
-        $items[] = ['id' => in_array($iid, $existingIds, true) ? $iid : null, 'area' => $area === '' ? null : $area, 'values' => $values, 'remarks' => $remarks === '' ? null : $remarks] + $imgs;
-    }
-    if (!$items) $errors['items'] = 'Add at least one order item.';
-    if ($existing) {
-        $kept = array_filter(array_column($items, 'id'));
-        foreach ($existing['items'] as $old) {
-            if (in_array($old['id'], $kept, true)) continue;
-            if ($old['dispatch'] || $old['issue_count'] > 0 || db_value('SELECT COUNT(*) FROM sample_issues WHERE order_item_id=?',[$old['id']])) {
-                $errors['items'] = "Item {$old['line_no']} ({$old['item_title']}) already has materials issued or is dispatched, so it can't be removed.";
-            }
-        }
-    }
-    if ($errors) throw new ApiError('Please fix the highlighted fields.', 422, $errors);
-    return [$h, $items];
-}
-
-function order_save(?int $id, array $in): array
-{
-    if($id)require_admin();else require_roles(['Admin','Sales']);
-    if(!$id&&app_role()==='Sales')$in['order_by_id']=current_user()['id'];
-    $existing = $id !== null ? order_find($id) : null;
-    if ($existing && $existing['status'] === 'Cancelled') throw new ApiError("Order {$existing['order_no']} is cancelled. Reopen it to make changes.", 409);
-    [$h, $items] = order_validate($existing, $in);
-    $pdo = db();
-    $pdo->beginTransaction();
-    try {
-        $leadId = $h['_lead_id'];
-        unset($h['_lead_id']);
-        if ($leadId) $h['lead_id']=$leadId;
-        $h['updated_at'] = now();
-        if ($id === null) {
-            $h['order_no'] = next_doc_no('orders', 'ORD', 'order_no');
-            $h['status'] = 'Open';
-            $h['created_at'] = now();
-            $cols = array_keys($h);
-            $pdo->prepare('INSERT INTO orders (' . implode(', ', $cols) . ') VALUES (:' . implode(', :', $cols) . ')')->execute($h);
-            $id = (int) $pdo->lastInsertId();
-            $msg = "Order {$h['order_no']} created.";
-        } else {
-            $set = implode(', ', array_map(fn ($c) => "$c = :$c", array_keys($h)));
-            $pdo->prepare("UPDATE orders SET $set WHERE id = :id")->execute($h + ['id' => $id]);
-            $msg = "Order {$existing['order_no']} updated.";
-        }
-        $keep = [];
-        foreach ($items as $n => $it) {
-            $row = ['l' => $n + 1, 'a' => $it['area'], 'r' => $it['remarks'], 'ci' => $it['component_image'], 'ri' => $it['reference_image'], 'df' => $it['drawing_file'], 'dn' => $it['drawing_name'], 'u' => now()];
-            if ($it['id']) {
-                $pdo->prepare('UPDATE order_items SET line_no = :l, area = :a, remarks = :r, component_image = :ci, reference_image = :ri, drawing_file = :df, drawing_name = :dn, updated_at = :u WHERE id = :id')
-                    ->execute($row + ['id' => $it['id']]);
-                $iid = $it['id'];
-            } else {
-                $pdo->prepare('INSERT INTO order_items (order_id, line_no, area, remarks, component_image, reference_image, drawing_file, drawing_name, boq_status, created_at, updated_at)
-                               VALUES (:o, :l, :a, :r, :ci, :ri, :df, :dn, :b, :c, :u)')
-                    ->execute($row + ['o' => $id, 'b' => 'Pending', 'c' => now()]);
-                $iid = (int) $pdo->lastInsertId();
-            }
-            item_values_save($iid, $it['values']);
-            $keep[] = $iid;
-        }
-        foreach ($existing['items'] ?? [] as $old) {
-            if (in_array($old['id'], $keep, true)) continue;
-            $pdo->prepare('DELETE FROM bookings WHERE order_item_id = :i')->execute(['i' => $old['id']]);
-            $pdo->prepare('DELETE FROM boq_lines WHERE order_item_id = :i')->execute(['i' => $old['id']]);
-            $pdo->prepare('DELETE FROM order_item_values WHERE order_item_id = :i')->execute(['i' => $old['id']]);
-            $pdo->prepare('DELETE FROM order_items WHERE id = :i')->execute(['i' => $old['id']]);
-        }
-        if ($leadId) {
-            // The originating Lead is linked on orders.lead_id; no state is duplicated on Leads.
-            $msg .= ' Linked to lead ' . db_value('SELECT lead_no FROM leads WHERE id = :l', ['l' => $leadId]) . '.';
-        }
-        order_refresh_status($id);
-        $pdo->commit();
-    } catch (Throwable $e) {
-        $pdo->rollBack();
-        throw $e;
-    }
-    return ['data' => order_find($id), 'message' => $msg];
-}
-
-function order_refresh_status(int $orderId): void
-{
-    $o = db_one('SELECT status FROM orders WHERE id = :id', ['id' => $orderId]);
-    if (!$o || $o['status'] === 'Cancelled') return;
-    $total = (int) db_value('SELECT COUNT(*) FROM order_items WHERE order_id = :o', ['o' => $orderId]);
-    $done = (int) db_value('SELECT COUNT(*) FROM order_items i JOIN dispatches d ON d.order_item_id = i.id WHERE i.order_id = :o', ['o' => $orderId]);
-    $status = $total > 0 && $done === $total ? 'Dispatched' : ($done > 0 ? 'Partly Dispatched' : 'Open');
-    if ($status !== $o['status']) {
-        db()->prepare('UPDATE orders SET status = :s, updated_at = :u WHERE id = :id')->execute(['s' => $status, 'u' => now(), 'id' => $orderId]);
-    }
-}
-
-function order_set_status(int $id, array $in): array
-{
-    require_admin();
-    $o = order_find($id);
-    $action = $in['status'] ?? '';
-    if ($action === 'Cancelled') {
-        if ($o['dispatched_count'] > 0) throw new ApiError("Order {$o['order_no']} has dispatched items, so it can't be cancelled.", 409);
-        db()->prepare("UPDATE orders SET status = 'Cancelled', updated_at = :u WHERE id = :id")->execute(['u' => now(), 'id' => $id]);
-        return ['data' => order_find($id), 'message' => "Order {$o['order_no']} cancelled. Its blocks no longer hold stock."];
-    }
-    if ($action === 'Reopen') {
-        db()->prepare("UPDATE orders SET status = 'Open', updated_at = :u WHERE id = :id")->execute(['u' => now(), 'id' => $id]);
-        order_refresh_status($id);
-        return ['data' => order_find($id), 'message' => "Order {$o['order_no']} reopened."];
-    }
-    throw new ApiError('You can only cancel or reopen an order; other statuses follow dispatch.', 422);
-}
-
-function order_delete(int $id): array
-{
-    require_admin();
-    $o = order_find($id);
-    $ids = array_column($o['items'], 'id');
-    if ($ids) {
-        $in = implode(',', array_map('intval', $ids));
-        if (db_value("SELECT COUNT(*) FROM sample_issues WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM bookings WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM material_issues WHERE order_item_id IN ($in)") || db_value("SELECT COUNT(*) FROM dispatches WHERE order_item_id IN ($in)")) {
-            throw new ApiError("Order {$o['order_no']} has bookings, issues or dispatches, so it can't be deleted. Cancel it instead.", 409);
-        }
-        db()->exec("DELETE FROM boq_lines WHERE order_item_id IN ($in)");
-        db()->exec("DELETE FROM order_item_values WHERE order_item_id IN ($in)");
+        $area = preg_replace('/\s+/',…2114 tokens truncated… FROM order_item_values WHERE order_item_id IN ($in)");
     }
 
     db()->prepare('DELETE FROM order_items WHERE order_id = :id')->execute(['id' => $id]);
@@ -431,6 +293,11 @@ function dispatch_save(int $itemId, array $in): array
     $documentName = trim((string) ($in['dispatch_document_name'] ?? ''));
     if (mb_strlen($documentName) > 150) $errors['dispatch_document'] = 'Keep the document name under 150 characters.';
     $h['dispatch_document_name'] = $h['dispatch_document'] ? ($documentName ?: 'Dispatch document') : null;
+    $h['dispatch_lr_copy'] = clean_drawing_path($in['dispatch_lr_copy'] ?? '');
+    if ($h['dispatch_lr_copy'] === false) $errors['dispatch_lr_copy'] = 'Upload a PDF, JPG, PNG or WEBP LR copy.';
+    $lrCopyName = trim((string) ($in['dispatch_lr_copy_name'] ?? ''));
+    if (mb_strlen($lrCopyName) > 150) $errors['dispatch_lr_copy'] = 'Keep the LR copy name under 150 characters.';
+    $h['dispatch_lr_copy_name'] = $h['dispatch_lr_copy'] ? ($lrCopyName ?: 'LR Copy') : null;
     if ($errors) throw new ApiError('Please fix the highlighted fields.', 422, $errors);
     $pdo = db();
     $pdo->beginTransaction();
