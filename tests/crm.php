@@ -136,3 +136,9 @@ reject(fn()=>lead_form_input([]),'Lead form API requires Source');
 reject(fn()=>lead_form_input(['source_id'=>0]),'Lead form API rejects empty Source');
 $testSource=(int)db_value('SELECT id FROM lead_sources WHERE is_active=1 LIMIT 1');check(lead_form_input(['source_id'=>$testSource])['source_id']===$testSource,'Lead form API accepts an active Source');
 $_GET=[];
+
+// Enquiry Date range is inclusive and also scopes view/group counts.
+$_GET=['contact_id'=>$viewContact,'enquiry_from'=>date('Y-m-d'),'enquiry_to'=>date('Y-m-d'),'group_by'=>'priority'];$dated=lead_list();check($dated['total']===6&&array_sum(array_column($dated['group_counts'],'total'))===6&&$dated['view_counts']['all']===6,'Inclusive Enquiry Date range scopes rows and counts');
+$_GET=['contact_id'=>$viewContact,'enquiry_to'=>date('Y-m-d',strtotime('-1 day'))];check(lead_list()['total']===0,'Enquiry To date excludes later enquiries');
+$_GET=['enquiry_from'=>'2026-10-28','enquiry_to'=>'2026-10-25'];reject(fn()=>lead_list(),'Reversed Enquiry Date range rejected');
+$_GET=['enquiry_from'=>'not-a-date'];reject(fn()=>lead_list(),'Invalid Enquiry Date filter rejected');$_GET=[];

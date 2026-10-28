@@ -108,6 +108,8 @@ function lead_list(): array {
     $views=['all'=>'1=1','added-today'=>'l.created_at>=CURRENT_DATE() AND l.created_at<CURRENT_DATE()+INTERVAL 1 DAY','updated-today'=>'l.updated_at>=CURRENT_DATE() AND l.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$views;
     foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
     foreach(['contact_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="l.$k=:$k";$p[$k]=(int)$_GET[$k];}
+    foreach(['enquiry_from'=>'>=','enquiry_to'=>'<=']as$key=>$op)if(($_GET[$key]??'')!==''){if(!valid_date($_GET[$key]))throw new ApiError('Choose valid Enquiry Date filters.',422);$w[]="l.enquiry_date $op :$key";$p[$key]=$_GET[$key];}
+    if(!empty($p['enquiry_from'])&&!empty($p['enquiry_to'])&&$p['enquiry_from']>$p['enquiry_to'])throw new ApiError('From date must be on or before To date.',422);
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.display_phone','l.project_name','l.requirement']);
     $counts=crm_view_counts('crm_lead_current l',$views,$w,$p);
     if(isset($views[$view]))$w[]=$views[$view];
