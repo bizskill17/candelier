@@ -8,7 +8,7 @@ function roundRect(ctx,x,y,w,h,r,fill,stroke){
  if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
 }
 function wrap(ctx,value,maxWidth){
- const words=String(value??'â').trim().split(/\s+/).filter(Boolean);if(!words.length)return ['â'];
+ const words=String(value??'—').trim().split(/\s+/).filter(Boolean);if(!words.length)return ['—'];
  const lines=[];let line='';for(const word of words){const candidate=line?`${line} ${word}`:word;if(line&&ctx.measureText(candidate).width>maxWidth){lines.push(line);line=word;}else line=candidate;}if(line)lines.push(line);return lines;
 }
 function drawWave(ctx,y,width,color,offset=0){
@@ -18,7 +18,7 @@ function loadPhoto(path){
  if(!path)return Promise.resolve(null);
  return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=imageUrl(path);});
 }
-function date(value){return value?String(value).split('-').reverse().join('/'): 'â';}
+function date(value){return value?String(value).split('-').reverse().join('/'): '—';}
 
 export async function downloadOrderPdf(id){
  const {data:o}=await ordersApi.get(id);
@@ -28,7 +28,7 @@ export async function downloadOrderPdf(id){
  const start=()=>{
   pageNo++;canvas=document.createElement('canvas');canvas.width=PAGE_W;canvas.height=PAGE_H;ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,PAGE_W,PAGE_H);
   const gradient=ctx.createLinearGradient(0,0,PAGE_W,190);gradient.addColorStop(0,'#ffffff');gradient.addColorStop(.55,'#f0f9ff');gradient.addColorStop(1,'#d9efff');ctx.fillStyle=gradient;ctx.fillRect(0,0,PAGE_W,225);drawWave(ctx,150,PAGE_W,'#d7efff',0);drawWave(ctx,175,PAGE_W,'#edf8ff',0);
-  ctx.fillStyle=NAVY;ctx.textAlign='right';ctx.font='bold 38px Arial';ctx.fillText('Order Confirmation',PAGE_W-M,71);ctx.font='22px Arial';ctx.fillStyle='#31577f';ctx.fillText(`Order ${o.order_no||''}`,PAGE_W-M,106);ctx.textAlign='left';
+  ctx.fillStyle=NAVY;ctx.textAlign='center';ctx.font='bold 38px Arial';ctx.fillText(`Order - ${o.order_no||''}`,PAGE_W/2,88);ctx.textAlign='left';
   y=220;
   ctx.strokeStyle=LINE;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M, PAGE_H-62);ctx.lineTo(PAGE_W-M,PAGE_H-62);ctx.stroke();
   drawWave(ctx,PAGE_H-178,PAGE_W,'#eaf6ff',0);ctx.fillStyle=MUTED;ctx.font='16px Arial';ctx.textAlign='right';ctx.fillText(`Page ${pageNo}`,PAGE_W-M,PAGE_H-35);ctx.textAlign='left';
@@ -52,8 +52,8 @@ export async function downloadOrderPdf(id){
  const itemDimensions=it=>{
   const details=[...(it.details||[])];
   const colW=(PAGE_W-2*M-80)/2;let leftH=0,rightH=0;
-  details.forEach((d,i)=>{ctx.font='20px Arial';const lines=wrap(ctx,d.value||'â',colW-20).length;const ht=25+Math.max(1,lines)*24+16;if(i%2)rightH+=ht;else leftH+=ht;});
-  const detailsH=Math.max(leftH,rightH,54)+30;ctx.font='23px Arial';const remarks=it.remarks?Math.max(32,wrap(ctx,`Remarks - ${it.remarks}`,(PAGE_W-2*M)-88).length*30):0;
+  details.forEach((d,i)=>{ctx.font='19px Arial';const label=`${d.name||'Field'} -`;const labelW=ctx.measureText(label+' ').width;const lines=wrap(ctx,d.value||'',colW-labelW-10).length;const ht=Math.max(1,lines)*23+8;if(i%2)rightH+=ht;else leftH+=ht;});
+  const detailsH=Math.max(leftH,rightH);ctx.font='23px Arial';const remarks=it.remarks?Math.max(30,wrap(ctx,`Remarks - ${it.remarks}`,(PAGE_W-2*M)-88).length*30):0;
   return {details,detailsH,remarksH:remarks,imageH:390,total:58+detailsH+remarks+22+390+28};
  };
  const drawItem=(it)=>{
@@ -61,13 +61,13 @@ export async function downloadOrderPdf(id){
   roundRect(ctx,x,y,w,dim.total,16,'#fff',LINE);
   roundRect(ctx,x,y,w,58,16,'#e6f4ff');ctx.fillStyle=NAVY;ctx.font='bold 23px Arial';ctx.fillText(`Item - ${it.item_name||it.line_no||''}`,x+24,y+37);
   if(it.area){ctx.textAlign='right';ctx.fillStyle='#31577f';ctx.font='20px Arial';ctx.fillText(it.area,x+w-24,y+37);ctx.textAlign='left';}
-  let fy=y+82;const colW=(w-80)/2;let cy=[fy,fy];
+  let fy=y+78;const colW=(w-80)/2;let cy=[fy,fy];
   dim.details.forEach((d,i)=>{
    const c=i%2,fx=x+28+c*(colW+24);ctx.fillStyle=NAVY;ctx.font='19px Arial';const label=`${d.name||'Field'} -`;ctx.fillText(label,fx,cy[c]);const labelW=ctx.measureText(label+' ').width;
-   ctx.fillStyle=INK;ctx.font='19px Arial';const lines=wrap(ctx,d.value||'',colW-labelW-10);lines.forEach((line,n)=>ctx.fillText(line,fx+labelW,cy[c]+n*23));cy[c]+=25+Math.max(1,lines.length)*23+12;
+   ctx.fillStyle=INK;ctx.font='19px Arial';const lines=wrap(ctx,d.value||'',colW-labelW-10);lines.forEach((line,n)=>ctx.fillText(line,fx+labelW,cy[c]+n*23));cy[c]+=Math.max(1,lines.length)*23+8;
   });
   fy=y+58+dim.detailsH;
-  if(it.remarks){const label='Remarks -';ctx.fillStyle=NAVY;ctx.font='bold 21px Arial';const labelW=ctx.measureText(label+' ').width;ctx.fillText(label,x+28,fy+25);ctx.fillStyle=INK;ctx.font='23px Arial';const lines=wrap(ctx,it.remarks,w-56-labelW);lines.forEach((line,n)=>ctx.fillText(line,n===0?x+28+labelW:x+28,fy+25+n*30));fy+=dim.remarksH+8;}
+  if(it.remarks){const label='Remarks -';ctx.fillStyle=NAVY;ctx.font='bold 21px Arial';const labelW=ctx.measureText(label+' ').width;ctx.fillText(label,x+28,fy+22);ctx.fillStyle=INK;ctx.font='23px Arial';const lines=wrap(ctx,it.remarks,w-56-labelW);lines.forEach((line,n)=>ctx.fillText(line,n===0?x+28+labelW:x+28,fy+22+n*30));fy+=dim.remarksH+4;}
   const gap=22,panelW=(w-gap)/2,panelH=390;
   [[it.pattern,'Pattern Image'],[it.component,'Component Image']].forEach(([img,label],index)=>{
    const px=x+index*(panelW+gap);roundRect(ctx,px,fy,panelW,panelH,13,'#fff','#c8e4f7');roundRect(ctx,px,fy,panelW,45,13,'#e8f5ff');ctx.fillStyle=NAVY;ctx.font='bold 18px Arial';ctx.fillText(label,px+18,fy+29);
