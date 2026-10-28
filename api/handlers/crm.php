@@ -95,29 +95,37 @@ function contact_bulk(array $in): array {
 }
 function leads_route(string $method,array $parts): void {
     $id=isset($parts[0])?(int)$parts[0]:null;$sub=$parts[1]??null;
-    if($id===null){if($method==='GET'){json_out(lead_list());return;}if($method==='POST'){json_out(lead_save(null,request_body()),201);return;}}
+    if($id===null){if($method==='GET'){json_out(lead_list());return;}if($method==='POST'){json_out(lead_save(null,lead_form_input(request_body())),201);return;}}
     elseif($sub==='customer'&&$method==='POST'){json_out(lead_customer($id));return;}
     elseif($sub==='followups'&&$method==='POST'){json_out(crm_followup_save(request_body()+['lead_id'=>$id]),201);return;}
-    elseif($sub===null){if($method==='GET'){json_out(['data'=>lead_find($id)]);return;}if($method==='PUT'){json_out(lead_save($id,request_body()));return;}if($method==='DELETE'){json_out(lead_delete($id));return;}}
+    elseif($sub===null){if($method==='GET'){json_out(['data'=>lead_find($id)]);return;}if($method==='PUT'){json_out(lead_save($id,lead_form_input(request_body())));return;}if($method==='DELETE'){json_out(lead_delete($id));return;}}
     throw new ApiError('Not found.',404);
 }
 function lead_list(): array {
     $w=[];$p=[];$view=$_GET['view']??'all';
     $scheduled="l.status='Open' AND l.further_followup_required=1";
     $views=['today'=>"$scheduled AND DATE(l.next_followup_at)=CURRENT_DATE()",'upcoming'=>"$scheduled AND DATE(l.next_followup_at)>CURRENT_DATE()",'overdue'=>"$scheduled AND DATE(l.next_followup_at)<CURRENT_DATE()",'missing'=>"$scheduled AND l.next_followup_at IS NULL",'success'=>"l.status='Success'",'fail'=>"l.status='Fail'"];
-    $views=['all'=>'1=1','updated-today'=>'l.updated_at>=CURRENT_DATE() AND l.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$views;
+    $views=['all'=>'1=1','added-today'=>'l.created_at>=CURRENT_DATE() AND l.created_at<CURRENT_DATE()+INTERVAL 1 DAY','updated-today'=>'l.updated_at>=CURRENT_DATE() AND l.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$views;
     foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
     foreach(['contact_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="l.$k=:$k";$p[$k]=(int)$_GET[$k];}
     crm_where_search($w,$p,['l.lead_no','l.display_name','l.display_phone','l.project_name','l.requirement']);
     $counts=crm_view_counts('crm_lead_current l',$views,$w,$p);
     if(isset($views[$view]))$w[]=$views[$view];
     $sort=$view==='updated-today'?'l.updated_at DESC,l.id DESC':'l.enquiry_date DESC,l.id DESC';
-    $result=crm_page(LEAD_SELECT.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);$result['view_counts']=$counts;$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+    $groupFields=['source'=>"COALESCE(NULLIF(l.source_name,''),'No Source')",'enquiry_date'=>'l.enquiry_date','priority'=>"COALESCE(NULLIF(l.temperature,''),'No Priority')"];
+    $group=$_GET['group_by']??'';$groupField=$groupFields[$group]??null;$where=$w?' WHERE '.implode(' AND ',$w):'';
+    $groupCounts=$groupField?db_all('SELECT '.$groupField.' AS group_label,COUNT(*) AS total FROM crm_lead_current l'.$where.' GROUP BY '.$groupField.' ORDER BY '.$groupField,$p):[];
+    if($groupField)$sort=$groupField.($group==='enquiry_date'?' DESC':' ASC').','.$sort;
+    $result=crm_page(LEAD_SELECT.$where.' ORDER BY '.$sort,$p);$result['group_counts']=$groupCounts;$result['view_counts']=$counts;$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
 }
 function lead_find(int $id): array {
     $l=db_one(LEAD_SELECT.' WHERE l.id=:id',['id'=>$id]);if(!$l)throw new ApiError('Lead not found.',404);
     $l=crm_visible_lead($l);$l['id']=(int)$l['id'];$l['contact_id']=(int)$l['contact_id'];$l['customer_id']=(int)$l['contact_id'];
     $l['followups']=crm_history(null,$id);$l['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE lead_id=:id AND '.order_visibility_sql('orders').' ORDER BY id DESC',['id'=>$id]);return $l;
+}
+function lead_form_input(array $in): array {
+ if(empty($in['source_id'])||!db_value('SELECT COUNT(*) FROM lead_sources WHERE id=? AND is_active=1',[(int)$in['source_id']]))throw new ApiError('Select a Lead Source.',422);
+ return $in;
 }
 function lead_save(?int $id,array $in): array {
     if($id)require_admin();else require_roles(['Admin','Sales']);

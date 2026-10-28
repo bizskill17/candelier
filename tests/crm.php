@@ -126,3 +126,13 @@ foreach([['contact_id'=>$viewContact],['q'=>'View today'],['temperature'=>'Hot']
 }
 $_GET=['view'=>'success','contact_id'=>$viewContact];$counts=lead_list()['view_counts'];check($counts['all']===6&&$counts['success']===1&&$counts['overdue']===1,'Selecting a tab does not restrict other tab counts');
 $_GET=[];
+
+// Lead creation date and grouping remain independent of enquiry and update dates.
+$pdo->prepare('UPDATE leads SET created_at=? WHERE contact_id=?')->execute([date('Y-m-d',strtotime('-1 day')).' 12:00:00',$viewContact]);
+$pdo->prepare('UPDATE leads SET created_at=? WHERE id=?')->execute([now(),$viewIds['today']]);
+$_GET=['view'=>'added-today','contact_id'=>$viewContact];check(array_map('intval',array_column(lead_list()['data'],'id'))===[$viewIds['today']],'Lead Added Today uses creation time rather than enquiry or update date');
+foreach(['source','enquiry_date','priority']as$group){$_GET=['view'=>'all','contact_id'=>$viewContact,'group_by'=>$group];$grouped=lead_list();check(array_sum(array_column($grouped['group_counts'],'total'))===6,'Lead grouping '.$group.' counts the complete filtered result');}
+reject(fn()=>lead_form_input([]),'Lead form API requires Source');
+reject(fn()=>lead_form_input(['source_id'=>0]),'Lead form API rejects empty Source');
+$testSource=(int)db_value('SELECT id FROM lead_sources WHERE is_active=1 LIMIT 1');check(lead_form_input(['source_id'=>$testSource])['source_id']===$testSource,'Lead form API accepts an active Source');
+$_GET=[];
