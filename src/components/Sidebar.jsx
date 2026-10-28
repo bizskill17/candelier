@@ -111,7 +111,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                     onClick={() => toggleGroup(group.heading)}
                     aria-expanded={!isClosed}
                     style={{color: colors[1]}}
-                    className="flex w-full items-center justify-between px-2 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-wider hover:opacity-80"
+                    className="flex w-full items-center justify-between px-2 pb-2 pt-2 text-xs font-bold uppercase tracking-wide hover:opacity-80"
                   >
                     {group.heading}
                     <ChevronDown size={14} className={`transition-transform ${isClosed ? '-rotate-90' : ''}`} />
@@ -129,10 +129,10 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                             to={item.path}
                             end={item.path === '/' || item.path === '/contacts'}
                             onClick={onCloseMobile}
-                            title={narrow ? item.label : undefined}
+                            title={item.label}
                             className={({ isActive }) =>
                               [
-                                'flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition-colors',
+                                'flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium leading-5 transition-colors',
                                 narrow ? 'justify-center' : '',
                                 isActive
                                   ? 'bg-sidebar-active font-medium text-white'
@@ -141,7 +141,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                             }
                           >
                             <Icon size={18} className="shrink-0" />
-                            {!narrow && <span className="truncate">{item.label}</span>}
+                            {!narrow && <span className="min-w-0 whitespace-normal break-words">{item.label}</span>}
                           </NavLink>
                         </li>
                       );
