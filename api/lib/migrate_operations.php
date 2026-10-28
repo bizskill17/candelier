@@ -1,5 +1,17 @@
 <?php
 function migrate_operations(): void {
+ migrate_operations_base();
+ $version='20261028_sample_issue_recipient_v1';
+ if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$version]))return;
+ $lock='sample_recipient_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);
+ if(!db_value('SELECT GET_LOCK(?,30)',[$lock]))throw new ApiError('Application update in progress.',503);
+ try{
+  if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$version]))return;
+  if(!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='sample_issues' AND COLUMN_NAME='issued_to_id'"))db()->exec('ALTER TABLE sample_issues ADD issued_to_id INT UNSIGNED NULL, ADD CONSTRAINT fk_sample_issue_recipient FOREIGN KEY(issued_to_id) REFERENCES users(id)');
+  db()->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$version,now()]);
+ }finally{db_value('SELECT RELEASE_LOCK(?)',[$lock]);}
+}
+function migrate_operations_base(): void {
  $version='20261027_drawings_samples_crm_v1';if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$version]))return;
  $lock='operations_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);if(!db_value('SELECT GET_LOCK(?,30)',[$lock]))throw new ApiError('Application update in progress.',503);
  try{if(db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?',[$version]))return;
