@@ -47,8 +47,7 @@ export default function ItemFieldsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4 pb-20">
       <section className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-gray-900">Order item fields</h2>
-        <div className="mt-4 space-y-2">
+        <div className="space-y-2">
           <div className="flex items-center gap-1.5 px-0.5 text-xs font-medium text-gray-500">
             <span className="w-6" /><span className="flex-1">Field name</span><span className="w-20 text-center">In use</span><span className="w-14 text-center">Active</span>{!readOnly && <span className="w-[6.5rem]" />}
           </div>

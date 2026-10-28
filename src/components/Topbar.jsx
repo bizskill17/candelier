@@ -39,7 +39,6 @@ export default function Topbar({ onOpenMobile }) {
       </button>
 
       <div className="min-w-0 flex-1">
-        {current?.heading && <div className="text-xs text-gray-500">{current.heading}</div>}
         <h1 className="truncate text-base font-semibold text-gray-900">{current?.label || 'Dashboard'}</h1>
       </div>
 
