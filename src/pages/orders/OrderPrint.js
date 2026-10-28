@@ -28,14 +28,13 @@ export async function downloadOrderPdf(id){
  const start=()=>{
   pageNo++;canvas=document.createElement('canvas');canvas.width=PAGE_W;canvas.height=PAGE_H;ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,PAGE_W,PAGE_H);
   const gradient=ctx.createLinearGradient(0,0,PAGE_W,190);gradient.addColorStop(0,'#ffffff');gradient.addColorStop(.55,'#f0f9ff');gradient.addColorStop(1,'#d9efff');ctx.fillStyle=gradient;ctx.fillRect(0,0,PAGE_W,225);drawWave(ctx,150,PAGE_W,'#d7efff',0);drawWave(ctx,175,PAGE_W,'#edf8ff',0);
-  roundRect(ctx,M,38,58,58,14,BLUE);ctx.fillStyle='#fff';ctx.font='bold 39px Arial';ctx.textAlign='center';ctx.fillText('C',M+29,80);ctx.textAlign='left';
   ctx.fillStyle=NAVY;ctx.textAlign='right';ctx.font='bold 38px Arial';ctx.fillText('Order Confirmation',PAGE_W-M,71);ctx.font='22px Arial';ctx.fillStyle='#31577f';ctx.fillText(`Order ${o.order_no||''}`,PAGE_W-M,106);ctx.textAlign='left';
   y=220;
   ctx.strokeStyle=LINE;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(M, PAGE_H-62);ctx.lineTo(PAGE_W-M,PAGE_H-62);ctx.stroke();
   drawWave(ctx,PAGE_H-178,PAGE_W,'#eaf6ff',0);ctx.fillStyle=MUTED;ctx.font='16px Arial';ctx.textAlign='right';ctx.fillText(`Page ${pageNo}`,PAGE_W-M,PAGE_H-35);ctx.textAlign='left';
  };
  const meta=()=>{
-  const x=M,w=PAGE_W-2*M,h=215;roundRect(ctx,x,y,w,h,18,'#fbfdff',LINE);
+  const x=M,w=PAGE_W-2*M,h=166;roundRect(ctx,x,y,w,h,18,'#fbfdff',LINE);
   ctx.fillStyle=NAVY;ctx.font='bold 22px Arial';ctx.fillText('Customer & Order Information',x+26,y+34);
   ctx.strokeStyle='#d7eafa';ctx.beginPath();ctx.moveTo(x+26,y+48);ctx.lineTo(x+w-26,y+48);ctx.stroke();
   const cols=[[
@@ -45,8 +44,8 @@ export async function downloadOrderPdf(id){
   ]];
   const colW=(w-72)/2;
   cols.forEach((list,c)=>list.forEach((entry,i)=>{
-   const fx=x+28+c*(colW+16),fy=y+70+i*45;ctx.fillStyle=MUTED;ctx.font='14px Arial';ctx.fillText(entry[0].toUpperCase(),fx,fy);
-   ctx.fillStyle=INK;ctx.font='19px Arial';const lines=wrap(ctx,entry[1]||'â',colW-16);lines.slice(0,2).forEach((line,n)=>ctx.fillText(line,fx,fy+22+n*20));
+   const fx=x+28+c*(colW+16),fy=y+75+i*35;ctx.font='18px Arial';ctx.fillStyle=NAVY;const label=entry[0]+' -';ctx.fillText(label,fx,fy);const labelW=ctx.measureText(label+' ').width;
+   ctx.fillStyle=INK;ctx.font='18px Arial';ctx.fillText(entry[1]||'',fx+labelW,fy);
   }));
   y+=h+16;
  };
@@ -54,21 +53,21 @@ export async function downloadOrderPdf(id){
   const details=[...(it.details||[])];
   const colW=(PAGE_W-2*M-80)/2;let leftH=0,rightH=0;
   details.forEach((d,i)=>{ctx.font='20px Arial';const lines=wrap(ctx,d.value||'â',colW-20).length;const ht=25+Math.max(1,lines)*24+16;if(i%2)rightH+=ht;else leftH+=ht;});
-  const detailsH=Math.max(leftH,rightH,54)+30;ctx.font='23px Arial';const remarks=it.remarks?Math.max(64,wrap(ctx,it.remarks,(PAGE_W-2*M)-88).length*30+30):0;
+  const detailsH=Math.max(leftH,rightH,54)+30;ctx.font='23px Arial';const remarks=it.remarks?Math.max(64,wrap(ctx,`Remarks - ${it.remarks}`,(PAGE_W-2*M)-88).length*30+30):0;
   return {details,detailsH,remarksH:remarks,imageH:390,total:58+detailsH+remarks+22+390+28};
  };
  const drawItem=(it)=>{
   const dim=itemDimensions(it),x=M,w=PAGE_W-2*M;
   roundRect(ctx,x,y,w,dim.total,16,'#fff',LINE);
-  roundRect(ctx,x,y,w,58,16,'#e6f4ff');ctx.fillStyle=NAVY;ctx.font='bold 23px Arial';ctx.fillText(`Item #${it.line_no||''}`,x+24,y+37);
+  roundRect(ctx,x,y,w,58,16,'#e6f4ff');ctx.fillStyle=NAVY;ctx.font='bold 23px Arial';ctx.fillText(`Item - ${it.item_name||it.line_no||''}`,x+24,y+37);
   if(it.area){ctx.textAlign='right';ctx.fillStyle='#31577f';ctx.font='20px Arial';ctx.fillText(it.area,x+w-24,y+37);ctx.textAlign='left';}
   let fy=y+82;const colW=(w-80)/2;let cy=[fy,fy];
   dim.details.forEach((d,i)=>{
-   const c=i%2,fx=x+28+c*(colW+24);ctx.fillStyle=MUTED;ctx.font='16px Arial';ctx.fillText(String(d.name||'').toUpperCase(),fx,cy[c]);
-   ctx.fillStyle=INK;ctx.font='20px Arial';const lines=wrap(ctx,d.value||'â',colW-10);lines.forEach((line,n)=>ctx.fillText(line,fx,cy[c]+25+n*24));cy[c]+=25+Math.max(1,lines.length)*24+16;
+   const c=i%2,fx=x+28+c*(colW+24);ctx.fillStyle=NAVY;ctx.font='19px Arial';const label=`${d.name||'Field'} -`;ctx.fillText(label,fx,cy[c]);const labelW=ctx.measureText(label+' ').width;
+   ctx.fillStyle=INK;ctx.font='19px Arial';const lines=wrap(ctx,d.value||'',colW-labelW-10);lines.forEach((line,n)=>ctx.fillText(line,fx+labelW,cy[c]+n*23));cy[c]+=25+Math.max(1,lines.length)*23+12;
   });
   fy=y+58+dim.detailsH;
-  if(it.remarks){roundRect(ctx,x+24,fy,w-48,dim.remarksH,10,'#f6fbff','#d8eafa');ctx.fillStyle=MUTED;ctx.font='17px Arial';ctx.fillText('REMARKS',x+40,fy+26);ctx.fillStyle=INK;ctx.font='23px Arial';const lines=wrap(ctx,it.remarks,w-88);lines.forEach((line,n)=>ctx.fillText(line,x+40,fy+55+n*30));fy+=dim.remarksH+17;}
+  if(it.remarks){roundRect(ctx,x+24,fy,w-48,dim.remarksH,10,'#f6fbff','#d8eafa');ctx.fillStyle=NAVY;ctx.font='bold 21px Arial';const label='Remarks -';ctx.fillText(label,x+40,fy+39);ctx.fillStyle=INK;ctx.font='23px Arial';const lines=wrap(ctx,it.remarks,w-160);lines.forEach((line,n)=>ctx.fillText(line,x+40+ctx.measureText(label+' ').width,fy+39+n*30));fy+=dim.remarksH+17;}
   const gap=22,panelW=(w-gap)/2,panelH=390;
   [[it.pattern,'Pattern Image'],[it.component,'Component Image']].forEach(([img,label],index)=>{
    const px=x+index*(panelW+gap);roundRect(ctx,px,fy,panelW,panelH,13,'#fff','#c8e4f7');roundRect(ctx,px,fy,panelW,45,13,'#e8f5ff');ctx.fillStyle=NAVY;ctx.font='bold 18px Arial';ctx.fillText(label,px+18,fy+29);
