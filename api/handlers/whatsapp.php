@@ -30,7 +30,7 @@ function wa_create(array $b): array {
  $image=clean_image_path($b['image_path']??'');
  if($image===false||(!empty($b['image_header'])&&!$image))throw new ApiError('Upload the image required by this template.',422);
  $fileUrl=null;
- if($image){$info=@getimagesize(upload_root().'/'.$image);if(!$info||!in_array($info['mime'],['image/jpeg','image/png'],true))throw new ApiError('Use an uploaded JPG or PNG for the template image.',422);$fileUrl='https://candelier.bizskilledu.com/'.$image;}
+ if($image){$info=@getimagesize(upload_root().'/'.$image);if(!$info||!in_array($info['mime'],['image/jpeg','image/png'],true))throw new ApiError('Use an uploaded JPG or PNG for the template image.',422);$fileUrl=app_files_url().$image;}
  $contacts=db_all('SELECT id,name,company_name,mobile,is_active FROM contacts WHERE id IN ('.implode(',',array_fill(0,count($ids),'?')).')',array_values($ids));$recipients=[];$skipped=count($ids)-count($contacts);
  foreach($contacts as $c){$n=wa_phone((string)$c['mobile']);if(!$n||!$c['is_active']||isset($recipients[$n])){$skipped++;continue;}$recipients[$n]=$c;}if(!$recipients)throw new ApiError('No active contacts with valid mobile numbers selected.',422);
  db()->beginTransaction();try{db()->prepare('INSERT INTO whatsapp_campaigns(request_key,name,template_name,language,phone_id,created_by,created_at) VALUES(?,?,?,?,?,?,?)')->execute([$key,$name,$template,$lang,wa_settings()['phone_id'],current_user()['id'],now()]);$id=(int)db()->lastInsertId();

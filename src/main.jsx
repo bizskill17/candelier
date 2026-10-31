@@ -14,7 +14,7 @@ document.addEventListener('wheel', (e) => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={(typeof window !== 'undefined' && window.CANDELIER?.basename) || '/'}>
       <ToastProvider>
         <AuthProvider>
           <App />

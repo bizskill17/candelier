@@ -97,7 +97,7 @@ function enquiries_route(string $method,array $parts): void {
  }
  if($first==='connection-script'&&$method==='POST'){
  require_admin();$token=bin2hex(random_bytes(32));db()->prepare('UPDATE enquiry_integration SET token_hash=?,is_enabled=1 WHERE id=1')->execute([hash('sha256',$token)]);$s=db_one('SELECT * FROM enquiry_integration WHERE id=1');
- $script=file_get_contents(__DIR__.'/../integrations/CandelierSync.gs');$script=str_replace(['__SHEET_ID__','__TAB_NAME__','__TOKEN__'],[$s['spreadsheet_id'],str_replace(["\\","'"],["\\\\","\\'"],$s['tab_name']),$token],$script);header('Cache-Control: no-store');json_out(['script'=>$script,'filename'=>'CandelierSync.gs']);return;
+ $script=file_get_contents(__DIR__.'/../integrations/CandelierSync.gs');$script=str_replace(['__SHEET_ID__','__TAB_NAME__','__TOKEN__','__ENDPOINT__'],[$s['spreadsheet_id'],str_replace(["\\","'"],["\\\\","\\'"],$s['tab_name']),$token,app_api_url().'?r=enquiry-sync'],$script);header('Cache-Control: no-store');json_out(['script'=>$script,'filename'=>'CandelierSync.gs']);return;
  }
  if($first==='request-sync'&&$method==='POST'){require_admin();db()->exec('UPDATE enquiry_integration SET full_sync_requested=1 WHERE id=1');json_out(['message'=>'Full sync requested. The next Google trigger will restart from row 2. For immediate sync, use Candelier → Sync Now in the sheet.']);return;}
  if($first==='sync-history'&&$method==='GET'){ $r=crm_page('SELECT * FROM enquiry_sync_runs ORDER BY id DESC');foreach($r['data']as &$row){$row['errors']=json_decode($row['errors_json'],true);unset($row['errors_json'],$row['request_key']);}json_out($r);return;}

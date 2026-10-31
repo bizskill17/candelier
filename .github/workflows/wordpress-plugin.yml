@@ -1,0 +1,134 @@
+name: Build and test WordPress plugin
+
+on:
+  push:
+    branches: [wordpress-plugin]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: candelier-wordpress-plugin
+  cancel-in-progress: true
+
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      database:
+        image: mariadb:11
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: '1'
+          MARIADB_DATABASE: wordpress
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      WP: ${{ github.workspace }}/site
+      SITE: http://127.0.0.1:8080
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Live app checks still pass
+        run: |
+          find api wordpress -name '*.php' -print0 | xargs -0 -n1 php -l
+          node tests/enquiry-script.test.cjs
+          mysql -h127.0.0.1 -P33306 -uroot -e "CREATE DATABASE candelier_test"
+          TEST_DB_DSN='mysql:host=127.0.0.1;port=33306;dbname=candelier_test;charset=utf8mb4' php tests/workflow.php
+
+      - name: Build plugin zip
+        run: bash wordpress/build.sh
+
+      - name: Install WordPress
+        run: |
+          curl -sSLo wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && chmod +x wp && sudo mv wp /usr/local/bin/wp
+          wp core download --path="$WP" --quiet
+          wp config create --path="$WP" --dbname=wordpress --dbuser=root --dbpass='' --dbhost=127.0.0.1:33306 --skip-check
+          wp core install --path="$WP" --url="$SITE" --title="Clean site" --admin_user=admin --admin_password=admin123 --admin_email=admin@example.com --skip-email
+          echo "Permalinks before: '$(wp option get permalink_structure --path="$WP")'"
+          php -S 127.0.0.1:8080 -t "$WP" wordpress/router.php > php-server.log 2>&1 &
+          sleep 2
+
+      - name: Install and activate the plugin
+        run: |
+          wp plugin install build/candelier-wp.zip --activate --path="$WP"
+          echo "Permalinks after: '$(wp option get permalink_structure --path="$WP")'"
+          test -f "$WP/wp-content/plugins/candelier/api/config.php"
+          test -d "$WP/wp-content/uploads/candelier/uploads"
+          wp db query "SELECT COUNT(*) AS app_tables FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%'" --path="$WP"
+
+      - name: End-to-end test in a browser
+        env:
+          SHOTS: build/shots
+        run: |
+          npm i --no-save --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+          node wordpress/test-plugin.cjs
+
+      - name: Same page with a different theme
+        run: |
+          curl -s "$SITE/candelier/orders/all" > before.html
+          wp theme install twentytwentythree --activate --path="$WP" || wp theme activate twentytwentyfour --path="$WP"
+          curl -s "$SITE/candelier/orders/all" > after.html
+          diff before.html after.html && echo "Identical app page with another theme"
+          ! grep -q "wp-content/themes" after.html
+
+      - name: Speed (direct app API vs a WordPress page)
+        run: |
+          for i in 1 2 3 4 5; do curl -s -o /dev/null -w "app API: %{time_total}s\n" "$SITE/wp-content/plugins/candelier/api/index.php?r=auth/me"; done
+          for i in 1 2 3 4 5; do curl -s -o /dev/null -w "app page: %{time_total}s\n" "$SITE/candelier/orders/all"; done
+          for i in 1 2 3 4 5; do curl -s -o /dev/null -w "WordPress home: %{time_total}s\n" "$SITE/"; done
+
+      - name: Update keeps data and settings
+        run: |
+          wp plugin install build/candelier-wp.zip --force --path="$WP"
+          test -f "$WP/wp-content/plugins/candelier/api/config.php"
+          curl -sf "$SITE/wp-content/plugins/candelier/api/index.php?r=auth/me" | grep -q '"needs_setup":false'
+          wp plugin deactivate candelier --path="$WP" && wp plugin activate candelier --path="$WP"
+          test "$(wp db query 'SELECT COUNT(*) FROM users' --skip-column-names --path="$WP")" = "1"
+          echo "Data kept after update and re-activation"
+
+      - name: Uninstall with "delete all data"
+        run: |
+          wp option update candelier_delete_on_uninstall 1 --path="$WP"
+          wp plugin deactivate candelier --path="$WP"
+          wp plugin uninstall candelier --path="$WP"
+          left=$(wp db query "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%' AND TABLE_NAME NOT LIKE 'backup\_%'" --skip-column-names --path="$WP")
+          echo "App tables left: $left"
+          test "$left" = "0"
+          wp core is-installed --path="$WP" && echo "WordPress itself untouched"
+
+      - name: Server log
+        if: always()
+        run: tail -n 60 php-server.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: candelier-wp
+          path: |
+            build/candelier-wp.zip
+            build/shots
+
+      - name: Publish zip to the wordpress-plugin-build branch
+        if: success()
+        run: |
+          mkdir out && cp build/candelier-wp.zip out/ && cp -r build/shots out/shots
+          cd out
+          git init -q && git checkout -q -b wordpress-plugin-build
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add . && git commit -qm "Plugin build from ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" wordpress-plugin-build

@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const code=fs.readFileSync('api/integrations/CandelierSync.gs','utf8').replace('__SHEET_ID__','sheet-id').replace('__TAB_NAME__','Form Responses 1').replace('__TOKEN__','a'.repeat(64));
+const code=fs.readFileSync('api/integrations/CandelierSync.gs','utf8').replace('__SHEET_ID__','sheet-id').replace('__TAB_NAME__','Form Responses 1').replace('__TOKEN__','a'.repeat(64)).replace('__ENDPOINT__','https://candelier.bizskilledu.com/api/index.php?r=enquiry-sync');
 const props=new Map(),requests=[],triggers=[],alerts=[];let networkFailure=false,id=0;
 const grid=[['id','full_name','phone_number','email','Column 1'],...Array.from({length:205},(_,i)=>['enquiry-'+i,'Person '+i,'9876543210','','ignored'])];
 const sheet={getLastColumn:()=>5,getLastRow:()=>grid.length,getRange:(row,col,n)=>({getDisplayValues:()=>grid.slice(row-1,row-1+n),getValues:()=>grid.slice(row-1,row-1+n)})};

@@ -39,3 +39,7 @@ function now(): string
 {
     return date('Y-m-d H:i:s');
 }
+
+// Public addresses. The live site uses the defaults; the WordPress plugin sets them in config.php.
+function app_files_url(): string { return rtrim((string)($GLOBALS['CONFIG']['files_url'] ?? 'https://candelier.bizskilledu.com/'), '/') . '/'; }
+function app_api_url(): string { return (string)($GLOBALS['CONFIG']['api_url'] ?? 'https://candelier.bizskilledu.com/api/index.php'); }

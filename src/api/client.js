@@ -1,7 +1,10 @@
 // Thin wrapper around fetch for the PHP API.
 // All calls go to /api/index.php?r=<route>, which works on Hostinger without extra rewrite rules.
 
-const BASE = '/api/index.php';
+// The WordPress plugin sets window.CANDELIER; the live site uses the defaults.
+const RUNTIME = (typeof window !== 'undefined' && window.CANDELIER) || {};
+const BASE = RUNTIME.apiBase || '/api/index.php';
+const FILES = RUNTIME.filesBase || '/';
 
 export class ApiError extends Error {
   constructor(message, status, fields = {}) {
@@ -98,7 +101,7 @@ export const itemsApi = {
 };
 
 // Address of an uploaded photo (stored as uploads/items/2026/10/xxx.jpg)
-export const imageUrl = (path) => (!path ? '' : /^(data:|blob:|https?:)/.test(path) ? path : `/${path}`);
+export const imageUrl = (path) => (!path ? '' : /^(data:|blob:|https?:)/.test(path) ? path : `${FILES}${path}`);
 
 export const ordersApi = {
   pendingIssue: q => request('GET','order-items',{params:{pending_issue:1,q}}),

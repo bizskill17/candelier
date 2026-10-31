@@ -1,7 +1,7 @@
 /** Candelier enquiry sync. Paste into a NEW Apps Script file; do not replace existing scripts. */
 const CANDELIER_SETUP = {
   spreadsheetId: '__SHEET_ID__', tabName: '__TAB_NAME__', token: '__TOKEN__',
-  endpoint: 'https://candelier.bizskilledu.com/api/index.php?r=enquiry-sync'
+  endpoint: '__ENDPOINT__'
 };
 function setupCandelierSync() {
   const props = PropertiesService.getScriptProperties();
