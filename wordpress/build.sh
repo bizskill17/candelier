@@ -7,6 +7,14 @@ OUT=build/candelier
 rm -rf build && mkdir -p "$OUT"
 npx vite build --base=./ --outDir="$OUT/app" --emptyOutDir
 rm -rf "$OUT/app/uploads"                      # copied from public/, not needed in the plugin
+# The live site's .htaccess routes everything to index.html; in the plugin only caching rules are wanted.
+cat > "$OUT/app/.htaccess" <<'HT'
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+HT
 cp -a api "$OUT/api"
 rm -f "$OUT/api/config.php" "$OUT/api/config.sample.php"
 mkdir -p "$OUT/database" && cp database/schema.sql "$OUT/database/"
