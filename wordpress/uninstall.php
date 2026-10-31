@@ -19,6 +19,8 @@ if ((int) get_option('candelier_delete_on_uninstall', 0) === 1) {
         $text = (string) file_get_contents($src);
         preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([a-z0-9_]+)`?/i', $text, $m);
         $names = array_merge($names, $m[1]);
+        preg_match_all('/(?:RENAME\s+TABLE\s+`?[a-z0-9_]+`?|,)\s*`?[a-z0-9_]+`?\s+TO\s+`?([a-z0-9_]+)`?/i', $text, $m);
+        $names = array_merge($names, $m[1]);
         preg_match_all('/CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+`?([a-z0-9_]+)`?/i', $text, $m);
         $views = array_merge($views, $m[1]);
     }
