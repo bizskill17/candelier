@@ -15,7 +15,7 @@ const PATHS = '/ /enquiries /enquiry-sync-history /enquiry-settings /contacts /f
   const t0 = Date.now();
   await page.goto(SITE + '/candelier/');
   await page.waitForSelector('#l-username', { timeout: 30000 });
-  console.log('first load (creates tables via migrations):', Date.now() - t0, 'ms');
+  console.log('::notice::First visit (runs database updates): ' + (Date.now() - t0) + ' ms');
   if (!(await page.$('#l-name'))) throw new Error('Expected the "create administrator" screen on first visit');
   await page.screenshot({ path: SHOTS + '/01-setup.png' });
   await page.fill('#l-name', 'Owner');
@@ -37,9 +37,9 @@ const PATHS = '/ /enquiries /enquiry-sync-history /enquiry-settings /contacts /f
     await page.waitForLoadState('networkidle');
     timings.push([p, Date.now() - s]);
     const text = await page.locator('body').innerText();
-    if (/Page not found|Server error|config\.php is missing/i.test(text)) problems.push('screen problem on ' + p + ': ' + text.slice(0, 120).replace(/\s+/g, ' '));
+    if (/doesn.t exist|Server error|config\.php is missing/i.test(text)) problems.push('screen problem on ' + p + ': ' + text.slice(0, 120).replace(/\s+/g, ' '));
   }
-  console.log('screen load times (ms):', JSON.stringify(timings));
+  console.log('::notice::Screen load times ms: ' + timings.map(([p, t]) => p + '=' + t).join(' '));
   await page.goto(SITE + '/candelier/orders/new'); await page.waitForLoadState('networkidle'); await page.screenshot({ path: SHOTS + '/03-add-order.png' });
   await page.goto(SITE + '/candelier/contacts'); await page.waitForLoadState('networkidle'); await page.screenshot({ path: SHOTS + '/04-contacts.png' });
   // In-app navigation keeps the /candelier prefix.
@@ -58,7 +58,7 @@ const PATHS = '/ /enquiries /enquiry-sync-history /enquiry-settings /contacts /f
     const file = await fetch(window.CANDELIER.filesBase + path);
     return { status: res.status, path, fileStatus: file.status, url: window.CANDELIER.filesBase + path };
   });
-  console.log('upload:', JSON.stringify(up));
+  console.log('::notice::Upload: ' + JSON.stringify(up));
   if (up.status !== 201 || up.fileStatus !== 200 || !up.url.includes('/wp-content/uploads/candelier/uploads/')) problems.push('upload problem ' + JSON.stringify(up));
   // Sign out and in again with the app's own login.
   await page.context().clearCookies();
@@ -68,6 +68,6 @@ const PATHS = '/ /enquiries /enquiry-sync-history /enquiry-settings /contacts /f
   await page.fill('#l-username', 'owner'); await page.fill('#l-password', 'secret123'); await page.click('button[type=submit]');
   await page.waitForSelector('nav, aside', { timeout: 20000 });
   await browser.close();
-  if (problems.length) { console.error('PROBLEMS:\n' + [...new Set(problems)].join('\n')); process.exit(1); }
+  if (problems.length) { [...new Set(problems)].slice(0, 10).forEach((p) => console.log('::error::' + p)); process.exit(1); }
   console.log('PASS: plugin installs, first admin, all screens, deep links, uploads, own login, no theme markup');
 })().catch((e) => { console.error(e); process.exit(1); });

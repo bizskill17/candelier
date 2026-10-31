@@ -65,7 +65,7 @@ jobs:
       - name: Install and activate the plugin
         run: |
           wp plugin install build/candelier-wp.zip --activate --path="$WP"
-          echo "Permalinks after: '$(wp option get permalink_structure --path="$WP")'"
+          echo "::notice::Permalinks after activation: '$(wp option get permalink_structure --path="$WP")'"
           test -f "$WP/wp-content/plugins/candelier/api/config.php"
           test -d "$WP/wp-content/uploads/candelier/uploads"
           wp db query "SELECT COUNT(*) AS app_tables FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%'" --path="$WP"
@@ -88,9 +88,8 @@ jobs:
 
       - name: Speed (direct app API vs a WordPress page)
         run: |
-          for i in 1 2 3 4 5; do curl -s -o /dev/null -w "app API: %{time_total}s\n" "$SITE/wp-content/plugins/candelier/api/index.php?r=auth/me"; done
-          for i in 1 2 3 4 5; do curl -s -o /dev/null -w "app page: %{time_total}s\n" "$SITE/candelier/orders/all"; done
-          for i in 1 2 3 4 5; do curl -s -o /dev/null -w "WordPress home: %{time_total}s\n" "$SITE/"; done
+          t() { for i in 1 2 3 4 5 6; do curl -s -o /dev/null -w "%{time_total} " "$1"; done; }
+          echo "::notice::Speed in seconds (6 tries each). App API: $(t "$SITE/wp-content/plugins/candelier/api/index.php?r=auth/me") | App page: $(t "$SITE/candelier/orders/all") | WordPress home: $(t "$SITE/")"
 
       - name: Update keeps data and settings
         run: |
@@ -106,9 +105,9 @@ jobs:
           wp option update candelier_delete_on_uninstall 1 --path="$WP"
           wp plugin deactivate candelier --path="$WP"
           wp plugin uninstall candelier --path="$WP"
-          left=$(wp db query "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%' AND TABLE_NAME NOT LIKE 'backup\_%'" --skip-column-names --path="$WP")
-          echo "App tables left: $left"
-          test "$left" = "0"
+          names=$(wp db query "SELECT GROUP_CONCAT(TABLE_NAME) FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%' AND TABLE_NAME NOT LIKE 'backup\_%'" --skip-column-names --path="$WP")
+          echo "::notice::App tables left after uninstall: ${names:-none}"
+          test -z "$names" -o "$names" = "NULL"
           wp core is-installed --path="$WP" && echo "WordPress itself untouched"
 
       - name: Server log
@@ -124,9 +123,9 @@ jobs:
             build/shots
 
       - name: Publish zip to the wordpress-plugin-build branch
-        if: success()
+        if: always()
         run: |
-          mkdir out && cp build/candelier-wp.zip out/ && cp -r build/shots out/shots
+          mkdir out && cp build/candelier-wp.zip out/ 2>/dev/null; cp -r build/shots out/shots 2>/dev/null; cp php-server.log out/ 2>/dev/null; echo "${{ job.status }}" > out/STATUS
           cd out
           git init -q && git checkout -q -b wordpress-plugin-build
           git config user.name "github-actions" && git config user.email "actions@github.com"
