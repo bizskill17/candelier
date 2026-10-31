@@ -1,0 +1,967 @@
+[Sat Oct 31 08:26:33 2026] PHP 8.5.4 Development Server (http://127.0.0.1:8080) started
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:42266 Accepted
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:42266 Closing
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41578 Accepted
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41594 Accepted
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41578 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41594 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41578 Closing
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41594 Closing
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41598 Accepted
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41598 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:26:54 2026] 127.0.0.1:41598 Closing
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41608 Accepted
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41608 [200]: POST /wp-content/plugins/candelier/api/index.php?r=auth%2Fsetup
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41608 Closing
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41610 Accepted
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41616 Accepted
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41610 [200]: GET /wp-content/plugins/candelier/api/index.php?r=dashboard
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41610 Closing
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41616 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:26:55 2026] 127.0.0.1:41616 Closing
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41626 Accepted
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41626 Closing
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41636 Accepted
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41636 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41636 Closing
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41650 Accepted
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41650 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:26:56 2026] 127.0.0.1:41650 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41666 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41666 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41666 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41672 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41676 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41672 [200]: GET /wp-content/plugins/candelier/api/index.php?r=dashboard
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41672 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41676 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41676 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41688 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41688 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41702 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41708 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41702 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41708 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41708 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41702 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41722 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41722 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41722 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41728 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41732 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41748 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41756 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41766 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41728 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41728 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41732 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41732 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41776 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41748 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41748 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41756 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41756 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41766 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41766 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41778 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41776 [200]: GET /wp-content/plugins/candelier/api/index.php?r=enquiries&view=pending&page=1
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41776 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41792 Accepted
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41778 [200]: GET /wp-content/plugins/candelier/api/index.php?r=enquiries%2Ffilters
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41778 Closing
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41792 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:26:57 2026] 127.0.0.1:41792 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41802 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41802 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41808 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41810 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41808 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41810 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41810 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41808 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41822 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41822 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41822 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41830 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41834 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41830 [200]: GET /wp-content/plugins/candelier/api/index.php?r=enquiries%2Fsync-history&page=1
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41830 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41834 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41834 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41850 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41850 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41858 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41874 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41858 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41858 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41874 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41874 Closing
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41876 Accepted
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41876 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:26:58 2026] 127.0.0.1:41876 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41878 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41888 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41878 [200]: GET /wp-content/plugins/candelier/api/index.php?r=enquiries%2Fsync-history&page=1
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41878 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41902 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41888 [200]: GET /wp-content/plugins/candelier/api/index.php?r=enquiries%2Fsettings
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41888 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41902 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41902 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41918 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41918 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41920 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41930 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41920 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41930 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41930 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41920 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41932 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41932 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41932 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41938 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41954 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41958 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41974 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41986 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:42000 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41938 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41938 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41954 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41954 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41958 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41958 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41974 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41974 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41986 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:41986 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:42000 [200]: GET /wp-content/plugins/candelier/api/index.php?r=contacts&view=all&page=1
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:42000 Closing
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:42010 Accepted
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:42010 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:26:59 2026] 127.0.0.1:42010 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42016 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42016 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42022 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42022 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42022 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42038 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42038 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42038 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42048 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42048 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42048 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42058 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42068 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42070 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42080 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42094 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42110 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42058 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42058 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42068 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42068 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42070 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42070 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42080 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42080 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42094 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42094 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42110 [200]: GET /wp-content/plugins/candelier/api/index.php?r=crm-followups&from=2026-10-31&to=2026-10-31&page=1
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42110 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42116 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42116 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42116 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42122 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42122 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42136 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42150 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42136 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42150 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42150 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42136 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42166 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42166 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42166 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42170 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42182 Accepted
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42170 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Fclient_categories&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42170 Closing
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42182 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:00 2026] 127.0.0.1:42182 Closing
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42192 Accepted
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42192 Closing
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42204 Accepted
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42204 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42204 Closing
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42220 Accepted
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42220 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42220 Closing
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42234 Accepted
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42234 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42234 Closing
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42242 Accepted
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42252 Accepted
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42242 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Fstates&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42242 Closing
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42252 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:01 2026] 127.0.0.1:42252 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42268 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42268 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42270 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42284 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42270 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42284 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42284 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42270 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42292 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42292 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42292 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42306 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42308 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42306 [200]: GET /wp-content/plugins/candelier/api/index.php?r=whatsapp%2Fcampaigns
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42306 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42308 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42308 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42318 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42318 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42320 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42324 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42320 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42324 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42324 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42320 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42330 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42330 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42330 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42334 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42340 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42334 [200]: GET /wp-content/plugins/candelier/api/index.php?r=whatsapp%2Ffailed-contacts&page=1
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42334 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42346 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42340 [200]: POST /wp-content/plugins/candelier/api/index.php?r=whatsapp%2Fsync
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42340 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42352 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42346 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42346 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42352 [200]: GET /wp-content/plugins/candelier/api/index.php?r=whatsapp%2Ffailed-contacts&page=1
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42352 Closing
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42354 Accepted
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42354 [200]: GET /wp-content/plugins/candelier/api/index.php?r=whatsapp%2Ffailed-contacts&page=1
+[Sat Oct 31 08:27:02 2026] 127.0.0.1:42354 Closing
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42370 Accepted
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42370 Closing
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42378 Accepted
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42390 Accepted
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42378 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42390 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42390 Closing
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42378 Closing
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42396 Accepted
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42396 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42396 Closing
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42398 Accepted
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42402 Accepted
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42398 [200]: GET /wp-content/plugins/candelier/api/index.php?r=whatsapp%2Fsettings
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42398 Closing
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42402 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:03 2026] 127.0.0.1:42402 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42416 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42416 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42426 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42428 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42426 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42428 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42428 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42426 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42434 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42434 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42434 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42448 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42458 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42470 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42476 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42492 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42498 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42448 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42448 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42458 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42458 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42470 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42470 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42476 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42476 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42492 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42492 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42498 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:42498 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36848 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36848 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36850 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36852 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36850 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36852 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36852 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36850 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36864 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36864 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36864 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36876 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36880 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36892 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36908 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36916 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36876 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36876 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36918 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36880 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36880 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36892 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36892 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36908 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36908 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36916 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36916 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36920 Accepted
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36918 [200]: GET /wp-content/plugins/candelier/api/index.php?r=leads&page=1&view=all
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36918 Closing
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36920 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:04 2026] 127.0.0.1:36920 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36934 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36934 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36948 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36960 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36948 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36960 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36960 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36948 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36974 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36974 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36974 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36988 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36994 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37002 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37014 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37024 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37032 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36988 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36988 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36994 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:36994 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37002 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37002 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37014 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37014 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37024 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37024 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37032 [200]: GET /wp-content/plugins/candelier/api/index.php?r=follow-ups&page=1&tab=today
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37032 Closing
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37048 Accepted
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37048 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:05 2026] 127.0.0.1:37048 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37062 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37062 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37068 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37076 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37068 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37076 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37076 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37068 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37092 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37092 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37092 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37100 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37114 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37100 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Flead_sources&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37100 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37114 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37114 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37124 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37124 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37136 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37140 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37136 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37140 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37140 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37136 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37150 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37150 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37150 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37152 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37156 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37164 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37170 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37174 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37182 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37152 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37152 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37156 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37156 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37164 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37164 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37170 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37170 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37174 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37174 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37182 [200]: GET /wp-content/plugins/candelier/api/index.php?r=contacts&view=customers&page=1
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37182 Closing
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37184 Accepted
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37184 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:06 2026] 127.0.0.1:37184 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37200 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37200 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37202 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37202 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37214 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37214 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37214 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37202 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37220 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37220 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37220 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37228 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37238 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37228 [200]: GET /wp-content/plugins/candelier/api/index.php?r=item-fields
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37228 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37252 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37238 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcustomers
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37238 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37268 Accepted
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37252 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37252 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37268 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37268 Closing
+[Sat Oct 31 08:27:07 2026] 127.0.0.1:37274 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37274 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37290 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37298 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37290 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37298 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37298 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37290 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37312 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37312 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37312 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37316 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37328 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37334 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37342 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37316 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcustomers
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37316 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37328 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37328 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37334 [200]: GET /wp-content/plugins/candelier/api/index.php?r=orders&page=1&per_page=100
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37334 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37342 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37342 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37344 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37344 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37352 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37366 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37352 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37366 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37366 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37352 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37374 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37374 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37374 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37378 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37382 Accepted
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37378 [200]: GET /wp-content/plugins/candelier/api/index.php?r=item-fields
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37378 Closing
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37382 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:08 2026] 127.0.0.1:37382 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37398 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37398 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37404 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37404 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37404 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37408 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37408 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37408 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37410 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37410 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37410 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37412 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37416 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37412 [200]: GET /wp-content/plugins/candelier/api/index.php?r=order-items&pending_drawing=1
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37412 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37416 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37416 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37422 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37422 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37426 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37436 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37426 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37436 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37436 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37426 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37448 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37448 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37448 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37454 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37460 Accepted
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37454 [200]: GET /wp-content/plugins/candelier/api/index.php?r=order-items&pending_boq=1
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37454 Closing
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37460 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:09 2026] 127.0.0.1:37460 Closing
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37476 Accepted
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37476 Closing
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37486 Accepted
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37488 Accepted
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37486 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37488 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37488 Closing
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37486 Closing
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37494 Accepted
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37494 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37494 Closing
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37498 Accepted
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37512 Accepted
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37498 [200]: GET /wp-content/plugins/candelier/api/index.php?r=order-items&saved_boq=1
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37498 Closing
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37512 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:10 2026] 127.0.0.1:37512 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37520 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37520 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37522 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37538 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37522 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37522 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37538 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37538 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37550 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37550 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37550 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37556 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37558 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37556 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Fmaterial_categories&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37556 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37558 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37558 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37570 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37570 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37572 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37580 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37572 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37580 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37580 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37572 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37582 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37582 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37582 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37584 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37596 Accepted
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37584 [200]: GET /wp-content/plugins/candelier/api/index.php?r=materials
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37584 Closing
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37596 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:11 2026] 127.0.0.1:37596 Closing
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37598 Accepted
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37598 Closing
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37604 Accepted
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37620 Accepted
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37604 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37620 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37620 Closing
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37604 Closing
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37636 Accepted
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37636 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37636 Closing
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37642 Accepted
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37644 Accepted
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37642 [200]: GET /wp-content/plugins/candelier/api/index.php?r=opening-stock
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37642 Closing
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37644 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:12 2026] 127.0.0.1:37644 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37658 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37658 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37660 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37660 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37672 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37660 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37672 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37672 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37676 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37676 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37676 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37692 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37702 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37706 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37692 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fsuppliers
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37692 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37702 [200]: GET /wp-content/plugins/candelier/api/index.php?r=docs%2Fmaterial-in&page=1
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37702 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37706 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37706 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37716 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37716 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37726 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37732 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37726 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37732 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37732 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37726 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37736 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37736 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37736 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37738 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37752 Accepted
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37738 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Fsuppliers&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37738 Closing
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37752 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:13 2026] 127.0.0.1:37752 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37768 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37768 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37780 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37782 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37780 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37782 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37782 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37780 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37798 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37798 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:37798 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45352 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45366 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45352 [200]: GET /wp-content/plugins/candelier/api/index.php?r=order-items&pending_issue=1
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45352 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45366 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45366 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45380 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45380 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45392 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45402 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45392 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45402 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45402 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45392 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45404 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45404 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45404 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45412 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45428 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45434 Accepted
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45412 [200]: GET /wp-content/plugins/candelier/api/index.php?r=docs%2Fmaterial-issue%2Ffilters
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45412 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45428 [200]: GET /wp-content/plugins/candelier/api/index.php?r=docs%2Fmaterial-issue&page=1&per_page=20
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45428 Closing
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45434 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:14 2026] 127.0.0.1:45434 Closing
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45436 Accepted
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45436 Closing
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45438 Accepted
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45452 Accepted
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45438 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45452 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45452 Closing
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45438 Closing
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45458 Accepted
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45458 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45458 Closing
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45474 Accepted
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45486 Accepted
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45474 [200]: GET /wp-content/plugins/candelier/api/index.php?r=docs%2Fdamage&page=1&per_page=20
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45474 Closing
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45486 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:15 2026] 127.0.0.1:45486 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45492 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45492 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45500 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45508 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45500 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45508 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45508 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45500 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45512 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45512 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45512 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45524 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45532 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45540 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45524 [200]: GET /wp-content/plugins/candelier/api/index.php?r=production%2Ffilters&status=In+Progress
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45524 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45532 [200]: GET /wp-content/plugins/candelier/api/index.php?r=production&page=1&status=In+Progress
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45532 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45540 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45540 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45548 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45548 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45552 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45558 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45552 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45558 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45558 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45552 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45568 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45568 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45568 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45576 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45590 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45598 Accepted
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45576 [200]: GET /wp-content/plugins/candelier/api/index.php?r=production%2Ffilters&status=Complete
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45576 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45590 [200]: GET /wp-content/plugins/candelier/api/index.php?r=production&page=1&status=Complete
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45590 Closing
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45598 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:16 2026] 127.0.0.1:45598 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45608 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45608 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45618 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45632 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45618 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45632 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45632 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45618 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45644 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45644 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45644 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45648 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45656 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45648 [200]: GET /wp-content/plugins/candelier/api/index.php?r=dispatches
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45648 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45656 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45656 Closing
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45672 Accepted
+[Sat Oct 31 08:27:17 2026] 127.0.0.1:45672 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45682 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45692 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45682 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45692 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45692 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45682 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45694 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45694 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45694 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45696 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45700 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45696 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Ftransporters&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45696 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45700 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45700 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45706 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45706 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45718 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45720 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45718 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45720 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45720 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45718 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45730 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45730 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45730 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45746 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45748 Accepted
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45746 [200]: GET /wp-content/plugins/candelier/api/index.php?r=samples&page=1
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45746 Closing
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45748 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:18 2026] 127.0.0.1:45748 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45754 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45754 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45766 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45766 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45766 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45776 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45776 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45776 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45784 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45784 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45784 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45796 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45806 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45796 [200]: GET /wp-content/plugins/candelier/api/index.php?r=samples%2Fhistory&page=1
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45796 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45806 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45806 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45820 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45820 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45830 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45834 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45830 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45834 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45834 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45830 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45846 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45846 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45846 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45858 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45866 Accepted
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45858 [200]: GET /wp-content/plugins/candelier/api/index.php?r=inventory&only=instock
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45858 Closing
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45866 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:19 2026] 127.0.0.1:45866 Closing
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45874 Accepted
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45874 Closing
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45884 Accepted
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45898 Accepted
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45884 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45898 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45898 Closing
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45884 Closing
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45908 Accepted
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45908 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45908 Closing
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45914 Accepted
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45926 Accepted
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45914 [200]: GET /wp-content/plugins/candelier/api/index.php?r=masters%2Fusers&status=active&page=1&per_page=20&sort=name&dir=asc
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45914 Closing
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45926 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:20 2026] 127.0.0.1:45926 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45934 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45934 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45938 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45954 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45938 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45954 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45954 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45938 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45962 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45962 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45962 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45974 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45976 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45978 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45994 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45974 [200]: GET /wp-content/plugins/candelier/api/index.php?r=item-fields
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45974 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45976 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcustomers
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45976 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45978 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45978 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45994 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:45994 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46002 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46002 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46004 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46008 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46004 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46008 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46008 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46004 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46014 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46014 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46014 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46028 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46028 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcontacts
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46028 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46038 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46052 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46038 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fclient_categories
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46038 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46068 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46052 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Flead_sources
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46052 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46076 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46068 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fstates
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46068 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46084 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46076 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46076 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46094 Accepted
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46084 [200]: GET /wp-content/plugins/candelier/api/index.php?r=contacts&view=all&page=1
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46084 Closing
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46094 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:21 2026] 127.0.0.1:46094 Closing
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46098 Accepted
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46098 Closing
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46100 Accepted
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46102 Accepted
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46100 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46102 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46102 Closing
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46100 Closing
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46104 Accepted
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46104 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46104 Closing
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46116 Accepted
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46124 Accepted
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46116 [200]: GET /wp-content/plugins/candelier/api/index.php?r=dashboard
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46116 Closing
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46124 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:22 2026] 127.0.0.1:46124 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46128 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46136 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46128 [200]: GET /wp-content/plugins/candelier/api/index.php?r=lookup%2Fcustomers
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46128 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46146 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46136 [200]: GET /wp-content/plugins/candelier/api/index.php?r=users-list
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46136 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46146 [200]: GET /wp-content/plugins/candelier/api/index.php?r=orders&page=1&per_page=100
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46146 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46152 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46152 [201]: POST /wp-content/plugins/candelier/api/index.php?r=uploads
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46152 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46166 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46166 [200]: GET /wp-content/uploads/candelier/uploads/items/2026/10/20261031-135723-da21e15e5f.png
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46166 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46178 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46178 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46192 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46200 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46192 [200]: GET /wp-content/plugins/candelier/app/assets/index-DcricG3e.js
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46200 [200]: GET /wp-content/plugins/candelier/app/assets/index-KXEtgt_r.css
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46200 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46192 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46212 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46212 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth%2Fme
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46212 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46224 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46224 [200]: POST /wp-content/plugins/candelier/api/index.php?r=auth%2Flogin
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46224 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46228 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46232 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46228 [200]: GET /wp-content/plugins/candelier/api/index.php?r=dashboard
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46228 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46232 [200]: GET /wp-content/plugins/candelier/api/index.php?r=variants%2Fcatalog
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46232 Closing
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46236 Accepted
+[Sat Oct 31 08:27:23 2026] 127.0.0.1:46236 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39524 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39524 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39532 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39532 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39532 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39546 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39546 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39546 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39558 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39558 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39558 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39566 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39566 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39566 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39576 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39576 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39576 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39578 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39578 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39578 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39582 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39582 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39596 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39596 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39612 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39612 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39624 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39624 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39640 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39640 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39648 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39648 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39654 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39654 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39662 Accepted
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39662 Closing
+[Sat Oct 31 08:27:24 2026] 127.0.0.1:39666 Accepted
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39666 Closing
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39678 Accepted
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39678 Closing
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39682 Accepted
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39682 Closing
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39692 Accepted
+[Sat Oct 31 08:27:25 2026] 127.0.0.1:39692 Closing
+[Sat Oct 31 08:27:26 2026] 127.0.0.1:39706 Accepted
+[Sat Oct 31 08:27:26 2026] 127.0.0.1:39706 [200]: GET /wp-content/plugins/candelier/api/index.php?r=auth/me
+[Sat Oct 31 08:27:26 2026] 127.0.0.1:39706 Closing
+[Sat Oct 31 08:27:29 2026] 127.0.0.1:39712 Accepted
+[Sat Oct 31 08:27:29 2026] 127.0.0.1:39712 [200]: POST /wp-cron.php?doing_wp_cron=1793435249.5186579227447509765625
+[Sat Oct 31 08:27:29 2026] 127.0.0.1:39712 Closing
