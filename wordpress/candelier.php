@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Candelier Management System
  * Description:       Orders, BOQ, stores, production, dispatch, CRM, enquiries and WhatsApp campaigns. Opens at yoursite.com/candelier on its own full-screen page, independent of the theme.
- * Version:           1.0.1
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Bizskill
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const CANDELIER_VERSION = '1.0.1';
+const CANDELIER_VERSION = '1.1.0';
 const CANDELIER_SLUG    = 'candelier';   // the app opens at /candelier
 define('CANDELIER_FILE', __FILE__);
 define('CANDELIER_DIR', plugin_dir_path(__FILE__));
@@ -161,6 +161,117 @@ function candelier_ensure_setup(): void
 }
 
 // ---------------------------------------------------------------------------
+// WordPress Pages: one per app screen (Pages → Candelier → section → screen), for menus and links.
+// Each opens the app on its theme-free page; the pages hold no content of their own.
+// ---------------------------------------------------------------------------
+
+function candelier_app_url(string $path): string
+{
+    return home_url('/' . CANDELIER_SLUG . ($path === '/' ? '/' : $path));
+}
+
+function candelier_page(string $key, string $title, int $parent, int $order, string $path, string $slug = ''): int
+{
+    $found = get_posts(['post_type' => 'page', 'post_status' => ['publish', 'draft', 'private', 'trash'], 'meta_key' => '_candelier_key', 'meta_value' => $key, 'numberposts' => 1, 'fields' => 'ids']);
+    $data = [
+        'post_type'    => 'page',
+        'post_status'  => 'publish',
+        'post_title'   => $title,
+        'post_parent'  => $parent,
+        'menu_order'   => $order,
+        'comment_status' => 'closed',
+        'ping_status'  => 'closed',
+        'post_content' => '<!-- wp:paragraph --><p>This page opens the Candelier app (' . esc_html($path) . '). It is created by the Candelier plugin; its content is not used.</p><!-- /wp:paragraph -->',
+    ];
+    if ($found) {
+        $data['ID'] = $found[0];
+        $id = wp_update_post($data);
+    } else {
+        $data['post_name'] = $slug !== '' ? $slug : sanitize_title($title);
+        $id = wp_insert_post($data);
+    }
+    if (!$id || is_wp_error($id)) {
+        return 0;
+    }
+    update_post_meta($id, '_candelier_key', $key);
+    update_post_meta($id, '_candelier_path', $path);
+    return (int) $id;
+}
+
+/** Creates or updates the pages from app/pages.json; screens that no longer exist go to the bin. */
+function candelier_sync_pages(): void
+{
+    $file = CANDELIER_DIR . 'app/pages.json';
+    $screens = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+    if (!is_array($screens)) {
+        return;
+    }
+    $keep = [];
+    // Own slug so WordPress's page addresses (/candelier-app/...) never overlap the app's (/candelier/...).
+    $root = candelier_page('root', 'Candelier', 0, 0, '/', 'candelier-app');
+    $keep[] = $root;
+    $sections = [];
+    $order = 0;
+    foreach ($screens as $sc) {
+        $order++;
+        if (($sc['path'] ?? '') === '/') {
+            $keep[] = candelier_page('screen:/', $sc['label'], $root, $order, '/');
+            continue;
+        }
+        $section = (string) ($sc['section'] ?? '');
+        $parent = $root;
+        if ($section !== '') {
+            if (!isset($sections[$section])) {
+                // A section page opens its first screen.
+                $sections[$section] = candelier_page('section:' . $section, $section, $root, $order, $sc['path']);
+                $keep[] = $sections[$section];
+            }
+            $parent = $sections[$section];
+        }
+        $keep[] = candelier_page('screen:' . $sc['path'], $sc['label'], $parent, $order, $sc['path']);
+    }
+    $all = get_posts(['post_type' => 'page', 'post_status' => ['publish', 'draft', 'private'], 'meta_key' => '_candelier_key', 'numberposts' => -1, 'fields' => 'ids']);
+    foreach (array_diff($all, $keep) as $old) {
+        wp_trash_post($old);
+    }
+    // Page address as WordPress would build it → app address, so an old or typed page link still opens the app.
+    $map = [];
+    foreach ($keep as $id) {
+        if ($id) {
+            remove_filter('page_link', 'candelier_page_link', 10);
+            $raw = (string) parse_url(get_permalink($id), PHP_URL_PATH);
+            add_filter('page_link', 'candelier_page_link', 10, 2);
+            $map[untrailingslashit($raw)] = (string) get_post_meta($id, '_candelier_path', true);
+        }
+    }
+    update_option('candelier_page_paths', $map, true);
+}
+
+// Pages need WordPress fully loaded (addresses), so they are made on init, not in the early /candelier handler.
+add_action('init', function () {
+    if (get_option('candelier_pages_version') !== CANDELIER_VERSION && is_file(CANDELIER_DIR . 'app/pages.json')) {
+        candelier_sync_pages();
+        update_option('candelier_pages_version', CANDELIER_VERSION, true);
+    }
+}, 20);
+
+/** Links to these pages (menus, "View page", page lists) go straight to the app screen. */
+function candelier_page_link($link, $post_id)
+{
+    $path = get_post_meta($post_id, '_candelier_path', true);
+    return $path !== '' && $path !== false ? candelier_app_url((string) $path) : $link;
+}
+add_filter('page_link', 'candelier_page_link', 10, 2);
+
+// Keep these pages out of search and the sitemap.
+add_filter('wp_sitemaps_posts_query_args', function ($args, $type) {
+    if ($type === 'page') {
+        $args['post__not_in'] = array_merge($args['post__not_in'] ?? [], get_posts(['post_type' => 'page', 'meta_key' => '_candelier_key', 'numberposts' => -1, 'fields' => 'ids']));
+    }
+    return $args;
+}, 10, 2);
+
+// ---------------------------------------------------------------------------
 // Activation / deactivation
 // ---------------------------------------------------------------------------
 
@@ -170,6 +281,7 @@ register_activation_hook(__FILE__, function () {
         wp_die('Candelier needs PHP 8.1 or newer. Change the PHP version in your hosting panel, then activate again.');
     }
     delete_option('candelier_setup_version');
+    delete_option('candelier_pages_version');
     try {
         candelier_ensure_setup();
     } catch (Throwable $e) {
@@ -214,6 +326,12 @@ add_action('plugins_loaded', function () {
     }
     $path = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
     $base = candelier_base_path();
+    $pages = get_option('candelier_page_paths', []);
+    $key = untrailingslashit($path);
+    if (is_array($pages) && isset($pages[$key]) && strpos($key . '/', $base . '/') !== 0) {
+        wp_redirect(candelier_app_url($pages[$key]), 302);
+        exit;
+    }
     if ($path !== $base && strpos($path, $base . '/') !== 0) {
         return;
     }

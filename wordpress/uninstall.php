@@ -52,5 +52,11 @@ $cfg = wp_upload_dir(null, false)['basedir'] . '/candelier/config.php';
 if (is_file($cfg)) {
     unlink($cfg);   // written again from wp-config.php if the plugin is installed again
 }
+// The pages made for the app's screens.
+foreach (get_posts(['post_type' => 'page', 'post_status' => 'any', 'meta_key' => '_candelier_key', 'numberposts' => -1, 'fields' => 'ids']) as $pid) {
+    wp_delete_post($pid, true);
+}
+delete_option('candelier_page_paths');
+delete_option('candelier_pages_version');
 delete_option('candelier_setup_version');
 delete_option('candelier_delete_on_uninstall');

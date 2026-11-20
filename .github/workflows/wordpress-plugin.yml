@@ -71,6 +71,21 @@ jobs:
           test -d "$WP/wp-content/uploads/candelier/uploads"
           wp db query "SELECT COUNT(*) AS app_tables FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%'" --path="$WP"
 
+      - name: WordPress Pages for every screen
+        run: |
+          n=$(wp post list --post_type=page --meta_key=_candelier_key --format=count --path="$WP")
+          echo "::notice::Candelier pages created: $n (Candelier, sections and every screen)"
+          test "$n" -ge 40
+          id=$(wp post list --post_type=page --meta_key=_candelier_path --meta_value=/orders/all --field=ID --path="$WP")
+          link=$(wp eval "echo get_permalink($id);" --path="$WP")
+          echo "::notice::Order Master page links to: $link"
+          test "$link" = "$SITE/candelier/orders/all"
+          raw=$(wp eval "remove_all_filters('page_link'); echo parse_url(get_permalink($id), PHP_URL_PATH);" --path="$WP")
+          loc=$(curl -s -o /dev/null -w "%{redirect_url}" "$SITE$raw")
+          echo "::notice::Opening the page's WordPress address $raw goes to: $loc"
+          test "$loc" = "$SITE/candelier/orders/all"
+          wp post list --post_type=page --meta_key=_candelier_key --fields=post_title,post_parent --format=csv --path="$WP" | head -20
+
       - name: End-to-end test in a browser
         env:
           SHOTS: build/shots

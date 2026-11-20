@@ -15,6 +15,7 @@ cat > "$OUT/app/.htaccess" <<'HT'
   </FilesMatch>
 </IfModule>
 HT
+node wordpress/menu-pages.cjs src/config/menu.js "$OUT/app/pages.json"   # one WordPress page per screen
 cp -a api "$OUT/api"
 rm -f "$OUT/api/config.php" "$OUT/api/config.sample.php"
 # Fixed loader: the real settings are written by the plugin to wp-content/uploads/candelier/config.php.
