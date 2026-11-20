@@ -48,5 +48,9 @@ if ((int) get_option('candelier_delete_on_uninstall', 0) === 1) {
         rmdir($dir);
     }
 }
+$cfg = wp_upload_dir(null, false)['basedir'] . '/candelier/config.php';
+if (is_file($cfg)) {
+    unlink($cfg);   // written again from wp-config.php if the plugin is installed again
+}
 delete_option('candelier_setup_version');
 delete_option('candelier_delete_on_uninstall');

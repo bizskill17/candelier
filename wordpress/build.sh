@@ -17,6 +17,19 @@ cat > "$OUT/app/.htaccess" <<'HT'
 HT
 cp -a api "$OUT/api"
 rm -f "$OUT/api/config.php" "$OUT/api/config.sample.php"
+# Fixed loader: the real settings are written by the plugin to wp-content/uploads/candelier/config.php.
+cat > "$OUT/api/config.php" <<'PHP'
+<?php
+// Candelier WordPress plugin: settings are kept outside the plugin folder so updates never remove them.
+// The plugin writes them from wp-config.php on activation. This file only loads them.
+define('CANDELIER_CONFIG_FILE', dirname(__DIR__, 3) . '/uploads/candelier/config.php');
+if (!is_file(CANDELIER_CONFIG_FILE)) {
+    http_response_code(503);
+    header('Content-Type: application/json');
+    exit('{"error":"Candelier is not set up yet. Open the WordPress admin once (Plugins → Candelier) or activate the plugin."}');
+}
+return require CANDELIER_CONFIG_FILE;
+PHP
 mkdir -p "$OUT/database" && cp database/schema.sql "$OUT/database/"
 cp public/uploads/.htaccess "$OUT/uploads.htaccess"
 cp wordpress/candelier.php wordpress/uninstall.php wordpress/readme.txt "$OUT/"

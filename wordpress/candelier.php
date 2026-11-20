@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Candelier Management System
  * Description:       Orders, BOQ, stores, production, dispatch, CRM, enquiries and WhatsApp campaigns. Opens at yoursite.com/candelier on its own full-screen page, independent of the theme.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Bizskill
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const CANDELIER_VERSION = '1.0.0';
+const CANDELIER_VERSION = '1.0.1';
 const CANDELIER_SLUG    = 'candelier';   // the app opens at /candelier
 define('CANDELIER_FILE', __FILE__);
 define('CANDELIER_DIR', plugin_dir_path(__FILE__));
@@ -49,7 +49,17 @@ function candelier_db_dsn(): string
     return 'mysql:' . $where . ';dbname=' . DB_NAME . ';charset=utf8mb4';
 }
 
-/** Settings the app reads from api/config.php. */
+/**
+ * The real settings file lives in wp-content/uploads/candelier/config.php, outside the plugin folder, so
+ * updates (WordPress or Deployer for Git, which replace the whole folder) never remove it. The plugin's
+ * api/config.php is a small fixed file that loads it.
+ */
+function candelier_config_path(): string
+{
+    return candelier_config()['upload_root'] . '/config.php';
+}
+
+/** Settings the app reads (via api/config.php). */
 function candelier_config(): array
 {
     $up = wp_upload_dir(null, false);
@@ -69,10 +79,17 @@ function candelier_config(): array
     ];
 }
 
-/** Writes api/config.php when it is missing or out of date (for example after a plugin update). */
+/** Writes the settings file when it is missing or out of date. */
 function candelier_ensure_config(): bool
 {
-    $file = CANDELIER_DIR . 'api/config.php';
+    $file = candelier_config_path();
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        wp_mkdir_p($dir);
+    }
+    if (!is_file($dir . '/.htaccess')) {
+        file_put_contents($dir . '/.htaccess', "<Files \"config.php\">\n  Require all denied\n</Files>\n");
+    }
     $body = "<?php\n// Written automatically by the Candelier plugin from wp-config.php. Do not edit: changes are overwritten.\n"
           . 'return ' . var_export(candelier_config(), true) . ";\n";
     if (is_file($file) && file_get_contents($file) === $body) {
@@ -134,7 +151,7 @@ function candelier_install_schema(): void
 
 function candelier_ensure_setup(): void
 {
-    if (get_option('candelier_setup_version') === CANDELIER_VERSION && is_file(CANDELIER_DIR . 'api/config.php')) {
+    if (get_option('candelier_setup_version') === CANDELIER_VERSION && is_file(candelier_config_path())) {
         return;
     }
     candelier_ensure_config();
@@ -169,10 +186,10 @@ register_activation_hook(__FILE__, function () {
     }
 });
 
-// After a plugin update WordPress replaces the folder, removing api/config.php: write it again straight away.
+// Keep the settings file current after updates (e.g. a new site address).
 add_action('upgrader_process_complete', function () { candelier_ensure_config(); }, 10, 0);
 add_action('admin_init', function () {
-    if (!is_file(CANDELIER_DIR . 'api/config.php') || get_option('candelier_setup_version') !== CANDELIER_VERSION) {
+    if (!is_file(candelier_config_path()) || get_option('candelier_setup_version') !== CANDELIER_VERSION) {
         try { candelier_ensure_setup(); } catch (Throwable $e) { /* shown on the Candelier admin page */ }
     }
 });
@@ -239,7 +256,7 @@ function candelier_render_app(string $basename): void
 // ---------------------------------------------------------------------------
 
 add_action('candelier_whatsapp_refresh', function () {
-    $config = CANDELIER_DIR . 'api/config.php';
+    $config = candelier_config_path();
     if (!is_file($config)) {
         return;
     }
@@ -285,7 +302,7 @@ function candelier_admin_page(): void
     }
     global $wpdb;
     $tables = $wpdb->get_var("SHOW TABLES LIKE 'users'") === 'users';
-    $config = is_file(CANDELIER_DIR . 'api/config.php');
+    $config = is_file(candelier_config_path()) && is_file(CANDELIER_DIR . 'api/config.php');
     $pretty = get_option('permalink_structure') !== '';
     $uploads = is_dir(candelier_config()['upload_root'] . '/uploads') && wp_is_writable(candelier_config()['upload_root'] . '/uploads');
     $url = home_url('/' . CANDELIER_SLUG . '/');
@@ -295,7 +312,7 @@ function candelier_admin_page(): void
     echo '<p>Address: <code>' . esc_html($url) . '</code>. Staff sign in there with their Candelier username; they do not need a WordPress account. The first visit asks you to create the Candelier administrator.</p>';
     echo '<h2>Status</h2><table class="widefat striped" style="max-width:820px"><tbody>';
     echo $row($tables, 'Database tables', 'Deactivate and activate the plugin again.');
-    echo $row($config, 'Connection settings (api/config.php)', 'The plugin folder must be writable. Check folder permissions, then deactivate and activate again.');
+    echo $row($config, 'Connection settings (wp-content/uploads/candelier/config.php)', 'Make wp-content/uploads writable, then deactivate and activate again.');
     echo $row($pretty, 'Pretty addresses (Settings → Permalinks)', 'Choose any option except "Plain" in Settings → Permalinks.');
     echo $row($uploads, 'Photos and drawings folder (wp-content/uploads/candelier)', 'Make wp-content/uploads writable.');
     echo '</tbody></table>';
@@ -309,7 +326,7 @@ function candelier_admin_page(): void
 }
 
 add_action('admin_notices', function () {
-    if (!current_user_can('manage_options') || is_file(CANDELIER_DIR . 'api/config.php')) {
+    if (!current_user_can('manage_options') || is_file(candelier_config_path())) {
         return;
     }
     echo '<div class="notice notice-error"><p>Candelier could not write its connection settings. Open <a href="' . esc_url(admin_url('admin.php?page=candelier')) . '">Candelier</a> for details.</p></div>';

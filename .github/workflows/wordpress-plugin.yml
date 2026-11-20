@@ -67,6 +67,7 @@ jobs:
           wp plugin install build/candelier-wp.zip --activate --path="$WP"
           echo "::notice::Permalinks after activation: '$(wp option get permalink_structure --path="$WP")'"
           test -f "$WP/wp-content/plugins/candelier/api/config.php"
+          test -f "$WP/wp-content/uploads/candelier/config.php"
           test -d "$WP/wp-content/uploads/candelier/uploads"
           wp db query "SELECT COUNT(*) AS app_tables FROM information_schema.TABLES WHERE TABLE_SCHEMA='wordpress' AND TABLE_NAME NOT LIKE 'wp\_%'" --path="$WP"
 
@@ -96,6 +97,10 @@ jobs:
           wp plugin install build/candelier-wp.zip --force --path="$WP"
           test -f "$WP/wp-content/plugins/candelier/api/config.php"
           curl -sf "$SITE/wp-content/plugins/candelier/api/index.php?r=auth/me" | grep -q '"needs_setup":false'
+          # Deployer for Git style update: folder replaced with no WordPress hooks at all; the app must keep working.
+          rm -rf "$WP/wp-content/plugins/candelier" && unzip -q build/candelier-wp.zip -d "$WP/wp-content/plugins/"
+          curl -sf "$SITE/wp-content/plugins/candelier/api/index.php?r=auth/me" | grep -q '"needs_setup":false'
+          echo "::notice::Folder replaced like Deployer for Git: app still connected, no setup needed"
           wp plugin deactivate candelier --path="$WP" && wp plugin activate candelier --path="$WP"
           test "$(wp db query 'SELECT COUNT(*) FROM users' --skip-column-names --path="$WP")" = "1"
           echo "Data kept after update and re-activation"
@@ -121,6 +126,15 @@ jobs:
           path: |
             build/candelier-wp.zip
             build/shots
+
+      - name: Publish ready-to-install plugin files (for Deployer for Git)
+        if: success()
+        run: |
+          rm -rf dist && cp -r build/candelier dist && cd dist
+          git init -q && git checkout -q -b wordpress-plugin-dist
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add -A && git commit -qm "Candelier plugin $(grep -m1 'Version:' candelier.php | awk '{print $3}') from ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" wordpress-plugin-dist
 
       - name: Publish zip to the wordpress-plugin-build branch
         if: always()
