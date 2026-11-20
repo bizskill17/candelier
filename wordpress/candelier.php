@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Candelier Management System
  * Description:       Orders, BOQ, stores, production, dispatch, CRM, enquiries and WhatsApp campaigns. Opens at yoursite.com/candelier on its own full-screen page, independent of the theme.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Bizskill
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const CANDELIER_VERSION = '1.1.0';
+const CANDELIER_VERSION = '1.1.1';
 const CANDELIER_SLUG    = 'candelier';   // the app opens at /candelier
 define('CANDELIER_FILE', __FILE__);
 define('CANDELIER_DIR', plugin_dir_path(__FILE__));
@@ -262,6 +262,19 @@ function candelier_page_link($link, $post_id)
     return $path !== '' && $path !== false ? candelier_app_url((string) $path) : $link;
 }
 add_filter('page_link', 'candelier_page_link', 10, 2);
+
+// Wherever WordPress itself would show one of these pages (for example when it is set as the homepage in
+// Settings → Reading), open the app screen instead: never the theme, never the WordPress admin bar.
+add_action('template_redirect', function () {
+    if (!is_page()) {
+        return;
+    }
+    $path = get_post_meta(get_queried_object_id(), '_candelier_path', true);
+    if ($path !== '' && $path !== false) {
+        wp_redirect(candelier_app_url((string) $path), 302);
+        exit;
+    }
+}, 0);
 
 // Keep these pages out of search and the sitemap.
 add_filter('wp_sitemaps_posts_query_args', function ($args, $type) {

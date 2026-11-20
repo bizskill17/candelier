@@ -85,6 +85,13 @@ jobs:
           echo "::notice::Opening the page's WordPress address $raw goes to: $loc"
           test "$loc" = "$SITE/candelier/orders/all"
           wp post list --post_type=page --meta_key=_candelier_key --fields=post_title,post_parent --format=csv --path="$WP" | head -20
+          # Set as the homepage (Settings → Reading): the homepage must open the app, not the theme.
+          home=$(wp post list --post_type=page --meta_key=_candelier_path --meta_value=/ --field=ID --path="$WP" | head -1)
+          wp option update show_on_front page --path="$WP" && wp option update page_on_front "$home" --path="$WP"
+          loc=$(curl -s -o /dev/null -w "%{redirect_url}" "$SITE/")
+          echo "::notice::Homepage set to the Candelier page goes to: $loc"
+          test "$loc" = "$SITE/candelier/"
+          wp option update show_on_front posts --path="$WP"
 
       - name: End-to-end test in a browser
         env:
