@@ -6,10 +6,29 @@ import {useToast} from '../../components/Toast';
 import Modal from '../../components/Modal';
 import Pagination from '../../components/Pagination';
 import {Field,Choice,HistoryTable,PriorityButtons,useCrmLookups,fmtAt,indiaNow} from './CrmShared';
-import {inputCls,tdCls,thCls,theadCls,tableWrap} from '../../components/table';
+import {inputCls,theadCls,tableWrap} from '../../components/table';
 const viewColors={'added-today':'border-teal-200 bg-teal-50 text-teal-900',pending:'border-blue-200 bg-blue-50 text-blue-800',new:'border-purple-200 bg-purple-50 text-purple-900',today:'border-amber-200 bg-amber-50 text-amber-900',overdue:'border-red-200 bg-red-50 text-red-900',upcoming:'border-cyan-200 bg-cyan-50 text-cyan-900',converted:'border-green-200 bg-green-50 text-green-900',archived:'border-slate-200 bg-slate-100 text-slate-800',all:'border-indigo-200 bg-indigo-50 text-indigo-900'};
 const views=[['added-today','Added Today'],['pending','Pending'],['new','New'],['today','Due Today'],['overdue','Overdue'],['upcoming','Upcoming'],['converted','Qualified'],['archived','Archived'],['all','All Enquiries']];
 const details=[['project_type','Project Type'],['approximate_customization__chandelier_budget','Budget'],['project_timeline','Project Timeline'],['how_many_customized_chandeliers_do_you_require?','Chandelier Quantity'],['campaign_name','Campaign'],['adset_name','Ad Set'],['ad_name','Ad'],['form_name','Form'],['platform','Platform'],['lead_status','Source Lead Status']];
+const enquiryColumns = [
+  { label: 'Received', width: 75, value: e => fmtAt(e.enquiry_at || e.created_at), date: true },
+  { label: 'Name', width: 102, value: e => e.name },
+  { label: 'Mobile', width: 96, value: e => e.mobile },
+  { label: 'Email', width: 142, value: e => e.email },
+  { label: 'City', width: 67, value: e => e.city },
+  { label: 'Source', width: 64, value: e => e.source_name },
+  { label: 'Campaign', width: 92, value: e => e.source_data?.campaign_name },
+  { label: 'Project Type', width: 76, value: e => e.source_data?.project_type },
+  { label: 'Budget', width: 80, value: e => e.source_data?.approximate_customization__chandelier_budget },
+  { label: 'Timeline', width: 74, value: e => e.source_data?.project_timeline },
+  { label: 'Qty', width: 40, value: e => e.source_data?.['how_many_customized_chandeliers_do_you_require?'] },
+  { label: 'Follow-up By', width: 77, value: e => e.followup_by_name },
+  { label: 'Status', width: 65, value: e => e.inbox_status },
+  { label: 'Next Follow-up', width: 77, value: e => fmtAt(e.next_followup_at), date: true },
+];
+const enquiryCell = 'border border-blue-200 px-2 py-1.5 align-middle';
+const enquiryHeader = 'border border-blue-400 px-2 py-2 text-left font-semibold';
+
 export default function EnquiriesPage(){
  const [result,setResult]=useState(null),[view,setView]=useState('pending'),[search,setSearch]=useState(''),[q,setQ]=useState(''),[source,setSource]=useState(''),[city,setCity]=useState(''),[assigned,setAssigned]=useState(''),[page,setPage]=useState(1),[error,setError]=useState(''),[selected,setSelected]=useState(null),[loadingDetail,setLoadingDetail]=useState(false),[qualify,setQualify]=useState(false),[filters,setFilters]=useState({cities:[],sources:[]});
  const look=useCrmLookups();const request=useRef(0);
@@ -19,10 +38,49 @@ export default function EnquiriesPage(){
  useEffect(()=>{enquiriesApi.filters().then(r=>setFilters(r.data)).catch(()=>{});},[]);
  const open=async id=>{setLoadingDetail(true);setError('');try{const r=await enquiriesApi.get(id);setSelected(r.data);}catch(e){setError(e.message);}finally{setLoadingDetail(false);}};
  const filter=setter=>value=>{setter(value);setPage(1);};
- return <div className="mx-auto max-w-7xl space-y-4"><nav aria-label="Enquiry views" className="flex flex-wrap gap-2">{views.map(([key,label])=><button key={key} aria-pressed={view===key} onClick={()=>{setView(key);setPage(1);}} className={`inline-flex min-h-11 items-center rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm transition ${viewColors[key]} ${view===key?'ring-2 ring-brand-600 ring-offset-1':'hover:brightness-95'}`}>{label} <span className="ml-1 inline-flex min-w-6 justify-center rounded-full bg-white/80 px-1.5 text-xs tabular-nums">{result?.view_counts?.[key]??'…'}</span></button>)}</nav>
- <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><input aria-label="Search enquiries" placeholder="Search name, mobile, campaign…" value={search} onChange={e=>setSearch(e.target.value)} className={inputCls()}/><Choice label="Enquiry source filter" value={source} onChange={filter(setSource)} values={[{value:'',label:'All sources'},...filters.sources.map(x=>({value:x,label:x}))]}/><Choice label="Enquiry city filter" value={city} onChange={filter(setCity)} values={[{value:'',label:'All cities'},...filters.cities.map(x=>({value:x,label:x}))]}/><Choice label="Follow-up By filter" value={assigned} onChange={filter(setAssigned)} values={[{value:'',label:'All team members'},...look.users.filter(u=>['Admin','Sales'].includes(u.role)).map(u=>({value:u.id,label:u.name}))]}/></div>
+ return <div className="mx-auto max-w-[96rem] space-y-2.5"><nav aria-label="Enquiry views" className="flex flex-wrap gap-1.5">{views.map(([key,label])=><button key={key} aria-pressed={view===key} onClick={()=>{setView(key);setPage(1);}} className={`inline-flex min-h-8 items-center rounded-md border px-2 py-1 text-xs font-semibold shadow-sm transition ${viewColors[key]} ${view===key?'ring-2 ring-brand-600 ring-offset-1':'hover:brightness-95'}`}>{label} <span className="ml-1 inline-flex min-w-6 justify-center rounded-full bg-white/80 px-1.5 text-xs tabular-nums">{result?.view_counts?.[key]??'…'}</span></button>)}</nav>
+ <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"><input aria-label="Search enquiries" placeholder="Search name, mobile, campaign…" value={search} onChange={e=>setSearch(e.target.value)} className={inputCls()}/><Choice label="Enquiry source filter" value={source} onChange={filter(setSource)} values={[{value:'',label:'All sources'},...filters.sources.map(x=>({value:x,label:x}))]}/><Choice label="Enquiry city filter" value={city} onChange={filter(setCity)} values={[{value:'',label:'All cities'},...filters.cities.map(x=>({value:x,label:x}))]}/><Choice label="Follow-up By filter" value={assigned} onChange={filter(setAssigned)} values={[{value:'',label:'All team members'},...look.users.filter(u=>['Admin','Sales'].includes(u.role)).map(u=>({value:u.id,label:u.name}))]}/></div>
  {error&&<p role="alert" className="text-red-600">{error}</p>}{loadingDetail&&<p role="status">Opening enquiry…</p>}
- {result?<><p className="text-sm text-gray-600">{result.total} enquiries</p><div className={tableWrap}><div className="overflow-auto"><table className="w-full min-w-[1450px] text-sm"><thead className={theadCls}><tr>{['Received','Name','Mobile','Email','City','Source','Campaign','Project Type','Budget','Timeline','Quantity','Follow-up By','Status','Next Follow-up','Action'].map(h=><th key={h} className={thCls}>{h}</th>)}</tr></thead><tbody>{!result.data.length&&<tr><td colSpan={15} className={tdCls}>No enquiries in this view.</td></tr>}{result.data.map(e=><tr key={e.id}>{[fmtAt(e.enquiry_at||e.created_at),e.name,e.mobile,e.email,e.city,e.source_name,e.source_data?.campaign_name,e.source_data?.project_type,e.source_data?.approximate_customization__chandelier_budget,e.source_data?.project_timeline,e.source_data?.['how_many_customized_chandeliers_do_you_require?'],e.followup_by_name,e.inbox_status,fmtAt(e.next_followup_at)].map((v,i)=><td key={i} className={`${tdCls} whitespace-pre-wrap`}>{v||'—'}</td>)}<td className={tdCls}><button aria-label={`Open enquiry ${e.id}`} onClick={()=>open(e.id)} className="font-medium text-brand-700">Open / Follow up</button></td></tr>)}</tbody></table></div><Pagination {...result} setPage={setPage}/></div></>:<p>Loading enquiries…</p>}
+ {result ? <>
+   <p className="text-xs text-gray-600">{result.total} enquiries</p>
+   <div className={tableWrap}>
+     <div className="overflow-x-auto">
+       <table className="w-full min-w-[1185px] table-fixed text-xs leading-4">
+         <colgroup>
+           {enquiryColumns.map(column => <col key={column.label} style={{ width: column.width }} />)}
+           <col style={{ width: 58 }} />
+         </colgroup>
+         <thead className={`${theadCls} text-[10px] leading-3`}>
+           <tr>
+             {enquiryColumns.map(column => <th key={column.label} scope="col" className={enquiryHeader}>{column.label}</th>)}
+             <th scope="col" className={`${enquiryHeader} sticky right-0 bg-brand-600`}>Action</th>
+           </tr>
+         </thead>
+         <tbody>
+           {!result.data.length && <tr><td colSpan={enquiryColumns.length + 1} className={enquiryCell}>No enquiries in this view.</td></tr>}
+           {result.data.map(enquiry => (
+             <tr key={enquiry.id} className="group hover:bg-blue-50/50">
+               {enquiryColumns.map(column => {
+                 const value = column.value(enquiry) || '—';
+                 return (
+                   <td key={column.label} className={enquiryCell} title={value}>
+                     <span className={column.date ? 'block whitespace-pre-line tabular-nums' : 'block truncate'}>
+                       {column.date ? value.replace(' ', '\n') : value}
+                     </span>
+                   </td>
+                 );
+               })}
+               <td className={`${enquiryCell} sticky right-0 bg-white group-hover:bg-blue-50`}>
+                 <button aria-label={`Open enquiry ${enquiry.id}`} title="Open enquiry and record follow-up" onClick={() => open(enquiry.id)} className="font-medium text-brand-700 hover:underline">Open</button>
+               </td>
+             </tr>
+           ))}
+         </tbody>
+       </table>
+     </div>
+     <Pagination {...result} setPage={setPage}/>
+   </div>
+ </> : <p>Loading enquiries…</p>}
  {selected&&!qualify&&<Modal open wide="xl" title={`Enquiry · ${selected.name}`} onClose={()=>setSelected(null)} footer={<><button onClick={()=>setSelected(null)} className="rounded-lg border px-4 py-2">Close</button>{!selected.contact_id&&!selected.lead_id&&<button onClick={()=>setQualify(true)} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Record Follow-up</button>}{selected.contact_id&&<Link to={selected.lead_id?`/leads/all`:`/contacts/${selected.contact_id}`} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Open {selected.lead_id?'Leads':'Contact'}</Link>}</>}>
  <div className="mb-5 grid gap-3 sm:grid-cols-2">{[['Name',selected.name],['Mobile',selected.mobile],['Email',selected.email],['City',selected.city],['Source',selected.source_name],['Enquiry ID',selected.external_id],['Received',fmtAt(selected.enquiry_at)],['Status',selected.inbox_status],...details.map(([k,l])=>[l,selected.source_data?.[k]])].map(([label,value])=><div key={label}><p className="text-xs text-gray-500">{label}</p><p className="whitespace-pre-wrap font-medium">{value||'—'}</p></div>)}</div>
  {!selected.contact_id&&selected.matches?.length>0&&<p className="mb-3 rounded-lg bg-amber-50 p-3">Existing contact match: {selected.matches.map(m=>m.name).join(', ')}. Qualification will use an existing Contact.</p>}{selected.repeat_enquiries?.length>0&&<p className="mb-4 text-amber-800">{selected.repeat_enquiries.length} other enquiries have the same mobile or email.</p>}<h2 className="mb-2 font-semibold">Follow-up History</h2><HistoryTable rows={selected.history}/></Modal>}
