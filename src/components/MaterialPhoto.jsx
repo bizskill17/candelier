@@ -78,6 +78,6 @@ function CameraCapture({ onClose, onCapture }) {
     <video ref={video} autoPlay playsInline muted onCanPlay={() => setReady(true)} className="max-h-[60vh] w-full rounded-lg bg-black"/>
     {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
     {!ready && !error && <p className="text-sm text-gray-600">Opening camera… Allow camera access when prompted.</p>}
-    <div className="flex justify-end gap-2"><button type="button" disabled={capturing} onClick={onClose} className="rounded-lg border px-3 py-2">Cancel Camera</button><button type="button" disabled={!ready || capturing} onClick={capture} className="rounded-lg bg-brand-600 px-4 py-2 text-white disabled:opacity-50">{capturing ? 'Capturing…' : 'Capture Photo'}</button></div>
+    <div className="flex justify-end gap-2"><button type="button" disabled={capturing} onClick={onClose} className="btn-dismiss px-3 py-2">Cancel Camera</button><button type="button" disabled={!ready || capturing} onClick={capture} className="rounded-lg bg-brand-600 px-4 py-2 text-white disabled:opacity-50">{capturing ? 'Capturing…' : 'Capture Photo'}</button></div>
   </div></div>, document.body);
 }

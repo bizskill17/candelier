@@ -139,7 +139,7 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
               <input id="quick-name" autoFocus value={quick.name} onChange={(e) => setQuick({ ...quick, name: e.target.value, error: '' })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); quickAdd(); } if (e.key === 'Escape') { e.stopPropagation(); setQuick(null); } }} className={inputCls(quick.error)} />
               {quick.error && <p className="mt-1 text-xs text-red-600">{quick.error}</p>}
               <div className="mt-4 flex justify-end gap-2">
-                <button type="button" onClick={() => setQuick(null)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
+                <button type="button" onClick={() => setQuick(null)} className="btn-dismiss px-3 py-2">Cancel</button>
                 <button type="button" onClick={quickAdd} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Add</button>
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
         )}
 
         <div className="flex shrink-0 justify-end gap-2 border-t border-gray-200 px-5 py-3">
-          <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+          <button type="button" onClick={onClose} className="btn-dismiss px-3 py-2">
             Cancel
           </button>
           {canEdit && !isEdit && (

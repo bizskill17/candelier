@@ -112,7 +112,7 @@ function ChangePassword({ onClose }) {
           ))}
         </div>
         <div className="flex justify-end gap-2 border-t border-gray-200 px-5 py-3">
-          <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
+          <button type="button" onClick={onClose} className="btn-dismiss px-3 py-2">Cancel</button>
           <button type="submit" disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : 'Change password'}</button>
         </div>
       </form>

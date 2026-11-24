@@ -413,7 +413,7 @@ function BoqEditor({ itemId }) {
 
       <Modal open={copyOpen} wide title="Copy from an earlier BOQ?" onClose={() => setCopyOpen(false)}
         footer={<>
-          <button onClick={() => setCopyOpen(false)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">{data.lines.length ? 'Cancel' : 'Start blank'}</button>
+          <button onClick={() => setCopyOpen(false)} className={data.lines.length ? "btn-dismiss px-3 py-2" : "rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"}>{data.lines.length ? 'Cancel' : 'Start blank'}</button>
           <button onClick={() => applyCopy(copyFrom)} disabled={!copyFrom} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">Copy</button>
         </>}>
         <SearchSelect id="boq-copy-from" options={srcOptions} value={copyFrom} onChange={setCopyFrom} disabled={!sources} placeholder={sources ? (sources.length ? 'Search order no., customer or item…' : 'No earlier BOQs yet') : 'Loading…'} />
@@ -446,7 +446,7 @@ function BookDialog({ itemId, booking, onClose, onDone }) {
   return (
     <Modal open title={mode === 'book' ? 'Block stock' : 'Release blocked stock'} onClose={() => !inFlight.current && onClose()}
       footer={<>
-        <button disabled={busy} onClick={onClose} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
+        <button disabled={busy} onClick={onClose} className="btn-dismiss px-3 py-2">Cancel</button>
         <button onClick={go} disabled={busy} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{busy ? 'Saving…' : mode === 'book' ? 'Block' : 'Release'}</button>
       </>}>
       <p className="font-medium text-gray-900">{m?.name}</p>
