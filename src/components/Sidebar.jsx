@@ -4,7 +4,7 @@ import { ChevronDown, X } from 'lucide-react';
 import { canAccessPath } from '../auth/permissions';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
-import { useMenuCounts } from '../lib/menuCounts';
+import { useMenuCounts, WORK } from '../lib/menuCounts';
 
 const sectionColors = {
   Enquiries: ['#eff6ff', '#1e40af'],
@@ -89,7 +89,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                     style={{color: colors[1]}}
                     className="flex w-full items-center justify-between px-2 pb-2 pt-2 text-xs font-bold uppercase tracking-wide hover:opacity-80"
                   >
-                    <span className="flex items-center gap-1.5">{group.heading}{isClosed && (() => { const n = group.items.reduce((t, i) => t + (counts[i.key] || 0), 0); return n > 0 ? <span aria-hidden="true" className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums">{fmt(n)}</span> : null; })()}</span>
+                    <span className="flex items-center gap-1.5">{group.heading}{(() => { const all = group.items.filter((i) => counts[i.key] !== undefined); if (!all.length) return null; const work = all.filter((i) => WORK.has(i.key)); const known = work.length ? work : all; const n = known.reduce((t, i) => t + counts[i.key], 0); return <span aria-hidden="true" className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums ${n > 0 ? 'bg-white/80' : 'bg-white/50 opacity-60'}`}>{fmt(n)}</span>; })()}</span>
                     <ChevronDown size={14} className={`transition-transform ${isClosed ? '-rotate-90' : ''}`} />
                   </button>
                 )}
