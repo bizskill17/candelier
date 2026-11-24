@@ -229,7 +229,7 @@ export default function OrderForm({ id, leadId }) {
                       {isEdit && (
                         <td className={`${td} py-2.5 text-center`}>
                           {s ? (
-                            <div className="inline-flex gap-1.5" title={dirty ? 'Save your changes first' : undefined}>
+                            <div className="flex flex-col items-stretch gap-1.5 [&>button]:w-full [&>button]:justify-center [&>button]:whitespace-nowrap" title={dirty ? 'Save your changes first' : undefined}>
                               <DrawingAction item={s} disabled={dirty} onSaved={load}/><button type="button" disabled={dirty||s.stage==='Pending Drawing'} onClick={() => navigate(`/boq/${s.id}`)} className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-40"><ClipboardList size={13} /> BOQ · {s.boq_status}</button>
                               {canCreateStock && (canEdit || (!s.dispatch&&s.production_status==='Complete')) && !cancelled && <button type="button" disabled={dirty} onClick={() => setDispatching(s)} className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium disabled:opacity-40 ${s.dispatch ? 'text-brand-600 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'}`}><Truck size={13} /> {s.dispatch ? 'Dispatched' : 'Dispatch'}</button>}
                             </div>
