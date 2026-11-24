@@ -166,6 +166,7 @@ function crm_followup_save(array $in): array {
         $decision=$in['followup_status'];
         if(!in_array($decision,['Lead Received','Follow Up Again','No Further Follow-up'],true))throw new ApiError('Choose a valid follow-up status.',422);
         if($decision==='Lead Received'&&!empty($in['lead_id']))throw new ApiError('Receive a new Lead from a Contact follow-up.',422);
+        if(!empty($in['lead_id'])&&trim((string)($in['remarks']??''))==='')throw new ApiError('Enter the follow-up remarks.',422);
         $in['entry_type']='Follow-up';$in['activity_at']=now();$in['outcome']=null;
         $in['requirement_received']=$decision==='Lead Received';
         $in['further_followup_required']=$decision!=='No Further Follow-up';
