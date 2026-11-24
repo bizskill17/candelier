@@ -1,7 +1,7 @@
 // The left menu. Quantities only: no rates or prices anywhere.
 import {
   LayoutDashboard, FilePlus2, ListOrdered, Truck, ClipboardList, PackageOpen, PackagePlus, PackageMinus,
-  AlertOctagon, UserPlus, Contact, PhoneCall, Megaphone, MapPin, ScrollText, Warehouse, Boxes, ListChecks, Tags, Handshake, Building2, Send, UserCog,
+  AlertOctagon, UserPlus, Contact, PhoneCall, Megaphone, MapPin, ScrollText, Warehouse, Boxes, ListChecks, Tags, Handshake, Building2, Send, UserCog, Video,
 } from 'lucide-react';
 
 export const menu = [
@@ -102,6 +102,13 @@ export const menu = [
     heading: 'Administration',
     items: [
       { key: 'users', label: 'Users', path: '/users', icon: UserCog, adminOnly: true, description: 'Sign-in accounts and roles.' },
+    ],
+  },
+  {
+    heading: 'Training',
+    items: [
+      { key: 'training', label: 'Training Videos', path: '/training', icon: Video },
+      { key: 'training-manage', label: 'Manage Videos', path: '/training/manage', icon: ListChecks, adminOnly: true },
     ],
   },
 ];
