@@ -3,6 +3,40 @@
 function app_role(): string { return current_user()['role'] ?? ''; }
 function require_roles(array $roles): void { if(!in_array(app_role(),$roles,true))throw new ApiError('You do not have permission for this action.',403); }
 function require_admin(): void { require_roles(['Admin']); }
+function user_has_selected_view(string $key): bool
+{
+    return in_array($key, current_user()['allowed_views'] ?? [], true);
+}
+
+function can_read_added_view(?string $area, array $parts): bool
+{
+    $first = $parts[0] ?? '';
+    $view = match ($area) {
+        'enquiries' => match (true) {
+            $first === 'sync-history' => 'enquiry-sync-history',
+            $first === '' || $first === 'filters' || ctype_digit($first) => 'enquiries',
+            default => null,
+        },
+        'whatsapp' => match ($first) {
+            'failed-contacts' => 'whatsapp-failed',
+            'campaigns', 'contact' => 'whatsapp',
+            default => null,
+        },
+        'samples' => match ($first) {
+            '' => 'sample-inventory',
+            'history' => 'sample-issues',
+            default => null,
+        },
+        'leads' => 'leads',
+        'follow-ups' => 'follow-ups',
+        'followup-logs', 'crm-followups' => 'followup-logs',
+        'docs' => in_array($first, ['material-in', 'material-issue', 'damage'], true) ? $first : null,
+        'opening-stock' => 'opening-stock',
+        default => null,
+    };
+    return $view !== null && user_has_selected_view($view);
+}
+
 function order_visibility_sql(string $alias='o'): string {
     return match(app_role()) { 'Admin','Store'=>'1=1', 'Sales'=>"$alias.assigned_salesperson_id=".(int)current_user()['id'], default=>'1=0' };
 }
@@ -14,6 +48,7 @@ function require_item_access(int $id): void {
 }
 function authorize_request(string $method, ?string $area, array $parts): void {
     require_roles(['Admin','Store','Sales']);
+    if ($method === 'GET' && app_role() !== 'Admin' && can_read_added_view($area, $parts)) return;
     if($area==='samples'){require_roles(['Admin','Store']);if($method==='GET'||($method==='POST'&&$parts===['issue']))return;if(($parts[1]??'')==='review'&&$method==='POST'){require_admin();return;}throw new ApiError('Action not allowed.',403);}
     if($area==='materials'&&($parts[1]??'')==='photo'&&$method==='PATCH'){require_roles(['Admin','Store']);return;}
     if($area==='order-items'&&($parts[1]??'')==='drawing'&&$method==='PUT'){require_roles(['Admin','Sales','Store']);return;}

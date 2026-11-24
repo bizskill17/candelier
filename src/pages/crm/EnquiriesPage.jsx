@@ -34,6 +34,7 @@ const enquiryCell = 'border border-blue-200 px-2.5 py-2 align-top';
 const enquiryHeader = 'border border-blue-400 px-2 py-2 text-left font-semibold';
 
 export default function EnquiriesPage(){
+ const {canCreateSales}=useAuth();
  const [result,setResult]=useState(null),[view,setView]=useState('pending'),[search,setSearch]=useState(''),[q,setQ]=useState(''),[source,setSource]=useState(''),[city,setCity]=useState(''),[assigned,setAssigned]=useState(''),[page,setPage]=useState(1),[error,setError]=useState(''),[selected,setSelected]=useState(null),[loadingDetail,setLoadingDetail]=useState(false),[qualify,setQualify]=useState(false),[filters,setFilters]=useState({cities:[],sources:[]});
  const look=useCrmLookups();const request=useRef(0);
  useEffect(()=>{const t=setTimeout(()=>{setQ(search);setPage(1);},300);return()=>clearTimeout(t);},[search]);
@@ -76,7 +77,7 @@ export default function EnquiriesPage(){
                })}
                <td className={`${enquiryCell} sticky right-0 bg-gray-100 group-hover:bg-gray-200`}>
                  <div className="flex items-center gap-1">
-                   <button aria-label={`Update enquiry ${enquiry.id}`} title={enquiry.contact_id||enquiry.lead_id?'Already qualified: view it':'Update: record follow-up'} onClick={() => open(enquiry.id, true)} className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><CircleCheck size={17}/></button>
+                   {canCreateSales&&<button aria-label={`Update enquiry ${enquiry.id}`} title={enquiry.contact_id||enquiry.lead_id?'Already qualified: view it':'Update: record follow-up'} onClick={() => open(enquiry.id, true)} className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><CircleCheck size={17}/></button>}
                    <button aria-label={`View enquiry ${enquiry.id}`} title="View enquiry" onClick={() => open(enquiry.id)} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100"><Eye size={16}/></button>
                  </div>
                </td>
@@ -88,7 +89,7 @@ export default function EnquiriesPage(){
      <Pagination {...result} setPage={setPage}/>
    </div>
  </> : <p>Loading enquiries…</p>}
- {selected&&!qualify&&<Modal open wide="xl" title={`Enquiry · ${selected.name}`} onClose={()=>setSelected(null)} footer={<><button onClick={()=>setSelected(null)} className="btn-dismiss px-4 py-2">Close</button>{!selected.contact_id&&!selected.lead_id&&<button onClick={()=>setQualify(true)} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Record Follow-up</button>}{selected.contact_id&&<Link to={selected.lead_id?`/leads/all`:`/contacts/${selected.contact_id}`} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Open {selected.lead_id?'Leads':'Contact'}</Link>}</>}>
+ {selected&&!qualify&&<Modal open wide="xl" title={`Enquiry · ${selected.name}`} onClose={()=>setSelected(null)} footer={<><button onClick={()=>setSelected(null)} className="btn-dismiss px-4 py-2">Close</button>{canCreateSales&&!selected.contact_id&&!selected.lead_id&&<button onClick={()=>setQualify(true)} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Record Follow-up</button>}{selected.contact_id&&<Link to={selected.lead_id?`/leads/all`:`/contacts/${selected.contact_id}`} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Open {selected.lead_id?'Leads':'Contact'}</Link>}</>}>
  <div className="mb-5 grid gap-3 sm:grid-cols-2">{[['Name',selected.name],['Mobile',selected.mobile],['Email',selected.email],['City',selected.city],['Source',selected.source_name],['Enquiry ID',selected.external_id],['Received',fmtAt(selected.enquiry_at)],['Status',selected.inbox_status],...details.map(([k,l])=>[l,selected.source_data?.[k]])].map(([label,value])=><div key={label}><p className="text-xs text-gray-500">{label}</p><p className="whitespace-pre-wrap font-medium">{value||'—'}</p></div>)}</div>
  {!selected.contact_id&&selected.matches?.length>0&&<p className="mb-3 rounded-lg bg-amber-50 p-3">Existing contact match: {selected.matches.map(m=>m.name).join(', ')}. Qualification will use an existing Contact.</p>}{selected.repeat_enquiries?.length>0&&<p className="mb-4 text-amber-800">{selected.repeat_enquiries.length} other enquiries have the same mobile or email.</p>}<h2 className="mb-2 font-semibold">Follow-up History</h2><HistoryTable rows={selected.history}/></Modal>}
  {selected&&qualify&&<EnquiryFollowup enquiry={selected} onClose={()=>setQualify(false)} onSaved={e=>{setQualify(false);setSelected(e);load();}}/>}

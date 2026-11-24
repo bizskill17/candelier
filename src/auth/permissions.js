@@ -20,7 +20,7 @@ export const mayCreateMaster=(role,entity)=>role==='Admin'||(role==='Store'&&['s
 export function roleViewGroups(role) {
   return menu.map(group => ({
     ...group,
-    items: group.items.filter(item => (role === 'Admin' || !item.adminOnly) && canAccessPath(item.path, role)),
+    items: group.items.filter(item => role === 'Admin' || (['Sales', 'Store'].includes(role) && !item.adminOnly)),
   })).filter(group => group.items.length > 0);
 }
 
@@ -29,11 +29,13 @@ const views = menu.flatMap(group => group.items)
 
 export function canOpenView(path, user) {
   const normalized = path.toLowerCase().replace(/\/+$/, '') || '/';
-  if (!canAccessPath(normalized, user?.role)) return false;
-  if (user.role === 'Admin' || !Array.isArray(user.allowed_views)) return true;
+  if (!user) return false;
+  if (user.role === 'Admin' || !Array.isArray(user.allowed_views)) return canAccessPath(normalized, user.role);
+  if (!['Sales', 'Store'].includes(user.role)) return false;
   const view = views.find(item => normalized === item.path || (item.path !== '/' && normalized.startsWith(item.path + '/')));
   if (view) return !view.adminOnly && user.allowed_views.includes(view.key);
   const area = normalized.split('/')[1];
+  if (area === 'low-stock') return user.allowed_views.includes('inventory');
   if (area === 'orders') return user.allowed_views.includes('orders-master');
   if (area === 'leads') return user.allowed_views.includes('leads');
   if (area === 'boq') {

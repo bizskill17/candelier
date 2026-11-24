@@ -5,7 +5,7 @@ import { useToast } from './Toast';
 import Toggle from './Toggle';
 import { useAuth } from '../auth/AuthContext';
 import SearchSelect from './SearchSelect';
-import { roleViewGroups } from '../auth/permissions';
+import { canAccessPath, roleViewGroups } from '../auth/permissions';
 
 const inputCls = (err) =>
   `w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 ${
@@ -63,7 +63,7 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
 
   const set = (name, value) => {
     setValues((v) => entity === 'users' && name === 'role' && value !== v.role
-      ? { ...v, role: value, allowed_views: null }
+      ? { ...v, role: value, allowed_views: roleViewGroups(value).flatMap(group => group.items.map(item => item.key)) }
       : { ...v, [name]: value });
     if (errors[name]) setErrors((e) => ({ ...e, [name]: undefined }));
   };
@@ -183,20 +183,22 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
 function ViewChecklist({ role, selected, onChange, disabled, error }) {
   const groups = roleViewGroups(role);
   const keys = groups.flatMap(group => group.items.map(item => item.key));
-  const checked = new Set(Array.isArray(selected) ? selected : keys);
+  const checked = new Set(Array.isArray(selected) ? selected : groups.flatMap(group =>
+    group.items.filter(item => canAccessPath(item.path, role)).map(item => item.key)
+  ));
   const all = keys.every(key => checked.has(key));
 
   function toggle(key, enabled) {
     if (enabled) checked.add(key);
     else checked.delete(key);
-    onChange(keys.every(value => checked.has(value)) ? null : keys.filter(value => checked.has(value)));
+    onChange(keys.filter(value => checked.has(value)));
   }
 
   return (
     <fieldset disabled={disabled} className="space-y-3 rounded-lg border border-gray-200 px-3 pb-3 sm:col-span-2">
       <legend className="px-1 text-sm font-semibold text-gray-900">Visible views</legend>
       <label className="flex items-center gap-2 text-sm font-medium">
-        <input type="checkbox" checked={all} onChange={event => onChange(event.target.checked ? null : [])} /> All views
+        <input type="checkbox" checked={all} onChange={event => onChange(event.target.checked ? keys : [])} /> All views
       </label>
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
