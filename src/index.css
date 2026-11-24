@@ -68,3 +68,12 @@ input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
 }
 .table-dragging, .table-dragging * { cursor: grabbing !important; user-select: none !important; }
 @media print { tbody tr:hover > td { box-shadow: none; } }
+
+/* Fields that cannot be edited (read-only or disabled) have a grey background in every form. */
+input:read-only:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="range"]):not([type="color"]):not([type="image"]),
+input:disabled:not([type="checkbox"]):not([type="radio"]),
+textarea:read-only, textarea:disabled, select:disabled {
+  background-color: #f3f4f6 !important;
+  color: #4b5563;
+  cursor: default;
+}
