@@ -6,8 +6,18 @@ check(!str_contains(json_encode(wa_settings()),'isolated-test-key'),'WhatsApp se
 check(db_value('SELECT api_key FROM whatsapp_settings WHERE id=1')!=='isolated-test-key','WhatsApp API key encrypted at rest');
 check(wa_decrypt(db_value('SELECT api_key FROM whatsapp_settings WHERE id=1'))==='isolated-test-key','Encrypted API key can be recovered by server');
 $_SESSION['uid']=$salesUser;reject(fn()=>wa_save_settings(['api_key'=>'bad']),'Sales cannot change WhatsApp credentials');
-$_SESSION['uid']=$storeUser;reject(fn()=>authorize_request('GET','whatsapp',['campaigns']),'Store cannot access WhatsApp');
-$_SESSION['uid']=$salesUser;authorize_request('POST','whatsapp',['campaigns']);
+foreach ([$storeUser, $salesUser] as $staff) {
+    db()->prepare('UPDATE users SET allowed_views=? WHERE id=?')->execute(['["whatsapp","whatsapp-failed","users"]', $staff]);
+    $_SESSION['uid'] = $staff;
+    reject(fn () => authorize_request('GET', 'whatsapp', ['campaigns']), 'A saved view does not grant WhatsApp access');
+    reject(fn () => authorize_request('GET', 'whatsapp', ['contact', '1']), 'Non-Admin cannot read contact WhatsApp history');
+    reject(fn () => authorize_request('POST', 'whatsapp', ['campaigns']), 'Non-Admin cannot create a WhatsApp campaign');
+    reject(fn () => authorize_request('GET', 'masters', ['users']), 'A saved view does not grant Users access');
+    db()->prepare('UPDATE users SET allowed_views=NULL WHERE id=?')->execute([$staff]);
+}
+$_SESSION['uid'] = $crmActor;
+authorize_request('POST', 'whatsapp', ['campaigns']);
+authorize_request('GET', 'masters', ['users']);
 check(wa_phone('98765 43210')==='919876543210'&&wa_phone('bad')==='','WhatsApp normalizes Indian numbers and rejects invalid numbers');
 $waIds=[];foreach([['WA One','9876543210'],['WA Duplicate','919876543210'],['WA Two','9876543211'],['WA Bad','bad']] as [$name,$mobile]){
  db()->prepare("INSERT INTO contacts(contact_no,name,mobile,is_active,created_at,updated_at) VALUES(?,?,?,1,?,?)")->execute(['WA-'.count($waIds),$name,$mobile,now(),now()]);$waIds[]=(int)db()->lastInsertId();

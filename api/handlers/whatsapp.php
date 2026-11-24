@@ -83,7 +83,7 @@ function wa_process(int $campaign): array {
  return ['remaining'=>(int)db_value("SELECT COUNT(*) FROM whatsapp_messages WHERE campaign_id=? AND status='pending'",[$campaign])];
 }
 function whatsapp_route(string $method,array $parts): void {
- if($method!=='GET')require_roles(['Admin','Sales']);
+ require_admin();
  $first=$parts[0]??'';
  if($first==='templates'&&$method==='GET'){json_out(wa_templates((int)($_GET['page']??1)));return;}
  if($first==='failed-contacts'&&$method==='GET'){json_out(wa_failed_contacts());return;}
