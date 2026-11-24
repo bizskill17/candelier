@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, LogOut, KeyRound, X } from 'lucide-react';
+import { Menu, LogOut, KeyRound, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
 import { authApi } from '../api/client';
 import { useToast } from './Toast';
 import { inputCls } from './table';
 
-export default function Topbar({ onOpenMobile }) {
+export default function Topbar({ onOpenMobile, collapsed, onToggleCollapse }) {
   const { pathname } = useLocation();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -37,6 +37,12 @@ export default function Topbar({ onOpenMobile }) {
       <button onClick={onOpenMobile} className="rounded-md p-2 text-gray-600 hover:bg-gray-100 lg:hidden" aria-label="Open menu">
         <Menu size={20} />
       </button>
+
+      {onToggleCollapse && (
+        <button onClick={onToggleCollapse} className="hidden rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 lg:inline-flex" aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} title={collapsed ? 'Expand menu' : 'Collapse menu'}>
+          {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+        </button>
+      )}
 
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-base font-semibold text-gray-900">{current?.label || 'Dashboard'}</h1>
