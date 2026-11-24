@@ -71,6 +71,23 @@ migrate_material_media();
 migrate_roles_assignment();
 migrate_roles_assignment();
 require __DIR__ . '/crm.php';
+$pdo->exec('ALTER TABLE users DROP COLUMN allowed_views');
+migrate_user_views();
+migrate_user_views();
+check(master_find(entity('users'), $salesUser)['allowed_views'] === null, 'Existing users retain all role views after migration');
+$updatedSales = master_save(entity('users'), $salesUser, [
+    'name' => 'Sales One', 'username' => 'sales-one', 'role' => 'Sales', 'allowed_views' => ['contacts'],
+]);
+check($updatedSales['data']['allowed_views'] === ['contacts'], 'Selected views persist on a user record');
+$originalUser = $_SESSION['uid'];
+$_SESSION['uid'] = $salesUser;
+check(current_user_fresh()['allowed_views'] === ['contacts'], 'Sign-in returns selected views');
+$_SESSION['uid'] = $originalUser;
+master_save(entity('users'), $salesUser, [
+    'name' => 'Sales One', 'username' => 'sales-one', 'role' => 'Sales', 'allowed_views' => [],
+]);
+check(master_find(entity('users'), $salesUser)['allowed_views'] === [], 'An empty selection is preserved');
+
 check($before === db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id'), 'Migration preserves ledger rows and balances');
 check((int) db_value('SELECT COUNT(*) FROM materials') === 3, 'Distinct legacy specifications become separate materials');
 check((int) db_value('SELECT COUNT(*) FROM materials WHERE category_id IS NULL') === 0, 'Existing materials assigned a category');

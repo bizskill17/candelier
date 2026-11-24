@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { canAccessPath } from '../auth/permissions';
-import { useLocation, Outlet } from 'react-router-dom';
+import { canOpenView, roleViewGroups } from '../auth/permissions';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import ChangePassword from './ChangePassword';
@@ -9,7 +9,12 @@ import ChangePassword from './ChangePassword';
 const COLLAPSE_KEY = 'ims.sidebar.collapsed';
 
 export default function Layout() {
-  const {user}=useAuth();const {pathname}=useLocation();
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  const canOpen = canOpenView(pathname, user);
+  const startView = pathname === '/' && !canOpen
+    ? roleViewGroups(user?.role).flatMap(group => group.items).find(item => canOpenView(item.path, user))
+    : null;
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
@@ -36,7 +41,7 @@ export default function Layout() {
       <div className="app-content flex min-w-0 flex-1 flex-col">
         <Topbar onOpenMobile={() => setMobileOpen(true)} collapsed={collapsed} onToggleCollapse={toggleCollapse} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {canAccessPath(pathname,user?.role)?<Outlet />:<p role="alert" className="rounded-lg border bg-white p-5">You do not have access to this section.</p>}
+          {canOpen ? <Outlet /> : startView ? <Navigate to={startView.path} replace /> : <p role="alert" className="rounded-lg border bg-white p-5">You do not have access to this section.</p>}
         </main>
       </div>
       {passwordOpen && <ChangePassword onClose={() => setPasswordOpen(false)} />}

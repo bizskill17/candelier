@@ -50,6 +50,7 @@ try {
     migrate_crm();
     migrate_material_media();
     migrate_roles_assignment();
+    migrate_user_views();
     migrate_whatsapp();
     migrate_enquiries();
     migrate_operations();

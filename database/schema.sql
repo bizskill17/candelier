@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   role           VARCHAR(20)  NOT NULL DEFAULT 'Sales' COMMENT 'Admin, Store, Sales',
   phone          VARCHAR(20)  NULL,
   last_login     DATETIME     NULL,
+  allowed_views  TEXT         NULL,
   is_active      TINYINT(1)   NOT NULL DEFAULT 1,
   created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
