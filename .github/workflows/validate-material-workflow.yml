@@ -63,14 +63,14 @@ jobs:
           npx playwright install --with-deps chromium
           npm run dev -- --host 127.0.0.1 > /tmp/candelier-vite.log 2>&1 &
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:5173/ > /dev/null && break || sleep 1; done
-          node tests/ui.cjs
-          node tests/production-ui.cjs
-          node tests/crm-ui.cjs
-          node tests/enquiries-ui.cjs
-          node tests/operations-ui.cjs
-          node tests/material-media-ui.cjs
-          node tests/permissions-ui.cjs
-          node tests/booking-ui.cjs
-          node tests/whatsapp-ui.cjs
-          node tests/whatsapp-failed-ui.cjs
-          node tests/whatsapp-templates-ui.cjs
+          node tests/ui.cjs > /tmp/ui.log 2>&1 && echo "::notice::PASS ui" || echo "::error::FAIL ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/production-ui.cjs > /tmp/production-ui.log 2>&1 && echo "::notice::PASS production-ui" || echo "::error::FAIL production-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/production-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/crm-ui.cjs > /tmp/crm-ui.log 2>&1 && echo "::notice::PASS crm-ui" || echo "::error::FAIL crm-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/crm-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/enquiries-ui.cjs > /tmp/enquiries-ui.log 2>&1 && echo "::notice::PASS enquiries-ui" || echo "::error::FAIL enquiries-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/enquiries-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/operations-ui.cjs > /tmp/operations-ui.log 2>&1 && echo "::notice::PASS operations-ui" || echo "::error::FAIL operations-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/operations-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/material-media-ui.cjs > /tmp/material-media-ui.log 2>&1 && echo "::notice::PASS material-media-ui" || echo "::error::FAIL material-media-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/material-media-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/permissions-ui.cjs > /tmp/permissions-ui.log 2>&1 && echo "::notice::PASS permissions-ui" || echo "::error::FAIL permissions-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/permissions-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/booking-ui.cjs > /tmp/booking-ui.log 2>&1 && echo "::notice::PASS booking-ui" || echo "::error::FAIL booking-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/booking-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/whatsapp-ui.cjs > /tmp/whatsapp-ui.log 2>&1 && echo "::notice::PASS whatsapp-ui" || echo "::error::FAIL whatsapp-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/whatsapp-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/whatsapp-failed-ui.cjs > /tmp/whatsapp-failed-ui.log 2>&1 && echo "::notice::PASS whatsapp-failed-ui" || echo "::error::FAIL whatsapp-failed-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/whatsapp-failed-ui.log | tr '\n' ' ' | cut -c1-600)"
+          node tests/whatsapp-templates-ui.cjs > /tmp/whatsapp-templates-ui.log 2>&1 && echo "::notice::PASS whatsapp-templates-ui" || echo "::error::FAIL whatsapp-templates-ui: $(grep -m3 -iE 'error|assert|expected|timeout' /tmp/whatsapp-templates-ui.log | tr '\n' ' ' | cut -c1-600)"
