@@ -93,7 +93,11 @@ function enquiries_route(string $method,array $parts): void {
  if($first==='settings'){
  require_admin();header('Cache-Control: no-store');
  if($method==='GET'){json_out(['data'=>db_one('SELECT spreadsheet_id,tab_name,is_enabled,last_received_at,last_success_at,full_sync_requested,token_hash IS NOT NULL AS configured FROM enquiry_integration WHERE id=1')]);return;}
- if($method==='PUT'){$in=request_body();$sheet=trim((string)($in['spreadsheet_id']??''));$tab=crm_text($in['tab_name']??'',150);if(!preg_match('/^[a-zA-Z0-9_-]{20,150}$/',$sheet)||!$tab)throw new ApiError('Enter a valid spreadsheet ID and tab.',422);$old=db_one('SELECT * FROM enquiry_integration WHERE id=1');if($old['spreadsheet_id']!==$sheet||$old['tab_name']!==$tab)throw new ApiError('This Inbox is linked to the original sheet. Use a separate integration for another sheet.',409);db()->prepare('UPDATE enquiry_integration SET is_enabled=? WHERE id=1')->execute([!empty($in['is_enabled'])?1:0]);json_out(['message'=>'Connection settings saved.']);return;}
+ if($method==='PUT'){$in=request_body();$sheet=trim((string)($in['spreadsheet_id']??''));$tab=crm_text($in['tab_name']??'',150);if(preg_match('#/spreadsheets/d/([a-zA-Z0-9_-]+)#',$sheet,$m))$sheet=$m[1];if(!preg_match('/^[a-zA-Z0-9_-]{20,150}$/',$sheet)||!$tab)throw new ApiError('Enter a valid spreadsheet ID (or the sheet link) and tab name.',422);$old=db_one('SELECT * FROM enquiry_integration WHERE id=1');if($old['spreadsheet_id']!==$sheet||$old['tab_name']!==$tab){
+  // Another sheet or tab: enquiries already imported are kept (identified by the lead id). The old key stops working,
+  // so the script installed on the previous sheet can no longer send; download a new script for the new sheet.
+  db()->prepare('UPDATE enquiry_integration SET spreadsheet_id=?,tab_name=?,token_hash=NULL,is_enabled=0,full_sync_requested=0 WHERE id=1')->execute([$sheet,$tab]);
+  json_out(['message'=>'Sheet changed. Download the connection script and install it in the new sheet.']);return;}db()->prepare('UPDATE enquiry_integration SET is_enabled=? WHERE id=1')->execute([!empty($in['is_enabled'])?1:0]);json_out(['message'=>'Connection settings saved.']);return;}
  }
  if($first==='connection-script'&&$method==='POST'){
  require_admin();$token=bin2hex(random_bytes(32));db()->prepare('UPDATE enquiry_integration SET token_hash=?,is_enabled=1 WHERE id=1')->execute([hash('sha256',$token)]);$s=db_one('SELECT * FROM enquiry_integration WHERE id=1');
