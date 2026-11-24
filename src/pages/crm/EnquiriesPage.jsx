@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Pencil,Eye} from 'lucide-react';
+import {CircleCheck,Eye} from 'lucide-react';
 import {enquiriesApi} from '../../api/client';
 import {useAuth} from '../../auth/AuthContext';
 import {useToast} from '../../components/Toast';
@@ -73,7 +73,7 @@ export default function EnquiriesPage(){
                })}
                <td className={`${enquiryCell} sticky right-0 bg-white group-hover:bg-blue-50`}>
                  <div className="flex items-center gap-1">
-                   <button aria-label={`Update enquiry ${enquiry.id}`} title={enquiry.contact_id||enquiry.lead_id?'Already qualified: view it':'Update: record follow-up'} onClick={() => open(enquiry.id, true)} className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><Pencil size={16}/></button>
+                   <button aria-label={`Update enquiry ${enquiry.id}`} title={enquiry.contact_id||enquiry.lead_id?'Already qualified: view it':'Update: record follow-up'} onClick={() => open(enquiry.id, true)} className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><CircleCheck size={17}/></button>
                    <button aria-label={`View enquiry ${enquiry.id}`} title="View enquiry" onClick={() => open(enquiry.id)} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100"><Eye size={16}/></button>
                  </div>
                </td>
