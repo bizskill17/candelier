@@ -57,7 +57,7 @@ export default function EnquiriesPage(){
          <thead className={`${theadCls} text-[10px] leading-3`}>
            <tr>
              {enquiryColumns.map(column => <th key={column.label} scope="col" className={enquiryHeader}>{column.label}</th>)}
-             <th scope="col" className={`${enquiryHeader} sticky right-0 bg-brand-600`}>Action</th>
+             <th scope="col" className={`${enquiryHeader} sticky right-0 bg-gray-200 text-gray-800`}>Action</th>
            </tr>
          </thead>
          <tbody>
