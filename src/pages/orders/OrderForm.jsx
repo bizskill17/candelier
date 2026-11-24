@@ -222,9 +222,9 @@ export default function OrderForm({ id, leadId }) {
                       </td>
                       <td className={td}><AutoTextarea aria-label={`Remarks, item ${n}`} disabled={locked} value={it.remarks} onChange={(v) => setItem(i, 'remarks', v)} placeholder="e.g. Hang height 14 ft" className={inputCls(errors[`items.${i}.remarks`])} /></td>
                       <td className={td}>
-                        <PhotoSlot id={`o-item-${i}-reference`} label="Pattern Image" value={it.reference_image} onChange={(v) => setItem(i, 'reference_image', v)} disabled={locked} error={errors[`items.${i}.reference_image`]} />
+                        <PhotoSlot hideLabel id={`o-item-${i}-reference`} label="Pattern Image" value={it.reference_image} onChange={(v) => setItem(i, 'reference_image', v)} disabled={locked} error={errors[`items.${i}.reference_image`]} />
                       </td>
-                      <td className={td}><PhotoSlot id={`o-item-${i}-component`} label="Component Image" value={it.component_image} onChange={v=>setItem(i,'component_image',v)} disabled={locked} error={errors[`items.${i}.component_image`]} /></td>
+                      <td className={td}><PhotoSlot hideLabel id={`o-item-${i}-component`} label="Component Image" value={it.component_image} onChange={v=>setItem(i,'component_image',v)} disabled={locked} error={errors[`items.${i}.component_image`]} /></td>
                       {isEdit && <td className={`${td} px-3 py-3`}>{s ? <><ItemStage stage={s.stage} />{s.dispatch && <div className="mt-1 text-xs text-gray-500">{fmtDate(s.dispatch.dispatch_date)}</div>}</> : <span className="text-xs text-gray-400">New</span>}</td>}
                       {isEdit && (
                         <td className={`${td} py-2.5 text-center`}>

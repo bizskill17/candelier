@@ -61,7 +61,7 @@ export function PhotoThumb({ path, title, className = 'h-14 w-14' }) {
 }
 
 // Photo box on the order form: add, view, change or remove one photo.
-export function PhotoSlot({ id, label, value, onChange, disabled, error, compact }) {
+export function PhotoSlot({ id, label, value, onChange, disabled, error, compact, hideLabel }) {
   const input = useRef(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -86,7 +86,7 @@ export function PhotoSlot({ id, label, value, onChange, disabled, error, compact
   const src = imageUrl(value);
   return (
     <div>
-      {!compact && <div className="mb-1 text-xs font-medium text-gray-600">{label}</div>}
+      {!compact && !hideLabel && <div className="mb-1 text-xs font-medium text-gray-600">{label}</div>}
       <div title={compact ? label : undefined} className={`relative flex ${compact ? 'h-14 w-14' : 'h-24 w-full'} items-center justify-center overflow-hidden rounded-lg border ${error || err ? 'border-red-400' : 'border-dashed border-gray-300'} bg-gray-50`}>
         {value ? (
           <>
