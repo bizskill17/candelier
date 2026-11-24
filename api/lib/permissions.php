@@ -27,11 +27,6 @@ function can_read_added_view(?string $area, array $parts): bool
             $first === '' || $first === 'filters' || ctype_digit($first) => 'enquiries',
             default => null,
         },
-        'whatsapp' => match ($first) {
-            'failed-contacts' => 'whatsapp-failed',
-            'campaigns', 'contact' => 'whatsapp',
-            default => null,
-        },
         'samples' => match ($first) {
             '' => 'sample-inventory',
             'history' => 'sample-issues',
@@ -58,6 +53,10 @@ function require_item_access(int $id): void {
 }
 function authorize_request(string $method, ?string $area, array $parts): void {
     require_roles(['Admin','Store','Sales']);
+    if ($area === 'whatsapp' || (in_array($area, ['masters', 'lookup'], true) && ($parts[0] ?? '') === 'users')) {
+        require_admin();
+        return;
+    }
     if ($method === 'POST' && !$parts && in_array($area, ['leads', 'orders'], true)) {
         require_create_view($area === 'leads' ? 'leads-add' : 'orders-add');
         return;
@@ -72,13 +71,11 @@ function authorize_request(string $method, ?string $area, array $parts): void {
     if($area==='materials'&&($parts[1]??'')==='photo'&&$method==='PATCH'){require_roles(['Admin','Store']);return;}
     if($area==='order-items'&&($parts[1]??'')==='drawing'&&$method==='PUT'){require_roles(['Admin','Sales','Store']);return;}
     if($area==='enquiries'){require_roles(['Admin','Sales']);if(in_array($parts[0]??'',['settings','connection-script','request-sync'],true))require_admin();if($method==='GET'||($method==='POST'&&(($parts[1]??'')==='followups'||in_array($parts[0]??'',['connection-script','request-sync'],true)))||($method==='PUT'&&($parts[0]??'')==='settings'))return;throw new ApiError('Action not allowed.',403);}
-    if($area==='whatsapp'){require_roles(['Admin','Sales']);if(($parts[0]??'')==='settings')require_admin();return;}
     if(app_role()==='Admin')return;
     $sales=app_role()==='Sales';$first=$parts[0]??'';$second=$parts[1]??'';
     if($method==='GET') {
         if($sales && ($area==='docs'||$area==='opening-stock'||($area==='inventory'&&$first!=='')))throw new ApiError('Sales may view stock availability, but not stock transaction records.',403);
         if(!$sales && in_array($area,['leads','crm-followups','follow-ups','followup-logs'],true))throw new ApiError('CRM is available to Sales and Admin.',403);
-        if(in_array($area,['masters','lookup'],true)&&$first==='users')throw new ApiError('Only Admin can manage Users.',403);
         if($area==='masters'&&!in_array($first,['contacts','customers','material_categories','suppliers','transporters','states','client_categories','lead_sources'],true))throw new ApiError('Only Admin can manage this master.',403);
         return;
     }

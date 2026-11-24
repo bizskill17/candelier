@@ -7,8 +7,7 @@ export function canAccessPath(path, role) {
  if(['sample-inventory','sample-issues'].includes(base)&&role==='Sales')return false;
  if(base==='enquiry-settings')return false;
  if(['enquiries','enquiry-sync-history'].includes(base)&&role==='Store')return false;
- if(base==='whatsapp-settings')return false;
- if(['whatsapp','whatsapp-failed'].includes(base)&&role==='Store')return false;
+ if(['whatsapp','whatsapp-failed','whatsapp-settings'].includes(base))return false;
  if(base==='users'||base==='item-fields')return false;
  if(role==='Sales')return !['opening-stock','material-in','material-issue','damage'].includes(base);
  if(['leads','follow-ups','followup-logs','pending-boq','lead-sources','client-categories'].includes(base))return false;
