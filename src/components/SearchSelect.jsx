@@ -32,6 +32,10 @@ export default function SearchSelect({
   const listRef = useRef(null);
 
   const selected = options.find((o) => String(o.value) === String(value));
+  // An option may set `strong` (the start of its label, e.g. a contact's name) to show that part in bold.
+  const labelOf = (o) => (o.strong && String(o.label).startsWith(o.strong)
+    ? <><span className="font-semibold text-gray-900">{o.strong}</span>{String(o.label).slice(o.strong.length)}</>
+    : o.label);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -127,7 +131,7 @@ export default function SearchSelect({
         }`}
       >
         <span className={`min-w-0 flex-1 whitespace-normal break-words leading-snug ${selected ? 'text-gray-900' : 'text-gray-400'}`}>
-          {selected ? selected.label : placeholder}
+          {selected ? labelOf(selected) : placeholder}
           {selected?.subtitle && <span className="block text-xs text-gray-500">{selected.subtitle}</span>}
           {selected?.hint && <span className="block text-xs text-gray-400">{selected.hint}</span>}
         </span>
@@ -181,7 +185,7 @@ export default function SearchSelect({
                 >
                   <span className="min-w-0 flex-1 break-words leading-snug">
                     <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                      <span className={o.subtitle ? 'font-semibold' : ''}>{o.label}</span>
+                      <span className={o.subtitle ? 'font-semibold' : ''}>{labelOf(o)}</span>
                       {o.badge && <span className="shrink-0 rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">{o.badge}</span>}
                     </span>
                     {o.subtitle && <span className="mt-1 block text-gray-600">{o.subtitle}</span>}
