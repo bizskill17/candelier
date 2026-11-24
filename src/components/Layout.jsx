@@ -4,6 +4,7 @@ import { canAccessPath } from '../auth/permissions';
 import { useLocation, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import ChangePassword from './ChangePassword';
 
 const COLLAPSE_KEY = 'ims.sidebar.collapsed';
 
@@ -13,6 +14,7 @@ export default function Layout() {
     try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
   });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const toggleCollapse = () => {
     const next = !collapsed;
@@ -24,9 +26,12 @@ export default function Layout() {
     <div className="app-layout flex h-full">
       <Sidebar
         collapsed={collapsed}
-        onToggleCollapse={toggleCollapse}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
+        onChangePassword={() => {
+          setMobileOpen(false);
+          setPasswordOpen(true);
+        }}
       />
       <div className="app-content flex min-w-0 flex-1 flex-col">
         <Topbar onOpenMobile={() => setMobileOpen(true)} collapsed={collapsed} onToggleCollapse={toggleCollapse} />
@@ -34,6 +39,7 @@ export default function Layout() {
           {canAccessPath(pathname,user?.role)?<Outlet />:<p role="alert" className="rounded-lg border bg-white p-5">You do not have access to this section.</p>}
         </main>
       </div>
+      {passwordOpen && <ChangePassword onClose={() => setPasswordOpen(false)} />}
     </div>
   );
 }
