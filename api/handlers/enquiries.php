@@ -88,7 +88,8 @@ function enquiry_followup(int $id,array $in): array {
  }finally{db_value('SELECT RELEASE_LOCK(?)',[$qualificationLock]);}
 }
 function enquiries_route(string $method,array $parts): void {
- require_roles(['Admin','Sales']);$first=$parts[0]??'';
+ if($method!=='GET')require_roles(['Admin','Sales']);
+ $first=$parts[0]??'';
  if($first==='filters'&&$method==='GET'){json_out(['data'=>['cities'=>array_column(db_all("SELECT DISTINCT city FROM enquiries WHERE city IS NOT NULL ORDER BY city"),'city'),'sources'=>array_column(db_all('SELECT DISTINCT source_name FROM enquiries ORDER BY source_name'),'source_name')]]);return;}
  if($first==='settings'){
  require_admin();header('Cache-Control: no-store');

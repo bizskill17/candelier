@@ -47,7 +47,7 @@ export const menu = [
       { key: 'customers', label: 'Customers', path: '/customers', icon: Handshake, description: 'Contacts with confirmed non-cancelled orders.' },
       { key: 'orders-add', label: 'Add Order', path: '/orders/new', icon: FilePlus2, description: 'Enter a new order with its items.' },
       { key: 'orders-master', label: 'Order Master', path: '/orders/all', icon: ListOrdered, description: 'Every order; open an item for its BOQ and dispatch.' },
-      { key: 'item-fields', label: 'Order Item Fields', path: '/item-fields', icon: ListChecks, description: 'Your own list of details for each order item (Area, Size, Glass Colour…).' },
+      { key: 'item-fields', label: 'Order Item Fields', path: '/item-fields', icon: ListChecks, adminOnly: true, description: 'Your own list of details for each order item (Area, Size, Glass Colour…).' },
     ],
   },
   {

@@ -395,7 +395,7 @@ function pending_boq(bool $drawing=false): array
 {
     $where = "i.boq_status IN ('Pending', 'Draft') AND o.status <> 'Cancelled' AND d.id IS NULL AND ".order_visibility_sql();
     $where.=$drawing?" AND i.boq_status='Pending' AND (i.drawing_file IS NULL OR i.drawing_file='')":" AND (i.boq_status='Draft' OR (i.drawing_file IS NOT NULL AND i.drawing_file<>''))";
-    if(app_role()==='Store'&&!$drawing)$where.=' AND 1=0';
+    if(app_role()==='Store'&&!$drawing&&!user_has_selected_view('pending-boq'))$where.=' AND 1=0';
     $params = [];
     $q = trim($_GET['q'] ?? '');
     if ($q !== '') {

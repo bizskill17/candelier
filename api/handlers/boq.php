@@ -28,7 +28,7 @@ function boq_item(int $id): array
     require_item_access($id);
     $r = db_one(ITEM_SELECT . ' WHERE i.id = :id', ['id' => $id]);
     if (!$r) throw new ApiError('Order item not found.', 404);
-    if(app_role()==='Store'&&$r['boq_status']!=='Final')throw new ApiError('Store may view Final BOQs only.',403);
+    if(app_role()==='Store'&&$r['boq_status']!=='Final'&&!user_has_selected_view('pending-boq'))throw new ApiError('Store may view Final BOQs only.',403);
     $r = item_cast($r);
     $r['dispatched'] = $r['dispatch_id'] !== null;
     unset($r['dispatch_id']);
