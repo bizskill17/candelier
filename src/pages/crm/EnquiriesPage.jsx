@@ -74,7 +74,7 @@ export default function EnquiriesPage(){
                    </td>
                  );
                })}
-               <td className={`${enquiryCell} sticky right-0 bg-white group-hover:bg-blue-50`}>
+               <td className={`${enquiryCell} sticky right-0 bg-gray-100 group-hover:bg-gray-200`}>
                  <div className="flex items-center gap-1">
                    <button aria-label={`Update enquiry ${enquiry.id}`} title={enquiry.contact_id||enquiry.lead_id?'Already qualified: view it':'Update: record follow-up'} onClick={() => open(enquiry.id, true)} className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><CircleCheck size={17}/></button>
                    <button aria-label={`View enquiry ${enquiry.id}`} title="View enquiry" onClick={() => open(enquiry.id)} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100"><Eye size={16}/></button>
