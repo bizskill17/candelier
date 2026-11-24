@@ -231,8 +231,10 @@ function order_validate(?array $existing, array $in): array
 
 function order_save(?int $id, array $in): array
 {
-    if($id)require_admin();else require_roles(['Admin','Sales']);
-    if(!$id&&app_role()==='Sales')$in['order_by_id']=current_user()['id'];
+    if ($id) require_admin();
+    else require_create_view('orders-add');
+    if (!$id && app_role() !== 'Admin') $in['order_by_id'] = current_user()['id'];
+    if (!$id && app_role() === 'Store') $in['assigned_salesperson_id'] = null;
     $existing = $id !== null ? order_find($id) : null;
     if ($existing && $existing['status'] === 'Cancelled') throw new ApiError("Order {$existing['order_no']} is cancelled. Reopen it to make changes.", 409);
     [$h, $items] = order_validate($existing, $in);

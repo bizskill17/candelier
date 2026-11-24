@@ -130,7 +130,9 @@ function lead_form_input(array $in): array {
  return $in;
 }
 function lead_save(?int $id,array $in): array {
-    if($id)require_admin();else require_roles(['Admin','Sales']);
+    if ($id) require_admin();
+    elseif (app_role() === 'Store') require_create_view('leads-add');
+    else require_roles(['Admin','Sales']);
     $old=$id?lead_find($id):null;$h=['contact_id'=>(int)($in['contact_id']??0),'enquiry_date'=>trim((string)($in['enquiry_date']??$in['lead_date']??'')),'project_name'=>crm_text($in['project_name']??'',150),'requirement'=>crm_text($in['requirement']??'',10000)];
     if(!db_value('SELECT COUNT(*) FROM contacts WHERE id=:id AND is_active=1',['id'=>$h['contact_id']])&&(!$old||$old['contact_id']!==$h['contact_id']))throw new ApiError('Choose an active Contact.',422);
     $h['source_id']=(int)($in['source_id']??($old['source_id']??db_value('SELECT source_id FROM contacts WHERE id=?',[$h['contact_id']])))?:null;
