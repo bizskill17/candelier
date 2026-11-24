@@ -82,6 +82,11 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChange
           {groups.map((group, gi) => {
             const colors = sectionColors[group.heading] || ['#f8fafc', '#334155'];
             const isClosed = Boolean(group.heading && openGroup !== group.heading && !narrow);
+            const countedItems = group.items.filter(item => counts[item.key] !== undefined);
+            const workItems = countedItems.filter(item => WORK.has(item.key));
+            // Issue includes saved issues and damage, even after all pending items are issued.
+            const sectionItems = group.heading === 'Issue' || workItems.length === 0 ? countedItems : workItems;
+            const sectionCount = sectionItems.reduce((total, item) => total + counts[item.key], 0);
             return (
               <div key={group.heading || gi} className="mb-2 rounded-xl border border-black/5 p-1" style={{backgroundColor: colors[0]}}>
                 {group.heading && !narrow && (
@@ -89,10 +94,15 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChange
                     onClick={() => toggleGroup(group.heading)}
                     aria-expanded={!isClosed}
                     style={{color: colors[1]}}
-                    className="flex w-full items-center justify-between px-2 pb-2 pt-2 text-xs font-bold uppercase tracking-wide hover:opacity-80"
+                    className="flex w-full items-center gap-1.5 px-2 py-2 text-xs font-bold uppercase tracking-wide hover:opacity-80"
                   >
-                    <span className="flex items-center gap-1.5">{group.heading}{(() => { const all = group.items.filter((i) => counts[i.key] !== undefined); if (!all.length) return null; const work = all.filter((i) => WORK.has(i.key)); const known = work.length ? work : all; const n = known.reduce((t, i) => t + counts[i.key], 0); return <span aria-hidden="true" className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums ${n > 0 ? 'bg-white/80' : 'bg-white/50 opacity-60'}`}>{fmt(n)}</span>; })()}</span>
-                    <ChevronDown size={14} className={`transition-transform ${isClosed ? '-rotate-90' : ''}`} />
+                    <span className="min-w-0 flex-1 text-left">{group.heading}</span>
+                    {sectionItems.length > 0 && (
+                      <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] leading-none tabular-nums">
+                        {fmt(sectionCount)}
+                      </span>
+                    )}
+                    <ChevronDown size={14} className={`shrink-0 transition-transform ${isClosed ? '-rotate-90' : ''}`} />
                   </button>
                 )}
                 {group.heading && narrow && gi > 0 && <div className="mx-2 my-2 border-t border-slate-200" />}
