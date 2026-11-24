@@ -36,7 +36,6 @@ require __DIR__ . '/handlers/crm.php';
 require __DIR__ . '/handlers/enquiries.php';
 require __DIR__ . '/handlers/samples.php';
 require __DIR__ . '/handlers/whatsapp.php';
-require __DIR__ . '/handlers/training.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $route  = trim((string) ($_GET['r'] ?? ''), '/');
@@ -55,7 +54,6 @@ try {
     migrate_enquiries();
     migrate_operations();
     migrate_enquiry_sheet();
-    migrate_training();
     if ($area === 'enquiry-sync') {
         if($method!=='POST')throw new ApiError('Not found.',404);
         enquiry_sync_auth((string)($_SERVER['HTTP_X_CANDELIER_ENQUIRY_KEY']??''));
@@ -102,7 +100,6 @@ try {
             foreach ($rows as &$r) { $r['id'] = (int) $r['id']; $r['is_active'] = (bool) $r['is_active']; }
             json_out(['data' => $rows]);
             break;
-        case 'training': training_route($method, $parts); break;
         case 'whatsapp': whatsapp_route($method, $parts); break;
         case 'samples': samples_route($method,$parts); break;
         case 'enquiries': enquiries_route($method, $parts); break;

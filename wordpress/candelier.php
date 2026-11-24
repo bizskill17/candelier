@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Candelier Management System
  * Description:       Orders, BOQ, stores, production, dispatch, CRM, enquiries and WhatsApp campaigns. Opens at yoursite.com/candelier on its own full-screen page, independent of the theme.
- * Version:           1.1.2
+ * Version:           1.1.3
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Bizskill
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const CANDELIER_VERSION = '1.1.2';
+const CANDELIER_VERSION = '1.1.3';
 const CANDELIER_SLUG    = 'candelier';   // the app opens at /candelier
 define('CANDELIER_FILE', __FILE__);
 define('CANDELIER_DIR', plugin_dir_path(__FILE__));

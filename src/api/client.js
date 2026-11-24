@@ -62,12 +62,6 @@ export const api = {
 };
 
 
-export const trainingApi = {
-  list: (manage) => request('GET', manage ? 'training/manage' : 'training'),
-  save: (id, body) => request(id ? 'PUT' : 'POST', id ? `training/${id}` : 'training', { body }),
-  sopUrl: () => `${BASE}?r=training/sop`,
-};
-
 export const authApi = {
   me: () => request('GET', 'auth/me'),
   setup: (body) => request('POST', 'auth/setup', { body }),

@@ -4,7 +4,6 @@ import WhatsAppPage from './pages/whatsapp/WhatsAppPage';
 import EnquiriesPage from './pages/crm/EnquiriesPage';
 import EnquirySettings from './pages/crm/EnquirySettings';
 import Layout from './components/Layout';
-import TrainingPage from './pages/training/TrainingPage';
 import Dashboard from './pages/Dashboard';
 import MasterPage from './pages/MasterPage';
 import NotFound from './pages/NotFound';
@@ -37,8 +36,6 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="training" element={<TrainingPage key="watch" />} />
-          <Route path="training/manage" element={isAdmin ? <TrainingPage key="manage" manage /> : <NotFound />} />
           <Route path="whatsapp-failed" element={<FailedContacts />} />
           <Route path="whatsapp" element={<WhatsAppPage key="campaigns" />} />
           <Route path="whatsapp-settings" element={<WhatsAppPage key="settings" settings />} />
