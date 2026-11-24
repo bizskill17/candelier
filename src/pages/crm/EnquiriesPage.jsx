@@ -11,23 +11,26 @@ import {inputCls,theadCls,tableWrap} from '../../components/table';
 const viewColors={'added-today':'border-teal-200 bg-teal-50 text-teal-900',pending:'border-blue-200 bg-blue-50 text-blue-800',new:'border-purple-200 bg-purple-50 text-purple-900',today:'border-amber-200 bg-amber-50 text-amber-900',overdue:'border-red-200 bg-red-50 text-red-900',upcoming:'border-cyan-200 bg-cyan-50 text-cyan-900',converted:'border-green-200 bg-green-50 text-green-900',archived:'border-slate-200 bg-slate-100 text-slate-800',all:'border-indigo-200 bg-indigo-50 text-indigo-900'};
 const views=[['added-today','Added Today'],['pending','Pending'],['new','New'],['today','Due Today'],['overdue','Overdue'],['upcoming','Upcoming'],['converted','Qualified'],['archived','Archived'],['all','All Enquiries']];
 const details=[['project_type','Project Type'],['approximate_customization__chandelier_budget','Budget'],['project_timeline','Project Timeline'],['how_many_customized_chandeliers_do_you_require?','Chandelier Quantity'],['campaign_name','Campaign'],['adset_name','Ad Set'],['ad_name','Ad'],['form_name','Form'],['platform','Platform'],['lead_status','Source Lead Status']];
+// Columns are wide enough to read; long text wraps onto more lines instead of being cut off.
+// Values from the ads form ("within_1_month", "₹50,000_to_₹1_lakh") are shown with spaces.
+const tidy = v => (v == null || v === '' ? '' : String(v).replace(/_/g, ' ').replace(/\s+/g, ' ').trim());
 const enquiryColumns = [
-  { label: 'Received', width: 75, value: e => fmtAt(e.enquiry_at || e.created_at), date: true },
-  { label: 'Name', width: 102, value: e => e.name },
-  { label: 'Mobile', width: 96, value: e => e.mobile },
-  { label: 'Email', width: 142, value: e => e.email },
-  { label: 'City', width: 67, value: e => e.city },
-  { label: 'Source', width: 64, value: e => e.source_name },
-  { label: 'Campaign', width: 92, value: e => e.source_data?.campaign_name },
-  { label: 'Project Type', width: 76, value: e => e.source_data?.project_type },
-  { label: 'Budget', width: 80, value: e => e.source_data?.approximate_customization__chandelier_budget },
-  { label: 'Timeline', width: 74, value: e => e.source_data?.project_timeline },
-  { label: 'Qty', width: 40, value: e => e.source_data?.['how_many_customized_chandeliers_do_you_require?'] },
-  { label: 'Follow-up By', width: 77, value: e => e.followup_by_name },
-  { label: 'Status', width: 65, value: e => e.inbox_status },
-  { label: 'Next Follow-up', width: 77, value: e => fmtAt(e.next_followup_at), date: true },
+  { label: 'Received', width: 92, value: e => fmtAt(e.enquiry_at || e.created_at), date: true },
+  { label: 'Name', width: 140, value: e => e.name, strong: true },
+  { label: 'Mobile', width: 112, value: e => e.mobile, nowrap: true },
+  { label: 'Email', width: 200, value: e => e.email, breakAll: true },
+  { label: 'City', width: 100, value: e => e.city },
+  { label: 'Source', width: 90, value: e => e.source_name },
+  { label: 'Campaign', width: 150, value: e => tidy(e.source_data?.campaign_name) },
+  { label: 'Project Type', width: 110, value: e => tidy(e.source_data?.project_type) },
+  { label: 'Budget', width: 140, value: e => tidy(e.source_data?.approximate_customization__chandelier_budget) },
+  { label: 'Timeline', width: 120, value: e => tidy(e.source_data?.project_timeline) },
+  { label: 'Qty', width: 60, value: e => tidy(e.source_data?.['how_many_customized_chandeliers_do_you_require?']) },
+  { label: 'Follow-up By', width: 100, value: e => e.followup_by_name },
+  { label: 'Status', width: 80, value: e => e.inbox_status },
+  { label: 'Next Follow-up', width: 96, value: e => fmtAt(e.next_followup_at), date: true },
 ];
-const enquiryCell = 'border border-blue-200 px-2 py-1.5 align-middle';
+const enquiryCell = 'border border-blue-200 px-2.5 py-2 align-top';
 const enquiryHeader = 'border border-blue-400 px-2 py-2 text-left font-semibold';
 
 export default function EnquiriesPage(){
@@ -46,10 +49,10 @@ export default function EnquiriesPage(){
    <p className="text-xs text-gray-600">{result.total} enquiries</p>
    <div className={tableWrap}>
      <div className="overflow-x-auto">
-       <table className="w-full min-w-[1185px] table-fixed text-xs leading-4">
+       <table className="w-full min-w-[1670px] table-fixed text-[13px] leading-5 text-gray-800">
          <colgroup>
            {enquiryColumns.map(column => <col key={column.label} style={{ width: column.width }} />)}
-           <col style={{ width: 58 }} />
+           <col style={{ width: 80 }} />
          </colgroup>
          <thead className={`${theadCls} text-[10px] leading-3`}>
            <tr>
@@ -65,7 +68,7 @@ export default function EnquiriesPage(){
                  const value = column.value(enquiry) || '—';
                  return (
                    <td key={column.label} className={enquiryCell} title={value}>
-                     <span className={column.date ? 'block whitespace-pre-line tabular-nums' : 'block truncate'}>
+                     <span className={column.date ? 'block whitespace-pre-line tabular-nums' : `block whitespace-normal ${column.nowrap ? 'whitespace-nowrap tabular-nums' : column.breakAll ? 'break-all' : 'break-words'} ${column.strong ? 'font-medium text-gray-900' : ''}`}>
                        {column.date ? value.replace(' ', '\n') : value}
                      </span>
                    </td>
