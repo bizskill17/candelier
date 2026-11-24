@@ -24,7 +24,7 @@ const counters = {
 
 const REFRESH_MS = 2 * 60 * 1000;
 
-/** keys: the menu item keys this user can see. Refreshes on every screen change and every 2 minutes. */
+/** keys: the menu item keys this user can see. Refreshes on every screen change, after every save, and every 2 minutes. */
 export function useMenuCounts(keys) {
   const { pathname } = useLocation();
   const [counts, setCounts] = useState({});
@@ -34,9 +34,12 @@ export function useMenuCounts(keys) {
     const run = () => wanted.split(',').filter(Boolean).forEach((k) => {
       counters[k]().then((n) => { if (alive) setCounts((c) => (c[k] === n ? c : { ...c, [k]: n })); }).catch(() => {});
     });
-    const t = setTimeout(run, 400);            // after the screen's own data has loaded
+    let t = setTimeout(run, 400);            // after the screen's own data has loaded
     const iv = setInterval(run, REFRESH_MS);
-    return () => { alive = false; clearTimeout(t); clearInterval(iv); };
+    // Any save, change or delete anywhere in the app refreshes the numbers at once.
+    const onChange = () => { clearTimeout(t); t = setTimeout(run, 250); };
+    window.addEventListener('candelier:data-changed', onChange);
+    return () => { alive = false; clearTimeout(t); clearInterval(iv); window.removeEventListener('candelier:data-changed', onChange); };
   }, [wanted, pathname]);
   return counts;
 }

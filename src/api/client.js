@@ -43,6 +43,8 @@ async function request(method, route, { params, body } = {}) {
   if (!res.ok) {
     throw new ApiError(data?.error || `Server error (${res.status}).`, res.status, data?.fields || {});
   }
+  // Something was saved, changed or deleted: let the left-menu counts refresh straight away.
+  if (method !== 'GET' && !route.startsWith('auth/')) window.dispatchEvent(new Event('candelier:data-changed'));
   return data;
 }
 
