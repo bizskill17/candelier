@@ -29,7 +29,7 @@ export default function Layout() {
         onCloseMobile={() => setMobileOpen(false)}
       />
       <div className="app-content flex min-w-0 flex-1 flex-col">
-        <Topbar onOpenMobile={() => setMobileOpen(true)} />
+        <Topbar onOpenMobile={() => setMobileOpen(true)} collapsed={collapsed} onToggleCollapse={toggleCollapse} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
           {canAccessPath(pathname,user?.role)?<Outlet />:<p role="alert" className="rounded-lg border bg-white p-5">You do not have access to this section.</p>}
         </main>

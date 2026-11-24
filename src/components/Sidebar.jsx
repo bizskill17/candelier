@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronsLeft, ChevronsRight, X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { canAccessPath } from '../auth/permissions';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
@@ -129,13 +129,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
           )}
         </nav>
 
-        {/* Collapse toggle (desktop only) */}
-        <button
-          onClick={onToggleCollapse}
-          className="hidden h-12 shrink-0 items-center gap-2 border-t border-slate-200 px-5 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 lg:flex"
-        >
-          {narrow ? <ChevronsRight size={18} /> : <><ChevronsLeft size={18} /> Collapse</>}
-        </button>
+        {/* The collapse button is in the top bar, left of the screen name (Topbar.jsx). */}
       </aside>
     </>
   );
