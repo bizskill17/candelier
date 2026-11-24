@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Phone, Eye, Settings, X, FilterX } from 'lucide-react';
+import { Plus, Pencil, Phone, Eye, Settings, X, FilterX, Trash2 } from 'lucide-react';
 import { crmApi, historyApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { canOpenView } from '../../auth/permissions';
@@ -9,6 +9,7 @@ import { useToast } from '../../components/Toast';
 import { inputCls, tableWrap, theadCls, thCls, tdCls } from '../../components/table';
 import Pagination from '../../components/Pagination';
 import Modal from '../../components/Modal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { ContactForm, FollowupForm, HistoryTable, Choice, Field, useCrmLookups, priorities, PriorityButtons, fmtAt, indiaNow } from './CrmShared';
 const leadViews=[['all','All Leads'],['added-today','Lead Added Today'],['updated-today','Updated Today'],['today','Due Today'],['upcoming','Upcoming'],['overdue','Overdue'],['missing','Next Date Missing'],['success','Success'],['fail','Fail']];
 const viewColors={all:'border-blue-200 bg-blue-50 text-blue-800','added-today':'border-teal-200 bg-teal-50 text-teal-900','updated-today':'border-purple-200 bg-purple-50 text-purple-900',today:'border-amber-200 bg-amber-50 text-amber-900',upcoming:'border-cyan-200 bg-cyan-50 text-cyan-900',overdue:'border-red-200 bg-red-50 text-red-900',missing:'border-orange-200 bg-orange-50 text-orange-900',success:'border-green-200 bg-green-50 text-green-900',fail:'border-pink-200 bg-pink-50 text-pink-900'};
@@ -17,11 +18,27 @@ export default function LeadsPage({due=false}) {
  const sub=loc.pathname.split('/')[2];const id=/^\d+$/.test(sub||'')?Number(sub):null;const isNew=sub==='new';const preset=Number(loc.pathname.split('/')[4])||'';const view=leadViews.some(([key])=>key===sub)?sub:'all';
  const [groupBy,setGroupBy]=useState('');const [enquiryFrom,setEnquiryFrom]=useState(''),[enquiryTo,setEnquiryTo]=useState(''),[settings,setSettings]=useState(null);
  const [result,setResult]=useState(null);const [viewCounts,setViewCounts]=useState({});const [lead,setLead]=useState(null);const [error,setError]=useState('');const [q,setQ]=useState('');const [search,setSearch]=useState('');const [page,setPage]=useState(1);const [status,setStatus]=useState('');const [temperature,setTemperature]=useState('');const [tab,setTab]=useState('today');const [follow,setFollow]=useState(null);const [editing,setEditing]=useState(false);const [editLead,setEditLead]=useState(null);const [historyLead,setHistoryLead]=useState(null);const req=useRef(0);
+ const [deleteLead,setDeleteLead]=useState(null);
+ const [deleting,setDeleting]=useState(false);
  useEffect(()=>{const t=setTimeout(()=>{setQ(search);setPage(1);},300);return()=>clearTimeout(t);},[search]);
  const load=useCallback(async()=>{const n=++req.current;setError('');try{if(isNew)return;if(id){const r=await crmApi.get(id);if(n===req.current)setLead(r.data);}else{const r=await(due?crmApi.due({q,page,temperature,tab}):crmApi.list({q,page,status,temperature,view,group_by:groupBy,enquiry_from:enquiryFrom,enquiry_to:enquiryTo}));if(n===req.current){setResult(r);setViewCounts(r.view_counts||{});if(r.page!==page)setPage(r.page);}}}catch(e){if(n===req.current)setError(e.message);}},[isNew,id,due,q,page,status,temperature,tab,view,groupBy,enquiryFrom,enquiryTo]);
  useEffect(()=>{setLead(null);load();return()=>{req.current++;};},[load]);
  const openEdit=async(row)=>{if(!canEdit)return;setError('');try{const r=await crmApi.get(row.id);setEditLead(r.data);}catch(e){setError(e.message);}};
  const openHistory=async(row)=>{setHistoryLead({id:row.id,lead_no:row.lead_no,rows:null,error:''});try{const r=await crmApi.get(row.id);setHistoryLead(current=>current?.id===row.id?{...current,rows:r.data.followups}:current);}catch(e){setHistoryLead(current=>current?.id===row.id?{...current,error:e.message}:current);}};
+ const removeLead = async () => {
+   if (!deleteLead || !canEdit || deleting) return;
+   setDeleting(true);
+   try {
+     const response = await crmApi.remove(deleteLead.id);
+     toast(response.message);
+     await load();
+   } catch (err) {
+     toast(err.message, 'error');
+   } finally {
+     setDeleteLead(null);
+     setDeleting(false);
+   }
+ };
  const showStatus=!due&&view==='all';
  const rowColors={Hot:'bg-red-50',Warm:'bg-amber-50',Cold:'bg-blue-50'};
  const openSettings=()=>setSettings({view,groupBy,status,temperature,enquiryFrom,enquiryTo});
@@ -32,11 +49,22 @@ export default function LeadsPage({due=false}) {
  {canEdit&&<button type="button" onClick={()=>openEdit(l)} aria-label={`Edit ${l.lead_no}`} title="Edit Lead" className="rounded-lg p-2 text-brand-600 hover:bg-brand-50"><Pencil size={18} aria-hidden="true"/></button>}
  {canCreateSales&&<button type="button" onClick={()=>setFollow(l)} disabled={!canEdit&&l.status!=='Open'} aria-label={`Follow up ${l.lead_no}`} title={l.status==='Open'||canEdit?'Follow-up':'Lead is closed'} className="rounded-lg p-2 text-brand-600 hover:bg-brand-50 disabled:cursor-not-allowed disabled:text-gray-300"><Phone size={18} aria-hidden="true"/></button>}
  <button type="button" onClick={()=>openHistory(l)} aria-label={`View follow-up history ${l.lead_no}`} title="View Follow-up History" className="rounded-lg p-2 text-brand-600 hover:bg-brand-50"><Eye size={18} aria-hidden="true"/></button>
+ {!due && canEdit && (
+   <button type="button" onClick={() => setDeleteLead(l)} aria-label={`Delete Lead ${l.lead_no}`} title="Delete Lead" className="rounded-lg p-2 text-red-600 hover:bg-red-50">
+     <Trash2 size={18} aria-hidden="true" />
+   </button>
+ )}
 </div></td></tr></Fragment>;})}</tbody></table></div>{result&&<Pagination page={result.page} pages={result.pages} total={result.total} setPage={setPage}/>}</div></>;
  return <div className="mx-auto max-w-7xl space-y-4">{error&&<p role="alert" className="text-red-600">{error} <button onClick={load}>Retry</button></p>}
  {isNew?<LeadEditor look={look} preset={preset} canEdit={canAddLead} onSaved={()=>nav(canOpenView('/leads/all',user)?'/leads/all':'/')} />:id?lead?<><Link to="/leads/all" className="text-sm text-brand-600">← Leads</Link><div className="rounded-xl border bg-white p-5"><div className="flex flex-wrap items-center gap-3"><h2 className="flex-1 text-lg font-semibold">{lead.lead_no}</h2><span className="text-sm">{lead.status} · {lead.temperature}</span>{canCreateSales&&<>{canEdit&&<button onClick={()=>setEditing(x=>!x)} className="rounded-lg border px-3 py-2">Edit Requirement</button>}{(canEdit||lead.status==='Open')&&<button onClick={()=>setFollow(lead)} className="rounded-lg bg-brand-600 px-3 py-2 text-white">Follow Up</button>}</>}{canAddOrder&&lead.status==='Success'&&<Link to={`/orders/new/lead/${lead.id}`} className="rounded-lg bg-brand-600 px-3 py-2 text-white">Create Order</Link>}</div><Link to={`/contacts/${lead.contact_id}`} className="mt-2 block text-brand-600">{lead.display_name} · {lead.display_phone||''}</Link><p className="mt-2 whitespace-pre-wrap">{lead.requirement}</p><p className="mt-2 text-sm text-gray-500">Next follow-up: {fmtAt(lead.next_followup_at)}</p></div>{editing&&<LeadEditor key={lead.id} look={look} lead={lead} canEdit={canEdit} onSaved={()=>{setEditing(false);load();}}/>}{lead.orders.length>0&&<div className="flex flex-wrap gap-3">{lead.orders.map(o=><Link key={o.id} to={`/orders/${o.id}`} className="text-brand-600">{o.order_no} · {o.status}</Link>)}</div>}<h3 className="font-semibold">Lead History</h3><HistoryTable rows={lead.followups}/></>:<p>Loading…</p>:list}
  {historyLead&&<Modal open wide="xl" title={`Follow-up History · ${historyLead.lead_no}`} onClose={()=>setHistoryLead(null)} footer={<button type="button" onClick={()=>setHistoryLead(null)} className="btn-dismiss px-3 py-2">Close</button>}>{historyLead.error?<p role="alert" className="text-red-600">{historyLead.error}</p>:historyLead.rows===null?<p role="status">Loading history…</p>:<HistoryTable rows={historyLead.rows}/>}</Modal>}
  {editLead&&canEdit&&<Modal open wide="xl" title={`Edit Lead · ${editLead.lead_no}`} onClose={()=>setEditLead(null)} footer={<button type="button" onClick={()=>setEditLead(null)} className="btn-dismiss px-3 py-2">Cancel</button>}><LeadEditor key={editLead.id} look={look} lead={editLead} canEdit={canEdit} onSaved={()=>{setEditLead(null);load();}}/></Modal>}
+ {deleteLead && canEdit && (
+   <ConfirmDialog open title={`Delete Lead ${deleteLead.lead_no}?`}
+     message="This permanently removes the Lead."
+     confirmLabel="Delete Lead" busy={deleting} onConfirm={removeLead}
+     onCancel={() => { if (!deleting) setDeleteLead(null); }} />
+ )}
  {follow&&<FollowupForm lead={follow} onClose={()=>setFollow(null)} onSaved={load}/>}
  </div>;
 }
