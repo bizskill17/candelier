@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, ClipboardList, Truck, TrendingDown, PhoneCall, AlarmClock, UserPlus, FilePlus2, PackagePlus, PackageMinus, Warehouse } from 'lucide-react';
 import { inventoryApi } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { canAccessPath } from '../auth/permissions';
+import { canOpenView } from '../auth/permissions';
 import { menu } from '../config/menu';
 
 // Live counts. Quantities only, no prices.
@@ -28,11 +28,11 @@ export default function Dashboard() {
     { label: 'Inventory', icon: Warehouse, to: '/inventory' },
     { label: 'Low Stock', icon: TrendingDown, to: '/low-stock' },
   ];
-  const sections = menu.filter((g) => g.heading).map((g) => ({ ...g, items: g.items.filter((i) => (isAdmin || !i.adminOnly) && canAccessPath(i.path,user?.role)) })).filter((g) => g.items.length);
+  const sections = menu.filter((g) => g.heading).map((g) => ({ ...g, items: g.items.filter((i) => (isAdmin || !i.adminOnly) && canOpenView(i.path, user)) })).filter((g) => g.items.length);
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6">
-        {stats.filter(s=>canAccessPath(s.to,user?.role)).map(({ label, value, icon: Icon, to, warn }) => (
+        {stats.filter(s=>canOpenView(s.to, user)).map(({ label, value, icon: Icon, to, warn }) => (
           <Link key={label} to={to} className={`rounded-xl border bg-white p-4 transition hover:shadow-sm ${warn ? 'border-red-200 hover:border-red-400' : 'border-gray-200 hover:border-brand-500'}`}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm text-gray-500">{label}</span>
@@ -46,7 +46,7 @@ export default function Dashboard() {
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-900">Quick actions</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            {quick.filter(s=>canAccessPath(s.to,user?.role)).map(({ label, icon: Icon, to }) => (
+            {quick.filter(s=>canOpenView(s.to, user)).map(({ label, icon: Icon, to }) => (
               <Link key={label} to={to} className="flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2.5 text-sm font-medium text-brand-700 hover:bg-brand-100"><Icon size={16} /> {label}</Link>
             ))}
           </div>

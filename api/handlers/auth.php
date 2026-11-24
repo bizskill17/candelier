@@ -41,10 +41,11 @@ function current_user(): ?array
     $cachedId = $id;
     $user = null;
     if ($id) {
-        $u = db_one('SELECT id, code, name, username, role, is_active FROM users WHERE id = :id', ['id' => $id]);
+        $u = db_one('SELECT id, code, name, username, role, allowed_views, is_active FROM users WHERE id = :id', ['id' => $id]);
         if ($u && $u['is_active']) {
             $u['id'] = (int) $u['id'];
             unset($u['is_active']);
+            $u['allowed_views'] = user_views_from_row($u);
             $user = $u;
         } else {
             unset($_SESSION['uid']);
@@ -145,11 +146,19 @@ function auth_route(string $method, array $parts): void
 
 function current_user_fresh(): ?array
 {
-    $u = db_one('SELECT id, code, name, username, role FROM users WHERE id = :id', ['id' => $_SESSION['uid'] ?? 0]);
+    $u = db_one('SELECT id, code, name, username, role, allowed_views FROM users WHERE id = :id', ['id' => $_SESSION['uid'] ?? 0]);
     if ($u) {
         $u['id'] = (int) $u['id'];
+        $u['allowed_views'] = user_views_from_row($u);
     }
     return $u;
+}
+
+function user_views_from_row(array $user): ?array
+{
+    if ($user['role'] === 'Admin' || !isset($user['allowed_views'])) return null;
+    $views = json_decode($user['allowed_views'], true);
+    return is_array($views) && array_is_list($views) ? $views : [];
 }
 
 // Rules for changing users: nobody can lock themselves out, and there is always an active Admin.

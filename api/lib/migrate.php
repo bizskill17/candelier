@@ -171,3 +171,20 @@ function migrate_roles_assignment(): void
     } catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     finally {db_value('SELECT RELEASE_LOCK(:k)',['k'=>$lock]);}
 }
+
+function migrate_user_views(): void
+{
+    $version = '20261124_user_view_selection';
+    if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?', [$version])) return;
+    $lock = 'user_views_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!db_value('SELECT GET_LOCK(?,30)', [$lock])) throw new ApiError('Database update in progress. Please retry shortly.', 503);
+    try {
+        if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?', [$version])) return;
+        if (!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='allowed_views'")) {
+            db()->exec('ALTER TABLE users ADD allowed_views TEXT NULL');
+        }
+        db()->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$version, now()]);
+    } finally {
+        db_value('SELECT RELEASE_LOCK(?)', [$lock]);
+    }
+}

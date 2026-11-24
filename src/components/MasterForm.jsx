@@ -5,6 +5,7 @@ import { useToast } from './Toast';
 import Toggle from './Toggle';
 import { useAuth } from '../auth/AuthContext';
 import SearchSelect from './SearchSelect';
+import { roleViewGroups } from '../auth/permissions';
 
 const inputCls = (err) =>
   `w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 ${
@@ -61,7 +62,9 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
   }, [onClose]);
 
   const set = (name, value) => {
-    setValues((v) => ({ ...v, [name]: value }));
+    setValues((v) => entity === 'users' && name === 'role' && value !== v.role
+      ? { ...v, role: value, allowed_views: null }
+      : { ...v, [name]: value });
     if (errors[name]) setErrors((e) => ({ ...e, [name]: undefined }));
   };
 
@@ -124,6 +127,10 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
               />
             ))}
 
+            {entity === 'users' && ['Sales', 'Store'].includes(values.role) && (
+              <ViewChecklist role={values.role} selected={values.allowed_views} disabled={!canEdit || saving}
+                error={errors.allowed_views} onChange={items => set('allowed_views', items)} />
+            )}
             <div className="flex items-center gap-3 text-sm text-gray-700 sm:col-span-2">
               <Toggle id="f-is_active" checked={Boolean(values.is_active)} onChange={(v) => set('is_active', v)} label="Active" />
               <label htmlFor="f-is_active">Active</label>
@@ -170,6 +177,41 @@ export default function MasterForm({ entity, def, record, onClose, onSaved }) {
         </div>
       </form>
     </div>
+  );
+}
+
+function ViewChecklist({ role, selected, onChange, disabled, error }) {
+  const groups = roleViewGroups(role);
+  const keys = groups.flatMap(group => group.items.map(item => item.key));
+  const checked = new Set(Array.isArray(selected) ? selected : keys);
+  const all = keys.every(key => checked.has(key));
+
+  function toggle(key, enabled) {
+    if (enabled) checked.add(key);
+    else checked.delete(key);
+    onChange(keys.every(value => checked.has(value)) ? null : keys.filter(value => checked.has(value)));
+  }
+
+  return (
+    <fieldset disabled={disabled} className="space-y-3 rounded-lg border border-gray-200 px-3 pb-3 sm:col-span-2">
+      <legend className="px-1 text-sm font-semibold text-gray-900">Visible views</legend>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" checked={all} onChange={event => onChange(event.target.checked ? null : [])} /> All views
+      </label>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {groups.map(group => (
+          <fieldset key={group.heading || 'general'} className="space-y-1.5 rounded-md bg-gray-50 px-2 pb-2">
+            <legend className="px-1 text-xs font-semibold text-gray-700">{group.heading || 'General'}</legend>
+            {group.items.map(item => (
+              <label key={item.key} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={checked.has(item.key)} onChange={event => toggle(item.key, event.target.checked)} /> {item.label}
+              </label>
+            ))}
+          </fieldset>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

@@ -163,6 +163,7 @@ function master_cast(array $e, array $row): array
     $row['id'] = (int) $row['id'];
     $row['is_active'] = (bool) $row['is_active'];
     unset($row['password_hash']);
+    if ($e['table'] === 'users') $row['allowed_views'] = user_views_from_row($row);
     foreach ($e['fields'] as $name => $f) {
         if (!array_key_exists($name, $row) || $row[$name] === null) {
             continue;
@@ -322,6 +323,24 @@ function master_save(array $e, ?int $id, array $in): array
         master_guard($e, 'save', $id, $in);
     }
     $data = master_validate($e, $id, $in);
+    if ($t === 'users') {
+        if ($data['role'] === 'Admin') {
+            $data['allowed_views'] = null;
+        } elseif (array_key_exists('allowed_views', $in)) {
+            $views = $in['allowed_views'];
+            if ($views !== null) {
+                if (!is_array($views) || !array_is_list($views) || count($views) > 100) {
+                    throw new ApiError('Choose valid views.', 422, ['allowed_views' => 'Select views from the list.']);
+                }
+                foreach ($views as $view) {
+                    if (!is_string($view) || !preg_match('/^[a-z][a-z0-9_-]{0,59}$/D', $view)) {
+                        throw new ApiError('Choose valid views.', 422, ['allowed_views' => 'Select views from the list.']);
+                    }
+                }
+            }
+            $data['allowed_views'] = $views === null ? null : json_encode(array_values(array_unique($views)), JSON_THROW_ON_ERROR);
+        }
+    }
 
     if ($id === null) {
         $data['code'] = master_next_code($e);

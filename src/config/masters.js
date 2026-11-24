@@ -81,7 +81,7 @@ export const masters = {
       { name: 'name', label: 'Name', type: 'text', required: true, full: true },
       { name: 'username', label: 'Username', type: 'username', required: true, placeholder: 'e.g. ravi', help: 'Used to sign in.' },
       { name: 'password', label: 'Password', type: 'password', help: 'At least 6 characters.' },
-      { name: 'role', label: 'Role', type: 'select', options: ['Admin', 'Store', 'Sales'], required: true, help: 'Admin: full access and corrections. Sales: shared CRM and assigned Orders/BOQs. Store: stock, production and dispatch.' },
+      { name: 'role', label: 'Role', type: 'select', options: ['Admin', 'Store', 'Sales'], required: true },
       { name: 'phone', label: 'Phone', type: 'phone' },
     ],
   },
