@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
+import {Pencil,Eye} from 'lucide-react';
 import {enquiriesApi} from '../../api/client';
 import {useAuth} from '../../auth/AuthContext';
 import {useToast} from '../../components/Toast';
@@ -36,7 +37,7 @@ export default function EnquiriesPage(){
  const load=useCallback(async()=>{const seq=++request.current;setError('');try{const r=await enquiriesApi.list({view,q,source_name:source,city,followup_by_id:assigned,page});if(seq===request.current)setResult(r);}catch(e){if(seq===request.current)setError(e.message);}},[view,q,source,city,assigned,page]);
  useEffect(()=>{load();return()=>{request.current++;};},[load]);
  useEffect(()=>{enquiriesApi.filters().then(r=>setFilters(r.data)).catch(()=>{});},[]);
- const open=async id=>{setLoadingDetail(true);setError('');try{const r=await enquiriesApi.get(id);setSelected(r.data);}catch(e){setError(e.message);}finally{setLoadingDetail(false);}};
+ const open=async (id,update=false)=>{setLoadingDetail(true);setError('');try{const r=await enquiriesApi.get(id);setSelected(r.data);setQualify(update&&!r.data.contact_id&&!r.data.lead_id);}catch(e){setError(e.message);}finally{setLoadingDetail(false);}};
  const filter=setter=>value=>{setter(value);setPage(1);};
  return <div className="mx-auto max-w-[96rem] space-y-2.5"><nav aria-label="Enquiry views" className="flex flex-wrap gap-1.5">{views.map(([key,label])=><button key={key} aria-pressed={view===key} onClick={()=>{setView(key);setPage(1);}} className={`inline-flex min-h-8 items-center rounded-md border px-2 py-1 text-xs font-semibold shadow-sm transition ${viewColors[key]} ${view===key?'ring-2 ring-brand-600 ring-offset-1':'hover:brightness-95'}`}>{label} <span className="ml-1 inline-flex min-w-6 justify-center rounded-full bg-white/80 px-1.5 text-xs tabular-nums">{result?.view_counts?.[key]??'…'}</span></button>)}</nav>
  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"><input aria-label="Search enquiries" placeholder="Search name, mobile, campaign…" value={search} onChange={e=>setSearch(e.target.value)} className={inputCls()}/><Choice label="Enquiry source filter" value={source} onChange={filter(setSource)} values={[{value:'',label:'All sources'},...filters.sources.map(x=>({value:x,label:x}))]}/><Choice label="Enquiry city filter" value={city} onChange={filter(setCity)} values={[{value:'',label:'All cities'},...filters.cities.map(x=>({value:x,label:x}))]}/><Choice label="Follow-up By filter" value={assigned} onChange={filter(setAssigned)} values={[{value:'',label:'All team members'},...look.users.filter(u=>['Admin','Sales'].includes(u.role)).map(u=>({value:u.id,label:u.name}))]}/></div>
@@ -71,7 +72,10 @@ export default function EnquiriesPage(){
                  );
                })}
                <td className={`${enquiryCell} sticky right-0 bg-white group-hover:bg-blue-50`}>
-                 <button aria-label={`Open enquiry ${enquiry.id}`} title="Open enquiry and record follow-up" onClick={() => open(enquiry.id)} className="font-medium text-brand-700 hover:underline">Open</button>
+                 <div className="flex items-center gap-1">
+                   <button aria-label={`Update enquiry ${enquiry.id}`} title={enquiry.contact_id||enquiry.lead_id?'Already qualified: view it':'Update: record follow-up'} onClick={() => open(enquiry.id, true)} className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><Pencil size={16}/></button>
+                   <button aria-label={`View enquiry ${enquiry.id}`} title="View enquiry" onClick={() => open(enquiry.id)} className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100"><Eye size={16}/></button>
+                 </div>
                </td>
              </tr>
            ))}
