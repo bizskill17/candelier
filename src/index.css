@@ -55,3 +55,16 @@ input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
   .boq-print-table tr { break-inside: avoid; page-break-inside: avoid; }
   @page { size: A4 portrait; margin: 12mm; }
 }
+
+/* All tables: the row under the mouse is tinted (on top of any row colour, so status colours still show),
+   and wide tables can be dragged sideways (src/lib/tableMouse.js). */
+@media (hover: hover) {
+  tbody tr:hover > td { box-shadow: inset 0 0 0 9999px rgba(37, 99, 235, 0.07); }
+  .overflow-x-auto:has(> table), .overflow-auto:has(> table) { cursor: grab; }
+  .overflow-x-auto:has(> table) :is(a, button, input, select, textarea, label),
+  .overflow-auto:has(> table) :is(a, button, input, select, textarea, label) { cursor: pointer; }
+  .overflow-x-auto:has(> table) :is(input, textarea),
+  .overflow-auto:has(> table) :is(input, textarea) { cursor: text; }
+}
+.table-dragging, .table-dragging * { cursor: grabbing !important; user-select: none !important; }
+@media print { tbody tr:hover > td { box-shadow: none; } }

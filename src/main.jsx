@@ -5,6 +5,9 @@ import App from './App.jsx';
 import { ToastProvider } from './components/Toast.jsx';
 import { AuthProvider } from './auth/AuthContext.jsx';
 import './index.css';
+import { enableTableDragScroll } from './lib/tableMouse.js';
+
+enableTableDragScroll();
 
 // Scrolling the mouse wheel over a focused quantity field must not change its value.
 document.addEventListener('wheel', (e) => {
