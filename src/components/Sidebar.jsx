@@ -89,7 +89,7 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                     style={{color: colors[1]}}
                     className="flex w-full items-center justify-between px-2 pb-2 pt-2 text-xs font-bold uppercase tracking-wide hover:opacity-80"
                   >
-                    <span className="flex items-center gap-1.5">{group.heading}{isClosed && (() => { const n = group.items.reduce((t, i) => t + (counts[i.key] || 0), 0); return n > 0 ? <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums">{fmt(n)}</span> : null; })()}</span>
+                    <span className="flex items-center gap-1.5">{group.heading}{isClosed && (() => { const n = group.items.reduce((t, i) => t + (counts[i.key] || 0), 0); return n > 0 ? <span aria-hidden="true" className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-bold leading-none tabular-nums">{fmt(n)}</span> : null; })()}</span>
                     <ChevronDown size={14} className={`transition-transform ${isClosed ? '-rotate-90' : ''}`} />
                   </button>
                 )}
@@ -120,11 +120,11 @@ export default function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onClo
                               <>
                                 <span className="relative shrink-0">
                                   <Icon size={18} />
-                                  {narrow && counts[item.key] > 0 && <span className="absolute -right-2.5 -top-2 rounded-full bg-red-500 px-1 text-[9px] font-bold leading-[14px] text-white tabular-nums">{fmt(counts[item.key])}</span>}
+                                  {narrow && counts[item.key] > 0 && <span aria-hidden="true" className="absolute -right-2.5 -top-2 rounded-full bg-red-500 px-1 text-[9px] font-bold leading-[14px] text-white tabular-nums">{fmt(counts[item.key])}</span>}
                                 </span>
                                 {!narrow && <span className="min-w-0 flex-1 whitespace-normal break-words">{item.label}</span>}
                                 {!narrow && counts[item.key] !== undefined && (
-                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${isActive ? 'bg-white/25 text-white' : counts[item.key] > 0 ? 'bg-white text-slate-800 shadow-sm ring-1 ring-black/5' : 'text-slate-400'}`}>{fmt(counts[item.key])}</span>
+                                  <span aria-hidden="true" className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${isActive ? 'bg-white/25 text-white' : counts[item.key] > 0 ? 'bg-white text-slate-800 shadow-sm ring-1 ring-black/5' : 'text-slate-400'}`}>{fmt(counts[item.key])}</span>
                                 )}
                               </>
                             )}
