@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { authApi } from '../api/client';
-import { mayCreateMaster } from './permissions';
+import { canOpenView, mayCreateMaster } from './permissions';
 import LoginPage from '../pages/LoginPage';
 
 const AuthContext = createContext(null);
@@ -47,6 +47,8 @@ export function AuthProvider({ children }) {
     user: state.user,
     isAdmin: state.user.role === 'Admin',
     canEdit: state.user.role === 'Admin',
+    canAddLead: canOpenView('/leads/new', state.user),
+    canAddOrder: canOpenView('/orders/new', state.user),
     canCreateSales: ['Admin','Sales'].includes(state.user.role),
     canCreateStock: ['Admin','Store'].includes(state.user.role),
     canCreateMaster: entity => mayCreateMaster(state.user.role,entity),

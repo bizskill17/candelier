@@ -19,7 +19,7 @@ const PER_PAGE = 20;
 
 // One row represents one order item; parent/order details repeat for easy searching and export.
 export default function OrderList() {
-  const { canEdit, canCreateSales, canCreateStock } = useAuth();
+  const { canEdit, canAddOrder, canCreateStock } = useAuth();
   const navigate = useNavigate();
   const catalog = useCatalog();
   const [pdfError, setPdfError] = useState('');
@@ -86,7 +86,7 @@ export default function OrderList() {
           <Search size={16} className="text-gray-400" />
           <input id="search-orders" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search order no., customer, project, area, item..." className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
-        {canCreateSales && <button onClick={() => navigate('/orders/new')} aria-label="Add Order" className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white"><Plus size={16} /> Add</button>}
+        {canAddOrder && <button onClick={() => navigate('/orders/new')} aria-label="Add Order" className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white"><Plus size={16} /> Add</button>}
       </div>
       <div className="text-right text-xs text-gray-500">{loading ? 'Loading items…' : `${total} order item${total === 1 ? '' : 's'}`}</div>
       <div className={tableWrap}>

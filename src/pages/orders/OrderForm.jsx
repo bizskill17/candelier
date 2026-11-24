@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Plus, Trash2, Copy, RefreshCw, X, ClipboardList, Truck } from 'lucide-react';
 import { api, ordersApi, crmApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
+import { canOpenView } from '../../auth/permissions';
 import { useToast } from '../../components/Toast';
 import SearchSelect from '../../components/SearchSelect';
 import DateInput from '../../components/DateInput';
@@ -32,7 +33,7 @@ export default function OrderForm({ id, leadId }) {
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const toast = useToast();
-  const { canEdit, canCreateSales, canCreateStock, user } = useAuth();
+  const { canEdit, canCreateSales, canAddOrder, canCreateStock, user } = useAuth();
   const [order, setOrder] = useState(null);
   const [header, setHeader] = useState(() => blankOrder(user?.id));
   const [items, setItems] = useState(() => [blankItem()]);
@@ -98,7 +99,9 @@ export default function OrderForm({ id, leadId }) {
     try {
       const r = isEdit ? await ordersApi.update(id, body) : await ordersApi.create(body);
       toast(r.message);
-      navigate('/orders/all');
+      if (canOpenView('/orders/all', user)) navigate('/orders/all');
+      else if (leadId) navigate('/orders/new');
+      else clear();
     } catch (err) {
       setErrors(err.fields || {});
       setFormError(err.fields?.lead_id || err.message);
@@ -133,7 +136,7 @@ export default function OrderForm({ id, leadId }) {
   if (isEdit && !order) return <div className="mx-auto max-w-5xl space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-gray-100" />)}</div>;
 
   const cancelled = order?.status === 'Cancelled';
-  const canWrite=canEdit||(!isEdit&&canCreateSales);
+  const canWrite = isEdit ? canEdit : canAddOrder;
   const locked = !canWrite || cancelled;
   const custOpts = (customers || []).filter((c) => c.is_active || String(c.id) === String(header.customer_id)).map((c) => ({ value: c.id, label: [c.name, c.city, c.mobile || c.phone].filter(Boolean).join(' · ') }));
   const fieldsFor = (it) => itemFields.fields.filter((f) => f.is_active || (it.values?.[f.id] ?? '') !== '');
@@ -173,7 +176,7 @@ export default function OrderForm({ id, leadId }) {
             <Field label="Customer" required htmlFor="o-customer" error={errors.customer_id} className="sm:col-span-2">
               <div className="flex gap-1.5">
                 <SearchSelect id="o-customer" className="min-w-0 flex-1" options={custOpts} value={header.customer_id} onChange={pickCustomer} error={errors.customer_id} disabled={locked || !customers} placeholder={customers ? 'Select customer' : 'Loading…'} />
-                {!locked && <button type="button" onClick={() => setCustomerOpen(true)} title="Add a new contact" aria-label="Add a new contact" className="shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>}
+                {!locked && canCreateSales && <button type="button" onClick={() => setCustomerOpen(true)} title="Add a new contact" aria-label="Add a new contact" className="shrink-0 rounded-lg border border-gray-300 bg-white px-2.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>}
               </div>
             </Field>
             <Field label="Project Name" htmlFor="o-project" error={errors.project_name} className="sm:col-span-2">

@@ -87,6 +87,7 @@ master_save(entity('users'), $salesUser, [
     'name' => 'Sales One', 'username' => 'sales-one', 'role' => 'Sales', 'allowed_views' => [],
 ]);
 check(master_find(entity('users'), $salesUser)['allowed_views'] === [], 'An empty selection is preserved');
+$pdo->prepare('UPDATE users SET allowed_views=NULL WHERE id=?')->execute([$salesUser]);
 
 check($before === db_all('SELECT id, variant_id, quantity FROM stock_moves ORDER BY id'), 'Migration preserves ledger rows and balances');
 check((int) db_value('SELECT COUNT(*) FROM materials') === 3, 'Distinct legacy specifications become separate materials');

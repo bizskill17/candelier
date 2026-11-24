@@ -12,7 +12,6 @@ export default function Layout() {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const canOpen = canOpenView(pathname, user);
-  const salesEntry = user?.role === 'Store' && /^\/(leads|orders)\/new(?:\/|$)/i.test(pathname);
   const startView = pathname === '/' && !canOpen
     ? roleViewGroups(user?.role).flatMap(group => group.items).find(item => canOpenView(item.path, user))
     : null;
@@ -42,7 +41,7 @@ export default function Layout() {
       <div className="app-content flex min-w-0 flex-1 flex-col">
         <Topbar onOpenMobile={() => setMobileOpen(true)} collapsed={collapsed} onToggleCollapse={toggleCollapse} />
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          {canOpen ? (salesEntry ? <p role="status" className="rounded-lg border bg-white p-5">Creating this record requires the Sales or Admin role.</p> : <Outlet />) : startView ? <Navigate to={startView.path} replace /> : <p role="alert" className="rounded-lg border bg-white p-5">You do not have access to this section.</p>}
+          {canOpen ? <Outlet /> : startView ? <Navigate to={startView.path} replace /> : <p role="alert" className="rounded-lg border bg-white p-5">You do not have access to this section.</p>}
         </main>
       </div>
       {passwordOpen && <ChangePassword onClose={() => setPasswordOpen(false)} />}

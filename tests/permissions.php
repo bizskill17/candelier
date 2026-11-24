@@ -83,3 +83,23 @@ check((float)boq_find($mineItem)['lines'][0]['qty_required']===3.0,'Admin can co
 $_SESSION['uid']=$salesUser;reject(fn()=>order_find($mine['id']),'Reassignment immediately removes former salesperson access');
 $_SESSION['uid']=$salesTwo;check(order_find($mine['id'])['items'][0]['area']==='Admin corrected room','New assignee can view corrected Order');
 $_SESSION['uid']=$crmActor;$_GET=[];
+
+// Grant each create view independently to a Store account.
+db()->prepare('UPDATE users SET allowed_views=? WHERE id=?')->execute(['["leads-add"]', $storeUser]);
+$_SESSION['uid'] = $storeUser;
+authorize_request('POST', 'leads', []);
+$storeLead = lead_save(null, ['contact_id'=>$permContact['id'], 'enquiry_date'=>date('Y-m-d'), 'requirement'=>'Store-created lead'])['data'];
+check((int) $storeLead['created_by'] === $storeUser, 'Store may create a Lead with the Add Lead view');
+reject(fn () => authorize_request('POST', 'orders', []), 'Add Lead alone does not grant Add Order');
+reject(fn () => authorize_request('PUT', 'leads', [(string) $storeLead['id']]), 'Add Lead does not grant edits');
+$_SESSION['uid'] = $crmActor;
+app_role();
+db()->prepare('UPDATE users SET allowed_views=? WHERE id=?')->execute(['["orders-add"]', $storeUser]);
+$_SESSION['uid'] = $storeUser;
+authorize_request('POST', 'orders', []);
+$storeOrder = order_save(null, ['customer_id'=>$permContact['id'], 'order_date'=>date('Y-m-d'), 'delivery_date'=>date('Y-m-d'), 'items'=>[['area'=>'Store-created Order']]])['data'];
+check($storeOrder['order_by_id'] === $storeUser && $storeOrder['assigned_salesperson_id'] === null, 'Store may create an unassigned Order recorded under their account');
+reject(fn () => authorize_request('POST', 'leads', []), 'Add Order alone does not grant Add Lead');
+reject(fn () => authorize_request('PUT', 'orders', [(string) $storeOrder['id']]), 'Add Order does not grant edits');
+$_SESSION['uid'] = $crmActor;
+db()->prepare('UPDATE users SET allowed_views=NULL WHERE id=?')->execute([$storeUser]);

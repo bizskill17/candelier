@@ -8,6 +8,16 @@ function user_has_selected_view(string $key): bool
     return in_array($key, current_user()['allowed_views'] ?? [], true);
 }
 
+function require_create_view(string $key): void
+{
+    $user = current_user();
+    $role = $user['role'] ?? '';
+    $views = $user['allowed_views'] ?? null;
+    if ($role === 'Admin' || ($role === 'Sales' && $views === null)) return;
+    if (in_array($role, ['Sales', 'Store'], true) && in_array($key, $views ?? [], true)) return;
+    throw new ApiError('You do not have permission to create this record.', 403);
+}
+
 function can_read_added_view(?string $area, array $parts): bool
 {
     $first = $parts[0] ?? '';
@@ -48,6 +58,15 @@ function require_item_access(int $id): void {
 }
 function authorize_request(string $method, ?string $area, array $parts): void {
     require_roles(['Admin','Store','Sales']);
+    if ($method === 'POST' && !$parts && in_array($area, ['leads', 'orders'], true)) {
+        require_create_view($area === 'leads' ? 'leads-add' : 'orders-add');
+        return;
+    }
+    if ($method === 'POST' && $area === 'leads' && count($parts) === 2 && ctype_digit($parts[0]) && $parts[1] === 'customer' && app_role() === 'Store') {
+        require_create_view('orders-add');
+        if (!user_has_selected_view('leads')) throw new ApiError('You do not have access to Leads.', 403);
+        return;
+    }
     if ($method === 'GET' && app_role() !== 'Admin' && can_read_added_view($area, $parts)) return;
     if($area==='samples'){require_roles(['Admin','Store']);if($method==='GET'||($method==='POST'&&$parts===['issue']))return;if(($parts[1]??'')==='review'&&$method==='POST'){require_admin();return;}throw new ApiError('Action not allowed.',403);}
     if($area==='materials'&&($parts[1]??'')==='photo'&&$method==='PATCH'){require_roles(['Admin','Store']);return;}
@@ -66,8 +85,7 @@ function authorize_request(string $method, ?string $area, array $parts): void {
     if($area==='uploads'&&$method==='POST')return;
     if($sales) {
         if($method==='POST'&&in_array($area,['contacts','crm-followups'],true)&&(!$parts||($area==='contacts'&&$parts===['bulk'])))return;
-        if($method==='POST'&&$area==='leads'&&(!$parts||in_array($second,['followups','customer'],true)))return;
-        if($method==='POST'&&$area==='orders'&&!$parts)return;
+        if($method==='POST'&&$area==='leads'&&in_array($second,['followups','customer'],true))return;
         if($method==='PUT'&&$area==='boq'&&count($parts)===1&&ctype_digit($first))return; // Final/Draft checked while locking the item.
     } else {
         if($method==='POST'&&$area==='materials'&&(!$parts||$parts===['bulk']))return;
