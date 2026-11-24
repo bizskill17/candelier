@@ -1,7 +1,7 @@
 import Pagination, { usePagination } from '../../components/Pagination';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Pencil, Search, Upload, Download, Trash2 } from 'lucide-react';
-import { materialsApi } from '../../api/client';
+import { materialsApi, api as mastersApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useCatalog } from '../../lib/catalog';
@@ -72,16 +72,41 @@ export function MaterialForm({ material, readOnly, onClose, onSaved }) {
   const cat = useCatalog(); const toast = useToast();
   const [f, setF] = useState({ material_code: material.material_code || '', photo_path: material.photo_path || '', name: material.name || '', category_id: material.category_id || '', unit: material.unit || 'Pcs' });
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [quickCat, setQuickCat] = useState(null); // { name, error, busy }: add a category without leaving the form
+  const addCategory = async () => {
+    if (!quickCat?.name.trim() || quickCat.busy) return;
+    setQuickCat((q) => ({ ...q, busy: true, error: '' }));
+    try {
+      const r = await mastersApi.create('material_categories', { name: quickCat.name.trim() });
+      await cat.refresh();
+      setF((x) => ({ ...x, category_id: r.data.id }));
+      setErrors((e) => ({ ...e, category_id: undefined }));
+      toast(r.message);
+      setQuickCat(null);
+    } catch (e) { setQuickCat((q) => ({ ...q, busy: false, error: e.fields?.name || e.message })); }
+  };
   const [errors, setErrors] = useState({}); const [busy, setBusy] = useState(false); const [confirm, setConfirm] = useState(false);
   const save = async () => { if (photoBusy || busy) return; const required = {}; if (!f.material_code.trim()) required.material_code = 'Enter the material code.'; if (!f.photo_path) required.photo_path = 'Upload or take a material photo.'; if (Object.keys(required).length) { setErrors(required); return; } setBusy(true); try { const r = material.id ? await materialsApi.update(material.id, f) : await materialsApi.create(f); toast(r.message); onSaved(r.data); } catch (e) { setErrors(e.fields || {}); toast(e.message, 'error'); } finally { setBusy(false); } };
   const remove = async () => { try { await materialsApi.remove(material.id); onSaved(); } catch (e) { toast(e.message, 'error'); setConfirm(false); } };
   return <Modal open title={material.id ? 'Edit Material' : 'New Material'} onClose={() => !busy && !photoBusy && onClose()} footer={<>{material.id && !readOnly && <button onClick={() => setConfirm(true)} className="mr-auto text-red-600"><Trash2 size={16} /></button>}<button disabled={busy || photoBusy} onClick={onClose} className="px-3 py-2">Cancel</button>{!readOnly && <button onClick={save} disabled={busy || photoBusy} className="rounded-lg bg-brand-600 px-4 py-2 text-white">{busy ? 'Saving…' : 'Save'}</button>}</>}>
     <div className="space-y-4">
       <div><label htmlFor="m-code" className="mb-1 block text-sm">Material Code <span className="text-red-500">*</span></label><input id="m-code" maxLength={50} value={f.material_code} onChange={e => setF({ ...f, material_code: e.target.value })} disabled={readOnly || busy} className={inputCls(errors.material_code)}/>{errors.material_code && <p className="text-xs text-red-600">{errors.material_code}</p>}</div>
-      <div><label htmlFor="m-category" className="mb-1 block text-sm">Material Category <span className="text-red-500">*</span></label><SearchSelect id="m-category" options={cat.categories.filter((c) => Number(c.is_active) || String(c.id) === String(f.category_id)).map((c) => ({ value: c.id, label: c.name }))} value={f.category_id} onChange={(v) => setF({ ...f, category_id: v })} disabled={readOnly || !cat.loaded} error={errors.category_id} placeholder="Select material category" />{errors.category_id && <p className="text-xs text-red-600">{errors.category_id}</p>}</div>
+      <div><label htmlFor="m-category" className="mb-1 block text-sm">Material Category <span className="text-red-500">*</span></label><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><SearchSelect id="m-category" options={cat.categories.filter((c) => Number(c.is_active) || String(c.id) === String(f.category_id)).map((c) => ({ value: c.id, label: c.name }))} value={f.category_id} onChange={(v) => setF({ ...f, category_id: v })} disabled={readOnly || !cat.loaded} error={errors.category_id} placeholder="Select material category" /></div>{!readOnly && <button type="button" onClick={() => setQuickCat({ name: '', error: '' })} title="Add a new material category" aria-label="Add material category" className="flex h-[42px] w-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:border-brand-500 hover:text-brand-600"><Plus size={16} /></button>}</div>{errors.category_id && <p className="text-xs text-red-600">{errors.category_id}</p>}</div>
       <div><label htmlFor="m-name" className="mb-1 block text-sm">Material Name <span className="text-red-500">*</span></label><input id="m-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} disabled={readOnly} className={inputCls(errors.name)} />{errors.name && <p className="text-xs text-red-600">{errors.name}</p>}</div>
       <div><label htmlFor="m-unit" className="mb-1 block text-sm">Unit <span className="text-red-500">*</span></label><SearchSelect id="m-unit" options={UNITS.map((u) => ({ value: u, label: u }))} value={f.unit} onChange={(v) => setF({ ...f, unit: v })} disabled={readOnly} error={errors.unit} />{errors.unit && <p className="text-xs text-red-600">{errors.unit}</p>}</div>
       <div><div className="mb-1 text-sm">Material Photo <span className="text-red-500">*</span></div><MaterialPhoto value={f.photo_path} onChange={photo_path => {setF(x => ({...x, photo_path}));setErrors(x => ({...x, photo_path: null}));}} disabled={readOnly || busy} error={errors.photo_path} onBusyChange={setPhotoBusy}/></div>
     </div><ConfirmDialog open={confirm} title="Delete material?" message="Materials in use can only be deactivated." onConfirm={remove} onCancel={() => setConfirm(false)} />
-  </Modal>;
+  {quickCat && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4" onClick={() => !quickCat.busy && setQuickCat(null)}>
+      <div role="dialog" aria-label="Add Material Category" className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="mb-3 font-semibold text-gray-900">Add Material Category</h3>
+        <label htmlFor="quick-category" className="mb-1 block text-sm font-medium text-gray-700">Category name</label>
+        <input id="quick-category" autoFocus value={quickCat.name} onChange={(e) => setQuickCat({ ...quickCat, name: e.target.value, error: '' })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); addCategory(); } if (e.key === 'Escape') { e.stopPropagation(); setQuickCat(null); } }} placeholder="e.g. Glass" className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" />
+        {quickCat.error && <p className="mt-1 text-xs text-red-600">{quickCat.error}</p>}
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => setQuickCat(null)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
+          <button type="button" onClick={addCategory} disabled={quickCat.busy || !quickCat.name.trim()} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">{quickCat.busy ? 'Adding…' : 'Add'}</button>
+        </div>
+      </div>
+    </div>}
+    </Modal>;
 }
