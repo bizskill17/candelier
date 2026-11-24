@@ -395,7 +395,7 @@ function DocForm({ type, id, presetItem }) {
         <div className="sticky bottom-0 -mx-4 flex items-center gap-2 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
           {isEdit && <button type="button" onClick={() => setConfirmDelete(true)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"><Trash2 size={15} /> Delete</button>}
           <div className="flex-1" />
-          <button type="button" onClick={back} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancel</button>
+          <button type="button" onClick={back} className="btn-dismiss px-3 py-2">Cancel</button>
           <button type="submit" disabled={saving || (type === 'material-issue' && (!prefill || prefill.blocked))} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : isEdit ? 'Save Changes' : `Save ${cfg.singular}`}</button>
         </div>
       )}

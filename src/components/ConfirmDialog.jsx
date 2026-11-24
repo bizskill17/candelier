@@ -20,7 +20,7 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'De
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onCancel} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+          <button onClick={onCancel} className="btn-dismiss px-3 py-2">
             Cancel
           </button>
           <button
