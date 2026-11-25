@@ -7,7 +7,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useMenuCounts } from '../lib/menuCounts';
 
 const sectionColors = {
-  Enquiries: ['#eff6ff', '#1e40af'],
+  Instagram: ['#eff6ff', '#1e40af'],
   Contacts: ['#ecfeff', '#155e75'],
   WhatsApp: ['#f0fdf4', '#166534'],
   Leads: ['#fdf2f8', '#9d174d'],

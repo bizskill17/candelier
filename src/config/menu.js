@@ -10,8 +10,8 @@ export const menu = [
       { key: 'dashboard', label: 'Dashboard', path: '/', icon: LayoutDashboard },
     ],
   },
-  {heading:'Enquiries',items:[
-    {key:'enquiries',label:'Enquiry Inbox',path:'/enquiries',icon:ClipboardList,description:'Qualify incoming enquiries before adding Contacts or Leads.'},
+  {heading:'Instagram',items:[
+    {key:'enquiries',label:'Instagram Inbox',path:'/enquiries',icon:ClipboardList,description:'Qualify incoming enquiries before adding Contacts or Leads.'},
     {key:'enquiry-sync-history',label:'Sync History',path:'/enquiry-sync-history',icon:ScrollText},
     {key:'enquiry-settings',label:'Google Sheets Connection',path:'/enquiry-settings',icon:ListChecks,adminOnly:true},
   ]},
