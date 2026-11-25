@@ -49,49 +49,104 @@ function contact_find(int $id): array {
     if(app_role()==='Store'){$c['history']=[];$c['leads']=[];}
     $c['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE customer_id=:id AND '.order_visibility_sql('orders').' ORDER BY order_date DESC,id DESC',['id'=>$id]);return $c;
 }
+function contact_identity_lock(): string
+{
+    $lock = 'contact_identity_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!db_value('SELECT GET_LOCK(?, 10)', [$lock])) {
+        throw new ApiError('Contacts are busy. Please try again.', 503);
+    }
+    return $lock;
+}
+
+function contact_mobile_key(?string $number): string
+{
+    $digits = preg_replace('/\D/', '', $number ?? '');
+    if (preg_match('/^(?:91|0)([0-9]{10})$/D', $digits, $match)) return $match[1];
+    return $digits;
+}
+
+function contact_identity_matches(?string $mobile, ?string $email, int $except = 0): array
+{
+    $mobile = contact_mobile_key($mobile);
+    $email = mb_strtolower(trim($email ?? ''));
+    $conditions = [];
+    $params = [$except];
+    if ($mobile !== '') {
+        $variants = strlen($mobile) === 10 ? [$mobile, '91'.$mobile, '0'.$mobile] : [$mobile];
+        $placeholders = implode(',', array_fill(0, count($variants), '?'));
+        foreach (['mobile', 'alternate_mobile'] as $column) {
+            $digits = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($column,' ',''),'-',''),'+',''),'(',''),')',''),'.','')";
+            $conditions[] = "$digits IN ($placeholders)";
+            array_push($params, ...$variants);
+        }
+    }
+    if ($email !== '') {
+        $conditions[] = 'LOWER(TRIM(email)) = ?';
+        $params[] = $email;
+    }
+    if (!$conditions) return [];
+    return db_all('SELECT id,name,mobile,email,is_active FROM contacts WHERE id<>? AND ('.implode(' OR ', $conditions).') ORDER BY id', $params);
+}
+
 function contact_save(?int $id,array $in): array {
     if($id)require_admin();else require_roles(['Admin','Sales']);
-    $old=$id?db_one('SELECT * FROM contacts WHERE id=:id',['id'=>$id]):null;if($id&&!$old)throw new ApiError('Contact not found.',404);
-    $h=[];$errors=[];
-    foreach(['name'=>150,'company_name'=>150,'email'=>150,'city'=>100,'address'=>2000,'source_details'=>150]as$k=>$max){
-        $value=trim((string)($in[$k]??($k==='source_details'?($old[$k]??''):'')));
-        if(mb_strlen($value)>$max)$errors[$k]=ucfirst(str_replace('_',' ',$k))." must be $max characters or fewer.";
-        $h[$k]=$value===''?null:$value;
+    $lock = contact_identity_lock();
+    try {
+        $old=$id?db_one('SELECT * FROM contacts WHERE id=:id',['id'=>$id]):null;if($id&&!$old)throw new ApiError('Contact not found.',404);
+        $h=[];$errors=[];
+        foreach(['name'=>150,'company_name'=>150,'email'=>150,'city'=>100,'address'=>2000,'source_details'=>150]as$k=>$max){
+            $value=trim((string)($in[$k]??($k==='source_details'?($old[$k]??''):'')));
+            if(mb_strlen($value)>$max)$errors[$k]=ucfirst(str_replace('_',' ',$k))." must be $max characters or fewer.";
+            $h[$k]=$value===''?null:$value;
+        }
+        if(!$h['name'])$errors['name']='Enter the contact name.';
+        if(!$h['city'])$errors['city']='Select a city.';
+        foreach(['mobile'=>'phone','alternate_mobile'=>'contact_mobile']as$k=>$alias){
+            $raw=trim((string)($in[$k]??$in[$alias]??($k==='alternate_mobile'?($old[$k]??''):'')));
+            $h[$k]=preg_replace('/[^0-9]/','',$raw)?:null;
+            if(($k==='mobile'||array_key_exists($k,$in)||array_key_exists($alias,$in))&&$h[$k]&&(!preg_match('/^[+0-9\s().-]+$/',$raw)||!preg_match('/^\d{10,15}$/',$h[$k])))$errors[$k]='Enter a valid mobile number using 10 to 15 digits.';
+        }
+        if(!$h['mobile'])$errors['mobile']='Enter the mobile number.';
+        if($h['email']&&!filter_var($h['email'],FILTER_VALIDATE_EMAIL))$errors['email']='Enter a valid email address.';
+        foreach(['category_id'=>'client_categories','source_id'=>'lead_sources','state_id'=>'states']as$k=>$table){
+            $h[$k]=(int)($in[$k]??0)?:null;
+            $label=['category_id'=>'category','source_id'=>'source','state_id'=>'state'][$k];
+            if($k==='category_id'&&!$h[$k])$errors[$k]='Select a category.';
+            elseif($h[$k]&&!db_value("SELECT COUNT(*) FROM $table WHERE id=:id",['id'=>$h[$k]]))$errors[$k]="Select a valid $label.";
+        }
+        $h['is_active']=isset($in['is_active'])?(int)(bool)$in['is_active']:($old['is_active']??1);
+        foreach (['mobile', 'alternate_mobile'] as $field) {
+            if (!isset($errors[$field]) && contact_mobile_key($h[$field]) !== contact_mobile_key($old[$field] ?? null)
+                && contact_identity_matches($h[$field], null, $id ?? 0)) {
+                $errors[$field] = 'A contact with this mobile number already exists. Use the existing contact.';
+            }
+        }
+        if ($h['email'] && !isset($errors['email']) && strcasecmp($h['email'], trim($old['email'] ?? '')) !== 0
+            && contact_identity_matches(null, $h['email'], $id ?? 0)) {
+            $errors['email'] = 'A contact with this email address already exists. Use the existing contact.';
+        }
+        if($errors)throw new ApiError('Please correct the highlighted fields.',422,$errors);
+        $h['updated_at']=now();
+        if(!$id){$h['contact_no']=next_doc_no('contacts','CON','contact_no');$h['created_by']=current_user()['id']??null;$h['created_at']=now();$cols=array_keys($h);db()->prepare('INSERT INTO contacts('.implode(',',$cols).') VALUES(:'.implode(',:',$cols).')')->execute($h);$id=(int)db()->lastInsertId();}
+        else {$set=implode(',',array_map(fn($k)=>"$k=:$k",array_keys($h)));db()->prepare("UPDATE contacts SET $set WHERE id=:id")->execute($h+['id'=>$id]);}
+        return ['data'=>contact_find($id),'message'=>'Contact saved.'];
+    } finally {
+        db_value('SELECT RELEASE_LOCK(?)', [$lock]);
     }
-    if(!$h['name'])$errors['name']='Enter the contact name.';
-    if(!$h['city'])$errors['city']='Select a city.';
-    foreach(['mobile'=>'phone','alternate_mobile'=>'contact_mobile']as$k=>$alias){
-        $raw=trim((string)($in[$k]??$in[$alias]??($k==='alternate_mobile'?($old[$k]??''):'')));
-        $h[$k]=preg_replace('/[^0-9]/','',$raw)?:null;
-        if(($k==='mobile'||array_key_exists($k,$in)||array_key_exists($alias,$in))&&$h[$k]&&(!preg_match('/^[+0-9\s().-]+$/',$raw)||!preg_match('/^\d{10,15}$/',$h[$k])))$errors[$k]='Enter a valid mobile number using 10 to 15 digits.';
-    }
-    if(!$h['mobile'])$errors['mobile']='Enter the mobile number.';
-    if($h['email']&&!filter_var($h['email'],FILTER_VALIDATE_EMAIL))$errors['email']='Enter a valid email address.';
-    foreach(['category_id'=>'client_categories','source_id'=>'lead_sources','state_id'=>'states']as$k=>$table){
-        $h[$k]=(int)($in[$k]??0)?:null;
-        $label=['category_id'=>'category','source_id'=>'source','state_id'=>'state'][$k];
-        if($k==='category_id'&&!$h[$k])$errors[$k]='Select a category.';
-        elseif($h[$k]&&!db_value("SELECT COUNT(*) FROM $table WHERE id=:id",['id'=>$h[$k]]))$errors[$k]="Select a valid $label.";
-    }
-    $h['is_active']=isset($in['is_active'])?(int)(bool)$in['is_active']:($old['is_active']??1);
-    if($h['mobile']&&!isset($errors['mobile'])&&(!$old||$h['mobile']!==$old['mobile'])&&db_value("SELECT COUNT(*) FROM contacts WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile,' ',''),'-',''),'+',''),'(',''),')','')=:m AND id<>:id",['m'=>$h['mobile'],'id'=>$id??0]))$errors['mobile']='A contact with this mobile number already exists. Use the existing contact.';
-    if($h['email']&&!isset($errors['email'])&&(!$old||strcasecmp($h['email'],$old['email']??'')!==0)&&db_value('SELECT COUNT(*) FROM contacts WHERE email=:e AND id<>:id',['e'=>$h['email'],'id'=>$id??0]))$errors['email']='A contact with this email address already exists. Use the existing contact.';
-    if($errors)throw new ApiError('Please correct the highlighted fields.',422,$errors);
-    $h['updated_at']=now();
-    if(!$id){$h['contact_no']=next_doc_no('contacts','CON','contact_no');$h['created_by']=current_user()['id']??null;$h['created_at']=now();$cols=array_keys($h);db()->prepare('INSERT INTO contacts('.implode(',',$cols).') VALUES(:'.implode(',:',$cols).')')->execute($h);$id=(int)db()->lastInsertId();}
-    else {$set=implode(',',array_map(fn($k)=>"$k=:$k",array_keys($h)));db()->prepare("UPDATE contacts SET $set WHERE id=:id")->execute($h+['id'=>$id]);}
-    return ['data'=>contact_find($id),'message'=>'Contact saved.'];
 }
 function contact_bulk(array $in): array {
     $rows=$in['rows']??[];if(!is_array($rows)||!$rows||count($rows)>1000)throw new ApiError('Upload between 1 and 1000 contacts.',422);
-    $pdo=db();$pdo->beginTransaction();$errors=[];$added=0;
-    try{foreach($rows as$i=>$row){try{
+    $lock = contact_identity_lock();
+    $pdo=db();$errors=[];$added=0;
+    try{$pdo->beginTransaction();foreach($rows as$i=>$row){try{
         if(!is_array($row))throw new ApiError('Invalid row.',422);
         foreach(['category'=>'client_categories','source'=>'lead_sources','state'=>'states']as$k=>$table){if(trim((string)($row[$k]??''))!==''){$found=db_value("SELECT id FROM $table WHERE name=:n",['n'=>trim($row[$k])]);if(!$found)throw new ApiError("Unknown $k: ".$row[$k],422);$row[$k.'_id']=(int)$found;}}
         contact_save(null,$row);$added++;
     }catch(ApiError $e){$errors['Row '.($i+2)]=$e->getMessage();}}
     if($errors)throw new ApiError('No contacts imported. Fix the indicated rows.',422,$errors);$pdo->commit();}
-    catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}return ['message'=>"$added contacts imported.",'added'=>$added];
+    catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    finally { db_value('SELECT RELEASE_LOCK(?)', [$lock]); }
+    return ['message'=>"$added contacts imported.",'added'=>$added];
 }
 function leads_route(string $method,array $parts): void {
     $id=isset($parts[0])?(int)$parts[0]:null;$sub=$parts[1]??null;
