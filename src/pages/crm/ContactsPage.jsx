@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Upload, Download, PhoneCall, Pencil, Eye } from 'lucide-react';
+import { Plus, Upload, Download, PhoneCall, Pencil, Eye, Trash2 } from 'lucide-react';
 import { contactsApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
 import Modal from '../../components/Modal';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import Pagination from '../../components/Pagination';
 import { tableWrap, thCls, tdCls, theadCls } from '../../components/table';
 import { ContactForm, FollowupForm, HistoryTable, Choice, useCrmLookups, fmtAt } from './CrmShared';
@@ -20,11 +21,34 @@ export default function ContactsPage({customers=false}) {
  const [result,setResult]=useState(null);const [viewCounts,setViewCounts]=useState({});const [detail,setDetail]=useState(null);const [error,setError]=useState('');const [search,setSearch]=useState('');const [q,setQ]=useState('');const [page,setPage]=useState(1);const [city,setCity]=useState('');const [active,setActive]=useState('');const [exporting,setExporting]=useState(false);const [category,setCategory]=useState('');const [source,setSource]=useState('');
  const [selected,setSelected]=useState({});const [compose,setCompose]=useState(false);
  const [revision,setRevision]=useState(0);
+ const [deleteContact, setDeleteContact] = useState(null);
+ const [deleting, setDeleting] = useState(false);
+ const recordLabel = customers ? 'Customer' : 'Contact';
  const [editing,setEditing]=useState(null);const [following,setFollowing]=useState(null);const [upload,setUpload]=useState(null);const [busy,setBusy]=useState(false);const file=useRef(null);const request=useRef(0);
  useEffect(()=>{const t=setTimeout(()=>{setQ(search);setPage(1);},300);return()=>clearTimeout(t);},[search]);
  useEffect(()=>{setPage(1);setResult(null);setDetail(null);},[view,detailId]);
  const load=useCallback(async()=>{const req=++request.current;setError('');try{if(detailId){const r=await contactsApi.get(detailId);if(req===request.current)setDetail(r.data);}else{const r=await contactsApi.list({view,q,page,category_id:category,source_id:source,city,active});if(req===request.current){setResult(r);setViewCounts(r.view_counts||{});if(r.page!==page)setPage(r.page);}}}catch(e){if(req===request.current)setError(e.message);}},[detailId,view,q,page,category,source,city,active,revision]);
  useEffect(()=>{load();return()=>{request.current++;};},[load]);
+ const removeContact = async () => {
+  if (!isAdmin || !deleteContact || deleting) return;
+  setDeleting(true);
+  try {
+   const {message} = await contactsApi.remove(deleteContact.id);
+   setSelected(previous => {
+    const next = {...previous};
+    delete next[deleteContact.id];
+    return next;
+   });
+   setDeleteContact(null);
+   if (page > 1 && result?.data.length === 1) setPage(page - 1);
+   setRevision(value => value + 1);
+   toast(message);
+  } catch (err) {
+   toast(err.message, 'error');
+  } finally {
+   setDeleting(false);
+  }
+ };
  const contactSaved=()=>{
   setSearch('');setQ('');setCategory('');setSource('');setCity('');setActive('');setPage(1);setResult(null);setDetail(null);
   nav('/contacts/updated-today');setRevision(v=>v+1);
@@ -39,7 +63,13 @@ export default function ContactsPage({customers=false}) {
  <><div className="flex flex-wrap items-center gap-2">{isAdmin&&<><button disabled={!Object.keys(selected).length} onClick={()=>setCompose(true)} className="rounded-lg border bg-white px-3 py-2 disabled:opacity-50">Send WhatsApp ({Object.keys(selected).length})</button><button onClick={()=>setSelected({})} className="text-sm text-brand-600">Clear selection</button></>}<input aria-label="Search contacts" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name, mobile, company, city…" className="min-w-60 flex-1 rounded-lg border px-3 py-2 text-sm" /><button disabled={exporting} onClick={exportExcel} className="rounded-lg border bg-white px-3 py-2 text-sm">{exporting?'Preparing…':'Excel'}</button>{canCreateSales&&<><button onClick={()=>setEditing({})} className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-2 text-sm text-white"><Plus size={16}/>Add Contact</button>{!customers&&<><button onClick={template} className="inline-flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Download size={16}/>Template</button><button onClick={()=>file.current.click()} className="inline-flex items-center gap-1 rounded-lg border bg-white px-3 py-2 text-sm"><Upload size={16}/>Bulk Upload</button><input ref={file} hidden type="file" accept=".csv,text/csv" onChange={read}/></>}</>}</div>
  {!customers&&<div className="flex flex-wrap gap-2">{views.map(([k,l])=><Link key={k} to={k==='all'?'/contacts':`/contacts/${k}`} aria-current={view===k?'page':undefined} className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold shadow-sm transition ${viewColors[k]} ${view===k?'ring-2 ring-brand-600 ring-offset-1':'hover:brightness-95'}`}>{l}<span className="inline-flex min-w-6 justify-center rounded-full bg-white/80 px-1.5 text-xs tabular-nums">{viewCounts[k]??'…'}</span></Link>)}</div>}
  <div className="flex flex-wrap gap-2"><div className="w-52"><Choice label="Contact Category filter" value={category} onChange={v=>{setCategory(v);setPage(1);}} values={[{value:'',label:'All categories'},...look.categories.map(x=>({value:x.id,label:x.name}))]} /></div><div className="w-52"><Choice label="Contact Source filter" value={source} onChange={v=>{setSource(v);setPage(1);}} values={[{value:'',label:'All sources'},...look.sources.map(x=>({value:x.id,label:x.name}))]} /></div><div className="w-44"><Choice label="Contact City filter" value={city} onChange={v=>{setCity(v);setPage(1);}} values={[{value:'',label:'All cities'},...[...new Set(look.contacts.map(c=>c.city).filter(Boolean))].sort().map(v=>({value:v,label:v}))]}/></div><div className="w-36"><Choice label="Active filter" value={active} onChange={v=>{setActive(v);setPage(1);}} values={[{value:'',label:'All statuses'},{value:'1',label:'Active'},{value:'0',label:'Inactive'}]}/></div>{result&&<span className="self-center text-sm text-gray-500">{result.total} {customers?'customers':'contacts'}</span>}</div>
- <div className={tableWrap}><div className="overflow-auto"><table className="w-full min-w-[1350px] text-sm"><thead className={theadCls}><tr>{isAdmin&&<th className={thCls}><input type="checkbox" aria-label="Select contacts on this page" checked={!!result?.data.length&&result.data.every(c=>selected[c.id])} onChange={e=>{const checked=e.target.checked;setSelected(old=>{const n={...old};for(const c of result?.data||[]){if(checked)n[c.id]=c;else delete n[c.id];}return n;});}}/></th>}{['Contact Name','Company','Mobile','Email','Category','Source','City / State','Follow-up Attempts','Next General Follow-up','Orders','Action'].map(x=><th key={x} className={thCls}>{x}</th>)}</tr></thead><tbody>{!result&&!error&&<tr><td colSpan={isAdmin?12:11} className={tdCls}>Loading…</td></tr>}{result?.data.length===0&&<tr><td colSpan={isAdmin?12:11} className={tdCls}>No contacts match.</td></tr>}{result?.data.map(c=><tr key={c.id} className={Number(c.is_active)?'hover:bg-gray-50':'bg-orange-50'}>{isAdmin&&<td className={tdCls}><input type="checkbox" aria-label={`Select ${c.name}`} checked={!!selected[c.id]} onChange={e=>{const checked=e.target.checked;setSelected(old=>{const n={...old};if(checked)n[c.id]=c;else delete n[c.id];return n;});}}/></td>}<td className={tdCls}><Link to={`/contacts/${c.id}`} className="font-medium text-brand-600">{c.name}</Link></td>{[c.company_name,c.mobile,c.email,c.category_name,c.source_name,[c.city,c.state_name].filter(Boolean).join(' · '),c.followup_count,fmtAt(c.next_followup_at),c.order_count].map((v,i)=><td key={i} className={tdCls}>{v??'—'}</td>)}<td className={tdCls}><div className="flex gap-2"><button onClick={()=>nav(`/contacts/${c.id}`)} aria-label={`View ${c.name||'contact'}`} title="View contact" className="text-gray-600 hover:text-brand-600"><Eye size={16}/></button>{canCreateSales&&<>{canEdit&&<button aria-label={`Edit ${c.name}`} onClick={()=>setEditing(c)} className="text-brand-600"><Pencil size={15}/></button>}<button aria-label={`Follow up ${c.name}`} onClick={()=>setFollowing(c)} className="text-brand-600"><PhoneCall size={15}/></button></>}</div></td></tr>)}</tbody></table></div>{result&&<Pagination page={result.page} pages={result.pages} total={result.total} setPage={setPage}/>}</div></>}
+ <div className={tableWrap}><div className="overflow-auto"><table className="w-full min-w-[1350px] text-sm"><thead className={theadCls}><tr>{isAdmin&&<th className={thCls}><input type="checkbox" aria-label="Select contacts on this page" checked={!!result?.data.length&&result.data.every(c=>selected[c.id])} onChange={e=>{const checked=e.target.checked;setSelected(old=>{const n={...old};for(const c of result?.data||[]){if(checked)n[c.id]=c;else delete n[c.id];}return n;});}}/></th>}{['Contact Name','Company','Mobile','Email','Category','Source','City / State','Follow-up Attempts','Next General Follow-up','Orders','Action'].map(x=><th key={x} className={thCls}>{x}</th>)}</tr></thead><tbody>{!result&&!error&&<tr><td colSpan={isAdmin?12:11} className={tdCls}>Loading…</td></tr>}{result?.data.length===0&&<tr><td colSpan={isAdmin?12:11} className={tdCls}>No contacts match.</td></tr>}{result?.data.map(c=><tr key={c.id} className={Number(c.is_active)?'hover:bg-gray-50':'bg-orange-50'}>{isAdmin&&<td className={tdCls}><input type="checkbox" aria-label={`Select ${c.name}`} checked={!!selected[c.id]} onChange={e=>{const checked=e.target.checked;setSelected(old=>{const n={...old};if(checked)n[c.id]=c;else delete n[c.id];return n;});}}/></td>}<td className={tdCls}><Link to={`/contacts/${c.id}`} className="font-medium text-brand-600">{c.name}</Link></td>{[c.company_name,c.mobile,c.email,c.category_name,c.source_name,[c.city,c.state_name].filter(Boolean).join(' · '),c.followup_count,fmtAt(c.next_followup_at),c.order_count].map((v,i)=><td key={i} className={tdCls}>{v??'—'}</td>)}<td className={tdCls}><div className="flex gap-2"><button onClick={()=>nav(`/contacts/${c.id}`)} aria-label={`View ${c.name||'contact'}`} title="View contact" className="text-gray-600 hover:text-brand-600"><Eye size={16}/></button>{canCreateSales&&<>{canEdit&&<button aria-label={`Edit ${c.name}`} onClick={()=>setEditing(c)} className="text-brand-600"><Pencil size={15}/></button>}<button aria-label={`Follow up ${c.name}`} onClick={()=>setFollowing(c)} className="text-brand-600"><PhoneCall size={15}/></button></>}{isAdmin&&<button type="button" onClick={()=>setDeleteContact(c)} aria-label={`Delete ${recordLabel} ${c.name}`} title={`Delete ${recordLabel}`} className="rounded p-1 text-red-600 hover:bg-red-50"><Trash2 size={16} aria-hidden="true" /></button>}</div></td></tr>)}</tbody></table></div>{result&&<Pagination page={result.page} pages={result.pages} total={result.total} setPage={setPage}/>}</div></>}
+ {isAdmin && deleteContact && (
+  <ConfirmDialog open title={`Delete ${recordLabel} ${deleteContact.name}?`}
+   message="This permanently removes the shared Contact record. Records with linked activity are protected."
+   confirmLabel={`Delete ${recordLabel}`} busy={deleting} onConfirm={removeContact}
+   onCancel={() => { if (!deleting) setDeleteContact(null); }} />
+ )}
  {isAdmin&&compose&&<WhatsAppCompose contacts={Object.values(selected)} onClose={()=>setCompose(false)}/>}
  {error&&<p role="alert" className="text-red-600">{error} <button onClick={load}>Retry</button></p>}
  {editing&&<ContactForm contact={editing} onClose={()=>setEditing(null)} onSaved={contactSaved}/>}{following&&<FollowupForm contact={following} onClose={()=>setFollowing(null)} onSaved={load}/>}

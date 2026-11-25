@@ -177,6 +177,7 @@ export const crmApi = {
 export const contactsApi = {
   list: (params) => request('GET', 'contacts', { params }),
   get: (id) => request('GET', `contacts/${id}`),
+  remove: (id) => request('DELETE', `contacts/${id}`),
   save: (id, body) => request(id ? 'PUT' : 'POST', id ? `contacts/${id}` : 'contacts', { body }),
   bulk: (rows) => request('POST', 'contacts/bulk', { body: { rows } }),
 };
