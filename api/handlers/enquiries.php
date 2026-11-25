@@ -34,10 +34,7 @@ function enquiry_sync(array $in): array {
  }finally{db_value('SELECT RELEASE_LOCK(?)',[$lock]);}
 }
 function enquiry_matches(array $e): array {
- // Match normalised phone first; email is secondary. Conflicting identities need a human decision.
- $phone=[];$email=[];if($e['mobile'])$phone=db_all("SELECT id,name,mobile,email,is_active FROM contacts WHERE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(mobile,' ',''),'-',''),'+',''),'(',''),')','') IN (?,?)",[$e['mobile'],strlen($e['mobile'])===12&&str_starts_with($e['mobile'],'91')?substr($e['mobile'],2):$e['mobile']]);
- if($e['email'])$email=db_all('SELECT id,name,mobile,email,is_active FROM contacts WHERE LOWER(email)=LOWER(?)',[$e['email']]);
- $all=[];foreach([...$phone,...$email] as $c)$all[(int)$c['id']]=$c;return array_values($all);
+ return contact_identity_matches($e['mobile'], $e['email']);
 }
 function enquiry_find(int $id): array {
  $e=db_one('SELECT * FROM crm_enquiry_current WHERE id=?',[$id]);if(!$e)throw new ApiError('Enquiry not found.',404);$e['source_data']=json_decode($e['source_data'],true);unset($e['source_hash']);
@@ -57,7 +54,7 @@ function enquiry_list(): array {
 function enquiry_followup(int $id,array $in): array {
  require_roles(['Admin','Sales']);$decision=$in['decision']??'';if(!in_array($decision,['Create Lead','Keep as Contact','Follow up Later','Archive'],true))throw new ApiError('Choose a qualification decision.',422);
  $key=crm_text($in['request_key']??'',64);if(!$key)throw new ApiError('Missing request key.',422);
- $qualificationLock='enquiry_qualify_'.substr(hash('sha256',(string)db_value('SELECT DATABASE()')),0,20);if(!db_value('SELECT GET_LOCK(?,10)',[$qualificationLock]))throw new ApiError('Another qualification is running. Please retry.',503);
+ $qualificationLock = contact_identity_lock();
  $pdo=db();try{$pdo->beginTransaction();try{
  $e=db_one('SELECT * FROM enquiries WHERE id=? FOR UPDATE',[$id]);if(!$e)throw new ApiError('Enquiry not found.',404);
  $prior=db_one('SELECT id,enquiry_id FROM followups WHERE request_key=?',[$key]);if($prior){if((int)$prior['enquiry_id']!==$id)throw new ApiError('Request key already used.',409);$pdo->commit();return ['data'=>enquiry_find($id),'message'=>'Follow-up already saved.'];}
