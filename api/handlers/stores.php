@@ -131,7 +131,7 @@ function doc_lines(array $d, int $id): array
 {
     $extra = $d['type'] === 'damage' ? ', x.reason' : ($d['type']==='material-in'?', x.inventory_type,x.project_name,x.order_by_id':'');
     $lines = db_all(
-        "SELECT x.id, x.variant_id, x.quantity, x.remarks$extra, v.material_id, v.spec_text, m.name AS material_name, m.unit
+        "SELECT x.id, x.variant_id, x.quantity, x.remarks$extra, v.material_id, v.spec_text, m.name AS material_name, m.material_code, m.unit
            FROM {$d['items']} x JOIN material_variants v ON v.id = x.variant_id JOIN materials m ON m.id = v.material_id
           WHERE x.{$d['fk']} = :id ORDER BY x.line_no",
         ['id' => $id]

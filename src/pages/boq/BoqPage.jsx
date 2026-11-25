@@ -4,7 +4,7 @@ import { ChevronLeft, Copy, Printer, Plus, Trash2, Lock, Unlock, PackageMinus, R
 import { boqApi, materialsApi, imageUrl } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
-import { useCatalog } from '../../lib/catalog';
+import { materialLabel, useCatalog } from '../../lib/catalog';
 import SearchSelect from '../../components/SearchSelect';
 import Modal from '../../components/Modal';
 import { inputCls } from '../../components/table';
@@ -95,7 +95,7 @@ export async function downloadSavedBoqPdf(itemId, catalog) {
     const category = catalog?.categories?.find(c => String(c.id) === String(r.category_id || material?.category_id));
     const values = [
       String(i + 1), category?.name || '—',
-      [material?.material_code, material?.name].filter(Boolean).join(' - ') || '—',
+      materialLabel(material?.name, material?.material_code) || '—',
       '', fmtQty(r.qty_required ?? r.qty ?? 0), material?.unit || '—'
     ];
     const fontSize = 18;
@@ -361,7 +361,7 @@ function BoqEditor({ itemId }) {
               return <tr key={r.key}>
                 <td className={td}>{idx + 1}</td>
                 <td className={`${td} min-w-40`}>{readOnly ? cat.categories.find((c) => String(c.id) === String(categoryId))?.name : <SearchSelect id={`boq-${idx}-category`} options={categories.map((c) => ({ value: c.id, label: c.name }))} value={categoryId} onChange={(value) => setRow(r.key, { category_id: value, material_id: '', values: {} })} placeholder="Select category" error={errors[`${r.key}.category_id`]} />}{errors[`${r.key}.category_id`] && <p className="text-xs text-red-600">{errors[`${r.key}.category_id`]}</p>}</td>
-                <td className={`${td} min-w-48`}>{readOnly ? [m?.material_code, m?.name].filter(Boolean).join(' · ') : <SearchSelect id={`boq-${idx}-material`} options={mats.map((m) => ({ value: m.id, label: [m.material_code, m.name].filter(Boolean).join(' · ') }))} value={r.material_id} onChange={(value) => setRow(r.key, { category_id: categoryId, material_id: value, values: {} })} disabled={!categoryId} placeholder="Select material" error={errors[`${r.key}.material_id`]} />}{errors[`${r.key}.material_id`] && <p className="text-xs text-red-600">{errors[`${r.key}.material_id`]}</p>}</td>
+                <td className={`${td} min-w-48`}>{readOnly ? materialLabel(m?.name, m?.material_code) : <SearchSelect id={`boq-${idx}-material`} options={mats.map((m) => ({ value: m.id, label: materialLabel(m.name, m.material_code) }))} value={r.material_id} onChange={(value) => setRow(r.key, { category_id: categoryId, material_id: value, values: {} })} disabled={!categoryId} placeholder="Select material" error={errors[`${r.key}.material_id`]} />}{errors[`${r.key}.material_id`] && <p className="text-xs text-red-600">{errors[`${r.key}.material_id`]}</p>}</td>
                 <td className={`${td} w-24`}>{m?.photo_path ? <PhotoThumb path={m.photo_path} title={m.name} className="h-16 w-16"/> : <span className="text-xs text-gray-400">{m ? 'Photo pending' : '—'}</span>}</td>
                 <td className={`${td} w-28`}>{readOnly ? fmtQty(r.qty) : <input aria-label={`Quantity, row ${idx + 1}`} type="number" min="0" step="0.001" value={r.qty} onChange={(e) => setRow(r.key, { qty: e.target.value })} className={`${inputCls(errors[`${r.key}.qty_required`])} text-right`} />}{errors[`${r.key}.qty_required`] && <p className="text-xs text-red-600">{errors[`${r.key}.qty_required`]}</p>}</td>
                 <td className={td}>{m?.unit || '—'}</td>
@@ -391,7 +391,7 @@ function BoqEditor({ itemId }) {
               return <tr key={r.key}>
                 <td>{idx + 1}</td>
                 <td>{cat.categories.find(c => String(c.id) === String(r.category_id || m?.category_id))?.name || '—'}</td>
-                <td>{[m?.material_code, m?.name].filter(Boolean).join(' · ') || '—'}</td>
+                <td>{materialLabel(m?.name, m?.material_code) || '—'}</td>
                 <td>{m?.photo_path ? <PhotoThumb path={m.photo_path} title={m.name} className="h-12 w-12" /> : '—'}</td>
                 <td className="text-right">{fmtQty(r.qty)}</td>
                 <td>{m?.unit || '—'}</td>

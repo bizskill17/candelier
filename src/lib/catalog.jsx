@@ -7,6 +7,10 @@ import { materialsApi } from '../api/client';
 const CatalogContext = createContext(null);
 
 export const normValue = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
+export function materialLabel(name, code) {
+  return name && code ? `${name} - (${code})` : name || code || '';
+}
+
 const normKey = (v) => normValue(v).toLowerCase();
 
 export function CatalogProvider({ children }) {
