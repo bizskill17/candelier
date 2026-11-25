@@ -18,9 +18,38 @@ function contacts_route(string $method,array $parts): void {
     if(($parts[0]??'')==='bulk'&&$method==='POST'){json_out(contact_bulk(request_body()),201);return;}
     $id=isset($parts[0])?(int)$parts[0]:null;
     if($id===null){if($method==='GET'){json_out(contact_list());return;}if($method==='POST'){json_out(contact_save(null,request_body()),201);return;}}
-    else {if($method==='GET'){json_out(['data'=>contact_find($id)]);return;}if($method==='PUT'){json_out(contact_save($id,request_body()));return;}}
+    else {if($method==='GET'){json_out(['data'=>contact_find($id)]);return;}if($method==='PUT'){json_out(contact_save($id,request_body()));return;}if($method==='DELETE'){json_out(contact_delete($id));return;}}
     throw new ApiError('Not found.',404);
 }
+function contact_delete(int $id): array
+{
+    require_admin();
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        if (!db_value('SELECT id FROM contacts WHERE id=? FOR UPDATE', [$id])) {
+            throw new ApiError('Contact not found.', 404);
+        }
+        foreach ([
+            'orders' => ['customer_id', 'Orders'],
+            'leads' => ['contact_id', 'Leads'],
+            'enquiries' => ['contact_id', 'enquiries'],
+            'followups' => ['contact_id', 'follow-up history'],
+            'whatsapp_messages' => ['contact_id', 'WhatsApp history'],
+        ] as $table => [$column, $label]) {
+            if (db_value("SELECT 1 FROM $table WHERE $column=? LIMIT 1", [$id])) {
+                throw new ApiError("This contact has linked $label. It cannot be deleted.", 409);
+            }
+        }
+        $pdo->prepare('DELETE FROM contacts WHERE id=?')->execute([$id]);
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    }
+    return ['message' => 'Contact deleted.'];
+}
+
 // Count every view over the same search/filter scope, before pagination.
 function crm_view_counts(string $from,array $views,array $where,array $params): array {
     $columns=[];foreach($views as $key=>$condition)$columns[]="COALESCE(SUM(CASE WHEN $condition THEN 1 ELSE 0 END),0) AS `$key`";
