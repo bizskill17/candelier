@@ -24,7 +24,8 @@ const sectionColors = {
 
 export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChangePassword }) {
   const { pathname } = useLocation();
-  const selectedGroup = menu.find(g => g.heading && g.items.some(i => i.path !== '/' && (pathname === i.path || pathname.startsWith(i.path + '/'))))?.heading
+  const selectedGroup = menu.find(g => g.heading && g.items.some(i => i.path === pathname))?.heading
+    || menu.find(g => g.heading && g.items.some(i => i.path !== '/' && (pathname === i.path || pathname.startsWith(i.path + '/'))))?.heading
     || menu.find(g => g.heading && g.items.some(i => i.path.split('/')[1] === pathname.split('/')[1]))?.heading
     || null;
   const [openGroup, setOpenGroup] = useState(selectedGroup);
@@ -106,7 +107,7 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChange
                         <li key={item.key}>
                           <NavLink
                             to={item.path}
-                            end={item.path === '/' || item.path === '/contacts'}
+                            end={item.path === '/' || item.path === '/contacts' || (item.path === '/material-in' && pathname === '/material-in/new/sample')}
                             onClick={onCloseMobile}
                             title={item.label}
                             className={({ isActive }) =>

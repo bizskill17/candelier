@@ -23,7 +23,7 @@ import { docConfig } from './docConfig';
 export default function DocsPage({ type }) {
   const { pathname } = useLocation();
   const parts = pathname.replace(new RegExp(`^/${type}/?`), '').split('/').filter(Boolean);
-  if (parts[0] === 'new') return <DocForm key={`new-${parts.join('-')}`} type={type} presetItem={parts[1] === 'item' ? Number(parts[2]) : null} />;
+  if (parts[0] === 'new') return <DocForm key={`new-${parts.join('-')}`} type={type} sampleReceipt={type === 'material-in' && parts[1] === 'sample'} presetItem={parts[1] === 'item' ? Number(parts[2]) : null} />;
   if (/^\d+$/.test(parts[0] || '')) return <DocForm key={parts[0]} type={type} id={Number(parts[0])} />;
   return type==='material-in'?<ReceiptItems/>:<DocList type={type} />;
 }
@@ -164,7 +164,7 @@ const emptyHeader = (type, presetItem) => ({
   [docConfig[type].date]: today(),
 });
 
-function DocForm({ type, id, presetItem }) {
+function DocForm({ type, id, presetItem, sampleReceipt = false }) {
   const cfg = docConfig[type];
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -173,7 +173,7 @@ function DocForm({ type, id, presetItem }) {
   const { canEdit, canCreateStock } = useAuth();
   const readOnly = !(canEdit || (!id && canCreateStock));
   const [doc, setDoc] = useState(null);
-  const [header, setHeader] = useState(() => emptyHeader(type, presetItem));
+  const [header, setHeader] = useState(() => ({ ...emptyHeader(type, presetItem), receipt_type: sampleReceipt ? 'Sample' : 'Purchase' }));
   const [lines, setLines] = useState(() => [blankStockLine(type === 'damage' ? { reason: 'Broken' } : {})]);
   const [suppliers, setSuppliers] = useState(null);
   const [supplierOpen, setSupplierOpen] = useState(false);
