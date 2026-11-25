@@ -100,6 +100,10 @@ function contact_save(?int $id,array $in): array {
             $h[$k]=$value===''?null:$value;
         }
         if(!$h['name'])$errors['name']='Enter the contact name.';
+        elseif (!isset($errors['name']) && (!$old || mb_strtolower($h['name']) !== mb_strtolower(trim($old['name'])))
+            && db_value('SELECT 1 FROM contacts WHERE LOWER(TRIM(name)) = LOWER(?) AND id <> ? LIMIT 1', [$h['name'], $id ?? 0])) {
+            $errors['name'] = 'A contact with this name already exists. Use the existing contact.';
+        }
         if(!$h['city'])$errors['city']='Select a city.';
         foreach(['mobile'=>'phone','alternate_mobile'=>'contact_mobile']as$k=>$alias){
             $raw=trim((string)($in[$k]??$in[$alias]??($k==='alternate_mobile'?($old[$k]??''):'')));
