@@ -16,9 +16,10 @@ function useViewUrl(path) {
   useEffect(() => {
     if (!path) { setUrl(''); return undefined; }
     if (!path.startsWith('data:')) { setUrl(imageUrl(path)); return undefined; }
+    let active = true;
     let u = '';
-    fetch(path).then((r) => r.blob()).then((b) => { u = URL.createObjectURL(b); setUrl(u); }).catch(() => setUrl(path));
-    return () => { if (u) URL.revokeObjectURL(u); };
+    fetch(path).then((r) => r.blob()).then((b) => { if (active) { u = URL.createObjectURL(b); setUrl(u); } }).catch(() => { if (active) setUrl(path); });
+    return () => { active = false; if (u) URL.revokeObjectURL(u); };
   }, [path]);
   return url;
 }
@@ -67,8 +68,24 @@ export function DrawingLink({ path, name, title, compact }) {
   );
 }
 
+function DrawingPreview({ path, name }) {
+  const url = useViewUrl(path);
+  return (
+    <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+      {!url ? <p role="status" className="p-4">Opening preview…</p> : <>
+        {isPdf(path, name)
+          ? <iframe title={`Preview of ${name || 'drawing'}`} src={url} className="h-[50vh] w-full" />
+          : <img src={url} alt={name || 'Drawing preview'} className="mx-auto max-h-[50vh] max-w-full object-contain" />}
+        <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 px-3 py-2 text-brand-600 hover:underline">
+          <ExternalLink size={14} /> Open in new tab
+        </a>
+      </>}
+    </div>
+  );
+}
+
 // Drawing box on the order form: upload, view, replace or remove the item's drawing.
-export function DrawingSlot({ id, path, name, onChange, disabled, error, title }) {
+export function DrawingSlot({ id, path, name, onChange, disabled, error, title, preview, onBusyChange }) {
   const input = useRef(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -79,11 +96,12 @@ export function DrawingSlot({ id, path, name, onChange, disabled, error, title }
     if (!f) return;
     if (f.size > 25 * 1024 * 1024) { setErr('Use a file under 25 MB.'); return; }
     setBusy(true);
+    onBusyChange?.(true);
     setErr('');
     try {
       const r = await itemsApi.upload(f, 'drawing');
       onChange(r.data.path, r.data.name || f.name);
-    } catch (x) { setErr(x.message); } finally { setBusy(false); }
+    } catch (x) { setErr(x.message); } finally { setBusy(false); onBusyChange?.(false); }
   };
   return (
     <div className="min-w-0">
@@ -92,7 +110,7 @@ export function DrawingSlot({ id, path, name, onChange, disabled, error, title }
           <button type="button" onClick={() => setOpen(true)} title={name} className="flex min-w-0 flex-1 items-center gap-1.5 text-left font-medium text-gray-800 hover:text-brand-600">
             <FileText size={14} className="shrink-0 text-red-600" /><span className="truncate">{name || 'Drawing'}</span>
           </button>
-          {!disabled && <>
+          {!disabled && !busy && <>
             <button type="button" onClick={() => input.current?.click()} title="Replace drawing" aria-label="Replace drawing" className="rounded p-0.5 text-gray-400 hover:text-brand-600"><FileUp size={13} /></button>
             <button type="button" onClick={() => onChange('', '')} title="Remove drawing" aria-label="Remove drawing" className="rounded p-0.5 text-gray-400 hover:text-red-600"><X size={13} /></button>
           </>}
@@ -106,6 +124,7 @@ export function DrawingSlot({ id, path, name, onChange, disabled, error, title }
       {busy && path && <p className="mt-1 text-xs text-gray-500">Uploading…</p>}
       <input ref={input} type="file" accept="application/pdf,image/jpeg,image/png,image/webp" className="hidden" onChange={pick} aria-label="Upload drawing file" />
       {(error || err) && <p className="mt-1 text-xs text-red-600">{error || err}</p>}
+      {preview && path && <DrawingPreview key={path} path={path} name={name} />}
       {open && <DrawingViewer path={path} name={name} title={title} onClose={() => setOpen(false)} />}
     </div>
   );
