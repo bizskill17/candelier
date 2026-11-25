@@ -226,7 +226,7 @@ export default function OrderForm({ id, leadId }) {
                       <td className={`${td} border-l-0 py-3 text-center tabular-nums text-gray-500`}>{n}</td>
                       <td className={td}><AutoTextarea aria-label={`Area, item ${n}`} disabled={locked} value={it.area} onChange={(v) => setItem(i, 'area', v.replace(/\n/g, ' '))} placeholder="e.g. Dining" className={inputCls(errors[`items.${i}.area`])} /></td>
                       <td className={td}>
-                        <ItemSpecCell id={`o-item-${i}-spec`} title={`Order item ${n}`} fields={fieldsFor(it)} values={it.values} onChange={(v) => setItem(i, 'values', v)} readOnly={locked} error={errors[`items.${i}.values`]} />
+                        <ItemSpecCell id={`o-item-${i}-spec`} title={`Order item ${n}`} fields={fieldsFor(it)} values={it.values} onAddField={canEdit && itemFields.loaded ? itemFields.addField : undefined} onChange={(v) => setItem(i, 'values', v)} readOnly={locked} error={errors[`items.${i}.values`]} />
                         {errors[`items.${i}.values`] && <p className="mt-1 text-xs text-red-600">{errors[`items.${i}.values`]}</p>}
                       </td>
                       <td className={td}><AutoTextarea aria-label={`Remarks, item ${n}`} disabled={locked} value={it.remarks} onChange={(v) => setItem(i, 'remarks', v)} placeholder="e.g. Hang height 14 ft" className={inputCls(errors[`items.${i}.remarks`])} /></td>

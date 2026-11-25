@@ -8,7 +8,11 @@ export function useItemFields() {
   const [data, setData] = useState(null);
   const reload = useCallback(() => itemsApi.fields().then((r) => setData({ fields: r.data, suggestions: r.suggestions || {} })).catch(() => setData((d) => d || { fields: [], suggestions: {} })), []);
   useEffect(() => { reload(); }, [reload]);
-  return { loaded: !!data, fields: data?.fields || [], suggestions: data?.suggestions || {}, reload };
+  const addField = async (name) => {
+    const { data: field } = await itemsApi.addField(name);
+    setData(current => ({ ...current, fields: [...current.fields.filter(item => item.id !== field.id), field] }));
+  };
+  return { loaded: !!data, fields: data?.fields || [], suggestions: data?.suggestions || {}, reload, addField };
 }
 
 // Order item details, one per line with the label in bold: "Size: 6.5 ft X 6.5 ft"

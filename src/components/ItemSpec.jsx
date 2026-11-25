@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Pencil, Check } from 'lucide-react';
+import { Pencil, Check, Plus } from 'lucide-react';
 import { SuggestInput } from './Spec';
 
 const norm = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
@@ -9,11 +9,30 @@ const norm = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
 export const itemText = (fields, values) => fields.filter((f) => norm(values?.[f.id])).map((f) => `${f.name}: ${norm(values[f.id])}`).join(' · ');
 
 // Box under the cell: one input per item field, with suggestions from earlier orders.
-function ItemSpecBox({ fields, values, suggestions, onChange, onClose, anchor, title }) {
+function ItemSpecBox({ fields, values, suggestions, onChange, onClose, anchor, title, onAddField }) {
   const panelRef = useRef(null);
   const inputs = useRef([]);
   const original = useRef(values);
   const [pos, setPos] = useState(null);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [fieldError, setFieldError] = useState('');
+
+  async function addField() {
+    if (saving || !name.trim()) return;
+    setSaving(true);
+    setFieldError('');
+    try {
+      await onAddField(name.trim());
+      setName('');
+      setAdding(false);
+    } catch (err) {
+      setFieldError(err.fields?.name || err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   useLayoutEffect(() => {
     const place = () => {
@@ -29,21 +48,46 @@ function ItemSpecBox({ fields, values, suggestions, onChange, onClose, anchor, t
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
     return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
-  }, [anchor, fields.length]);
+  }, [anchor, fields.length, adding, fieldError]);
 
   useEffect(() => {
-    const onDown = (e) => { if (!panelRef.current?.contains(e.target) && !anchor.contains(e.target)) onClose(); };
-    const onKey = (e) => { if (e.key === 'Escape') { onChange(original.current); onClose(); } };
+    const onDown = (e) => { if (!saving && !panelRef.current?.contains(e.target) && !anchor.contains(e.target)) onClose(); };
+    const onKey = (e) => { if (e.key !== 'Escape' || saving) return; if (adding) setAdding(false); else { onChange(original.current); onClose(); } };
     document.addEventListener('mousedown', onDown, true);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDown, true); document.removeEventListener('keydown', onKey); };
-  }, [anchor, onClose, onChange]);
+  }, [anchor, onClose, onChange, adding, saving]);
 
   const cols = Math.min(fields.length || 1, Math.max(1, Math.floor((pos?.width || 340) / 170)));
   return createPortal(
     <div ref={panelRef} role="dialog" aria-label={title} style={pos ? { position: 'fixed', top: pos.top, left: pos.left, width: pos.width } : { position: 'fixed', visibility: 'hidden' }}
       className="z-50 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
-      <h3 className="mb-3 text-sm font-semibold text-gray-900">{title}</h3>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        {onAddField && (
+          <button type="button" aria-label="Add Order Item Field" title="Add Order Item Field"
+            aria-expanded={adding} disabled={saving} onClick={() => setAdding(open => !open)}
+            className="rounded-lg border border-gray-300 p-1.5 text-brand-600 hover:bg-brand-50 disabled:opacity-50">
+            <Plus size={16} />
+          </button>
+        )}
+      </div>
+      {adding && (
+        <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-2">
+          <label htmlFor="new-order-item-field" className="mb-1 block text-xs font-medium text-gray-700">Field name</label>
+          <div className="flex gap-2">
+            <input id="new-order-item-field" autoFocus maxLength={50} value={name} disabled={saving}
+              onChange={event => { setName(event.target.value); setFieldError(''); }}
+              onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addField(); } }}
+              className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm" />
+            <button type="button" disabled={saving || !name.trim()} onClick={addField}
+              className="rounded-md bg-brand-600 px-2.5 py-1.5 text-sm text-white disabled:opacity-50">
+              {saving ? 'Adding…' : 'Add'}
+            </button>
+          </div>
+          {fieldError && <p role="alert" className="mt-1 text-xs text-red-600">{fieldError}</p>}
+        </div>
+      )}
       {fields.length === 0 ? (
         <p className="text-sm text-gray-500">No item fields yet. Add them in Orders → Order Item Fields.</p>
       ) : (
@@ -60,7 +104,7 @@ function ItemSpecBox({ fields, values, suggestions, onChange, onClose, anchor, t
       )}
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-sm">
         <span className="min-w-0 truncate text-gray-600">{itemText(fields, values) || 'Fill the details above.'}</span>
-        <button type="button" onClick={onClose} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"><Check size={14} /> Done</button>
+        <button type="button" onClick={onClose} disabled={saving} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"><Check size={14} /> Done</button>
       </div>
     </div>,
     document.body
@@ -68,7 +112,7 @@ function ItemSpecBox({ fields, values, suggestions, onChange, onClose, anchor, t
 }
 
 // The order item cell: shows the joined details; click to fill or change them.
-export default function ItemSpecCell({ id, fields, values, suggestions, onChange, readOnly, error, title = 'Order item' }) {
+export default function ItemSpecCell({ id, fields, values, suggestions, onChange, onAddField, readOnly, error, title = 'Order item' }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const text = itemText(fields, values);
@@ -80,7 +124,7 @@ export default function ItemSpecCell({ id, fields, values, suggestions, onChange
         <span className="min-w-0 flex-1 break-words">{text ? <span className="block space-y-0.5">{fields.filter((f) => norm(values?.[f.id])).map((f) => <span key={f.id} className="block"><b className="font-semibold text-gray-900">{f.name}:</b> <span className="text-gray-700">{norm(values[f.id])}</span></span>)}</span> : <span className="text-gray-400">Fill item details</span>}</span>
         <Pencil size={13} className="mt-0.5 shrink-0 text-gray-400 group-hover:text-brand-600" />
       </button>
-      {open && ref.current && <ItemSpecBox fields={fields} values={values || {}} suggestions={suggestions || {}} onChange={onChange} onClose={() => setOpen(false)} anchor={ref.current} title={title} />}
+      {open && ref.current && <ItemSpecBox fields={fields} values={values || {}} suggestions={suggestions || {}} onChange={onChange} onClose={() => setOpen(false)} anchor={ref.current} title={title} onAddField={onAddField} />}
     </>
   );
 }
