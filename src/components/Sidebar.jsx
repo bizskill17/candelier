@@ -18,6 +18,7 @@ const sectionColors = {
   Production: ['#f7fee7', '#3f6212'],
   Dispatch: ['#eef2ff', '#3730a3'],
   Stock: ['#f0f9ff', '#075985'],
+  Sample: ['#f0fdfa', '#115e59'],
   Administration: ['#f1f5f9', '#334155'],
 };
 
