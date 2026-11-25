@@ -11,7 +11,7 @@ const counters = {
   contacts: () => contactsApi.list({ view: 'all', page: 1 }).then(size),
   'whatsapp-failed': () => whatsappApi.get('failed-contacts', { page: 1 }).then(size),
   leads: () => crmApi.list({ view: 'all', page: 1 }).then(size),
-  'follow-ups': () => Promise.all([crmApi.due({ tab: 'today', page: 1 }), crmApi.due({ tab: 'overdue', page: 1 })]).then(([a, b]) => size(a) + size(b)),
+  'follow-ups': () => crmApi.due({ tab: 'all', page: 1 }).then(size),
   customers: () => contactsApi.list({ view: 'customers', page: 1 }).then(size),
   'orders-master': () => ordersApi.list({ page: 1, per_page: 1 }).then(size),
   'pending-drawing': () => drawingApi.pending('').then(size),
@@ -41,10 +41,6 @@ const counters = {
   inventory: () => inventoryApi.list({ page: 1, per_page: 1 }).then(size),
   users: master('users'),
 };
-
-// Lists of work waiting (enquiries, follow-ups, pending stages…). A section heading adds up these;
-// a section with none of them (e.g. Purchase) adds up all its lists instead.
-export const WORK = new Set(['enquiries', 'contacts', 'whatsapp-failed', 'leads', 'follow-ups', 'customers', 'orders-master', 'pending-drawing', 'pending-boq', 'boq-master', 'pending-material-issue', 'production-in-progress', 'ready-to-dispatch', 'dispatches']);
 
 const REFRESH_MS = 2 * 60 * 1000;
 
