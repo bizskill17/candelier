@@ -1,0 +1,197 @@
+[
+ {
+  "section": "",
+  "label": "Dashboard",
+  "path": "/"
+ },
+ {
+  "section": "Instagram",
+  "label": "Instagram Inbox",
+  "path": "/enquiries"
+ },
+ {
+  "section": "Instagram",
+  "label": "Sync History",
+  "path": "/enquiry-sync-history"
+ },
+ {
+  "section": "Instagram",
+  "label": "Google Sheets Connection",
+  "path": "/enquiry-settings"
+ },
+ {
+  "section": "Contacts",
+  "label": "All Contacts",
+  "path": "/contacts"
+ },
+ {
+  "section": "Contacts",
+  "label": "Follow Up Log",
+  "path": "/followup-logs"
+ },
+ {
+  "section": "Contacts",
+  "label": "Contact Categories",
+  "path": "/client-categories"
+ },
+ {
+  "section": "Contacts",
+  "label": "States",
+  "path": "/states"
+ },
+ {
+  "section": "WhatsApp",
+  "label": "WhatsApp Campaigns",
+  "path": "/whatsapp"
+ },
+ {
+  "section": "WhatsApp",
+  "label": "Failed Contacts",
+  "path": "/whatsapp-failed"
+ },
+ {
+  "section": "WhatsApp",
+  "label": "Red Lava Settings",
+  "path": "/whatsapp-settings"
+ },
+ {
+  "section": "Leads",
+  "label": "Add Lead",
+  "path": "/leads/new"
+ },
+ {
+  "section": "Leads",
+  "label": "All Leads",
+  "path": "/leads/all"
+ },
+ {
+  "section": "Leads",
+  "label": "Lead Follow-ups",
+  "path": "/follow-ups"
+ },
+ {
+  "section": "Leads",
+  "label": "Lead Sources",
+  "path": "/lead-sources"
+ },
+ {
+  "section": "Orders",
+  "label": "Customers",
+  "path": "/customers"
+ },
+ {
+  "section": "Orders",
+  "label": "Add Order",
+  "path": "/orders/new"
+ },
+ {
+  "section": "Orders",
+  "label": "Order Master",
+  "path": "/orders/all"
+ },
+ {
+  "section": "Orders",
+  "label": "Order Item Fields",
+  "path": "/item-fields"
+ },
+ {
+  "section": "BOQ",
+  "label": "Pending Drawing",
+  "path": "/pending-drawing"
+ },
+ {
+  "section": "BOQ",
+  "label": "Pending BOQ",
+  "path": "/pending-boq"
+ },
+ {
+  "section": "BOQ",
+  "label": "Orders with BOQ",
+  "path": "/boq-master"
+ },
+ {
+  "section": "Purchase",
+  "label": "Material In",
+  "path": "/material-in"
+ },
+ {
+  "section": "Purchase",
+  "label": "Suppliers",
+  "path": "/suppliers"
+ },
+ {
+  "section": "Issue",
+  "label": "Pending Material Issue",
+  "path": "/pending-material-issue"
+ },
+ {
+  "section": "Issue",
+  "label": "Material Issue",
+  "path": "/material-issue"
+ },
+ {
+  "section": "Issue",
+  "label": "Damage",
+  "path": "/damage"
+ },
+ {
+  "section": "Production",
+  "label": "Production In Progress",
+  "path": "/production-in-progress"
+ },
+ {
+  "section": "Dispatch",
+  "label": "Ready to Dispatch",
+  "path": "/ready-to-dispatch"
+ },
+ {
+  "section": "Dispatch",
+  "label": "Orders Dispatched",
+  "path": "/dispatches"
+ },
+ {
+  "section": "Dispatch",
+  "label": "Transporters",
+  "path": "/transporters"
+ },
+ {
+  "section": "Stock",
+  "label": "Material Categories",
+  "path": "/material-categories"
+ },
+ {
+  "section": "Stock",
+  "label": "Materials",
+  "path": "/materials"
+ },
+ {
+  "section": "Stock",
+  "label": "Opening Stock",
+  "path": "/opening-stock"
+ },
+ {
+  "section": "Stock",
+  "label": "Inventory",
+  "path": "/inventory"
+ },
+ {
+  "section": "Sample",
+  "label": "Sample Material In",
+  "path": "/material-in/new/sample"
+ },
+ {
+  "section": "Sample",
+  "label": "Sample Inventory",
+  "path": "/sample-inventory"
+ },
+ {
+  "section": "Sample",
+  "label": "Sample Issue History",
+  "path": "/sample-issues"
+ },
+ {
+  "section": "Administration",
+  "label": "Users",
+  "path": "/users"
+ }
+]

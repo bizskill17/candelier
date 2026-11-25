@@ -1,0 +1,372 @@
+<?php
+// Contacts are people; Leads are requirements; all lifecycle/schedule state lives in followups.
+const CRM_OUTCOMES=['Connected','No Answer','Busy','Not Reachable','Not Interested','Invalid Number'];
+const LEAD_STATUSES=['Open','Success','Fail'];
+const CRM_TEMPERATURES=['Hot','Warm','Cold'];
+const LEAD_SELECT='SELECT l.* FROM crm_lead_current l';
+function crm_text($v,int $max=500): ?string { $v=trim((string)($v??'')); if(mb_strlen($v)>$max)throw new ApiError("Keep text under $max characters.",422); return $v===''?null:$v; }
+function crm_page(string $sql,array $params=[]): array {
+    $total=(int)db_value("SELECT COUNT(*) FROM ($sql) page_rows",$params);
+    $pages=max(1,(int)ceil($total/20));$page=min($pages,max(1,(int)($_GET['page']??1)));$offset=($page-1)*20;
+    return ['data'=>db_all($sql." LIMIT 20 OFFSET $offset",$params),'total'=>$total,'page'=>$page,'pages'=>$pages,'per_page'=>20];
+}
+function crm_where_search(array &$where,array &$params,array $cols): void {
+    $q=trim((string)($_GET['q']??''));if($q==='')return;$or=[];
+    foreach($cols as $i=>$c){$or[]="$c LIKE :q$i";$params["q$i"]="%$q%";}$where[]='('.implode(' OR ',$or).')';
+}
+function contacts_route(string $method,array $parts): void {
+    if(($parts[0]??'')==='bulk'&&$method==='POST'){json_out(contact_bulk(request_body()),201);return;}
+    $id=isset($parts[0])?(int)$parts[0]:null;
+    if($id===null){if($method==='GET'){json_out(contact_list());return;}if($method==='POST'){json_out(contact_save(null,request_body()),201);return;}}
+    else {if($method==='GET'){json_out(['data'=>contact_find($id)]);return;}if($method==='PUT'){json_out(contact_save($id,request_body()));return;}if($method==='DELETE'){json_out(contact_delete($id));return;}}
+    throw new ApiError('Not found.',404);
+}
+function contact_delete(int $id): array
+{
+    require_admin();
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        if (!db_value('SELECT id FROM contacts WHERE id=? FOR UPDATE', [$id])) {
+            throw new ApiError('Contact not found.', 404);
+        }
+        foreach ([
+            'orders' => ['customer_id', 'Orders'],
+            'leads' => ['contact_id', 'Leads'],
+            'enquiries' => ['contact_id', 'enquiries'],
+            'followups' => ['contact_id', 'follow-up history'],
+            'whatsapp_messages' => ['contact_id', 'WhatsApp history'],
+        ] as $table => [$column, $label]) {
+            if (db_value("SELECT 1 FROM $table WHERE $column=? LIMIT 1", [$id])) {
+                throw new ApiError("This contact has linked $label. It cannot be deleted.", 409);
+            }
+        }
+        $pdo->prepare('DELETE FROM contacts WHERE id=?')->execute([$id]);
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    }
+    return ['message' => 'Contact deleted.'];
+}
+
+// Count every view over the same search/filter scope, before pagination.
+function crm_view_counts(string $from,array $views,array $where,array $params): array {
+    $columns=[];foreach($views as $key=>$condition)$columns[]="COALESCE(SUM(CASE WHEN $condition THEN 1 ELSE 0 END),0) AS `$key`";
+    $row=db_one('SELECT '.implode(',',$columns).' FROM '.$from.($where?' WHERE '.implode(' AND ',$where):''),$params);
+    return array_map('intval',$row);
+}
+function contact_list(): array {
+    $w=[];$p=[];$view=$_GET['view']??'all';
+    $open='c.further_followup_required=1';
+    $today="DATE(c.next_followup_at)=CURRENT_DATE()";
+    $filters=['never'=>'c.followup_count=0','today'=>"$open AND $today",'upcoming'=>"$open AND DATE(c.next_followup_at)>CURRENT_DATE()",'overdue'=>"$open AND DATE(c.next_followup_at)<CURRENT_DATE()",'missing'=>"c.followup_count>0 AND c.next_followup_at IS NULL AND (c.further_followup_required=1 OR c.further_followup_required IS NULL)",'closed'=>'c.further_followup_required=0','customers'=>"EXISTS(SELECT 1 FROM orders o WHERE o.customer_id=c.id AND o.status<>'Cancelled' AND ".order_visibility_sql().')'];
+    $filters=['all'=>'1=1','updated-today'=>'c.updated_at>=CURRENT_DATE() AND c.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$filters;
+    foreach(['category_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="c.$k=:$k";$p[$k]=(int)$_GET[$k];}
+    if(trim((string)($_GET['city']??''))!==''){$w[]='c.city=:city';$p['city']=trim($_GET['city']);}
+    if(($_GET['active']??'')!==''){$w[]='c.is_active=:active';$p['active']=(int)$_GET['active'];}
+    crm_where_search($w,$p,['c.name','c.company_name','c.mobile','c.email','c.city','c.source_details']);
+    $counts=crm_view_counts('crm_contact_current c',$filters,$w,$p);
+    if(isset($filters[$view]))$w[]=$filters[$view];
+    $sort=$view==='updated-today'?'c.updated_at DESC,c.id DESC':'c.name,c.id';
+    $result=crm_page('SELECT c.* FROM crm_contact_current c'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY '.$sort,$p);
+    $result['view_counts']=$counts;$result['data']=array_map('crm_visible_contact',$result['data']);return $result;
+}
+function contact_find(int $id): array {
+    $c=db_one('SELECT * FROM crm_contact_current WHERE id=:id',['id'=>$id]);if(!$c)throw new ApiError('Contact not found.',404);
+    $c=crm_visible_contact($c);$c['history']=crm_history($id,null);$c['leads']=array_map('crm_visible_lead',db_all(LEAD_SELECT.' WHERE l.contact_id=:id ORDER BY l.id DESC',['id'=>$id]));
+    if(app_role()==='Store'){$c['history']=[];$c['leads']=[];}
+    $c['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE customer_id=:id AND '.order_visibility_sql('orders').' ORDER BY order_date DESC,id DESC',['id'=>$id]);return $c;
+}
+function contact_identity_lock(): string
+{
+    $lock = 'contact_identity_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!db_value('SELECT GET_LOCK(?, 10)', [$lock])) {
+        throw new ApiError('Contacts are busy. Please try again.', 503);
+    }
+    return $lock;
+}
+
+function contact_mobile_key(?string $number): string
+{
+    $digits = preg_replace('/\D/', '', $number ?? '');
+    if (preg_match('/^(?:91|0)([0-9]{10})$/D', $digits, $match)) return $match[1];
+    return $digits;
+}
+
+function contact_identity_matches(?string $mobile, ?string $email, int $except = 0): array
+{
+    $mobile = contact_mobile_key($mobile);
+    $email = mb_strtolower(trim($email ?? ''));
+    $conditions = [];
+    $params = [$except];
+    if ($mobile !== '') {
+        $variants = strlen($mobile) === 10 ? [$mobile, '91'.$mobile, '0'.$mobile] : [$mobile];
+        $placeholders = implode(',', array_fill(0, count($variants), '?'));
+        foreach (['mobile', 'alternate_mobile'] as $column) {
+            $digits = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE($column,' ',''),'-',''),'+',''),'(',''),')',''),'.','')";
+            $conditions[] = "$digits IN ($placeholders)";
+            array_push($params, ...$variants);
+        }
+    }
+    if ($email !== '') {
+        $conditions[] = 'LOWER(TRIM(email)) = ?';
+        $params[] = $email;
+    }
+    if (!$conditions) return [];
+    return db_all('SELECT id,name,mobile,email,is_active FROM contacts WHERE id<>? AND ('.implode(' OR ', $conditions).') ORDER BY id', $params);
+}
+
+function contact_save(?int $id,array $in): array {
+    if($id)require_admin();else require_roles(['Admin','Sales']);
+    $lock = contact_identity_lock();
+    try {
+        $old=$id?db_one('SELECT * FROM contacts WHERE id=:id',['id'=>$id]):null;if($id&&!$old)throw new ApiError('Contact not found.',404);
+        $h=[];$errors=[];
+        foreach(['name'=>150,'company_name'=>150,'email'=>150,'city'=>100,'address'=>2000,'source_details'=>150]as$k=>$max){
+            $value=trim((string)($in[$k]??($k==='source_details'?($old[$k]??''):'')));
+            if(mb_strlen($value)>$max)$errors[$k]=ucfirst(str_replace('_',' ',$k))." must be $max characters or fewer.";
+            $h[$k]=$value===''?null:$value;
+        }
+        if(!$h['name'])$errors['name']='Enter the contact name.';
+        elseif (!isset($errors['name']) && (!$old || mb_strtolower($h['name']) !== mb_strtolower(trim($old['name'])))
+            && db_value('SELECT 1 FROM contacts WHERE LOWER(TRIM(name)) = LOWER(?) AND id <> ? LIMIT 1', [$h['name'], $id ?? 0])) {
+            $errors['name'] = 'A contact with this name already exists. Use the existing contact.';
+        }
+        if(!$h['city'])$errors['city']='Select a city.';
+        foreach(['mobile'=>'phone','alternate_mobile'=>'contact_mobile']as$k=>$alias){
+            $raw=trim((string)($in[$k]??$in[$alias]??($k==='alternate_mobile'?($old[$k]??''):'')));
+            $h[$k]=preg_replace('/[^0-9]/','',$raw)?:null;
+            if(($k==='mobile'||array_key_exists($k,$in)||array_key_exists($alias,$in))&&$h[$k]&&(!preg_match('/^[+0-9\s().-]+$/',$raw)||!preg_match('/^\d{10,15}$/',$h[$k])))$errors[$k]='Enter a valid mobile number using 10 to 15 digits.';
+        }
+        if(!$h['mobile'])$errors['mobile']='Enter the mobile number.';
+        if($h['email']&&!filter_var($h['email'],FILTER_VALIDATE_EMAIL))$errors['email']='Enter a valid email address.';
+        foreach(['category_id'=>'client_categories','source_id'=>'lead_sources','state_id'=>'states']as$k=>$table){
+            $h[$k]=(int)($in[$k]??0)?:null;
+            $label=['category_id'=>'category','source_id'=>'source','state_id'=>'state'][$k];
+            if($k==='category_id'&&!$h[$k])$errors[$k]='Select a category.';
+            elseif($h[$k]&&!db_value("SELECT COUNT(*) FROM $table WHERE id=:id",['id'=>$h[$k]]))$errors[$k]="Select a valid $label.";
+        }
+        $h['is_active']=isset($in['is_active'])?(int)(bool)$in['is_active']:($old['is_active']??1);
+        foreach (['mobile', 'alternate_mobile'] as $field) {
+            if (!isset($errors[$field]) && contact_mobile_key($h[$field]) !== contact_mobile_key($old[$field] ?? null)
+                && contact_identity_matches($h[$field], null, $id ?? 0)) {
+                $errors[$field] = 'A contact with this mobile number already exists. Use the existing contact.';
+            }
+        }
+        if ($h['email'] && !isset($errors['email']) && strcasecmp($h['email'], trim($old['email'] ?? '')) !== 0
+            && contact_identity_matches(null, $h['email'], $id ?? 0)) {
+            $errors['email'] = 'A contact with this email address already exists. Use the existing contact.';
+        }
+        if($errors)throw new ApiError('Please correct the highlighted fields.',422,$errors);
+        $h['updated_at']=now();
+        if(!$id){$h['contact_no']=next_doc_no('contacts','CON','contact_no');$h['created_by']=current_user()['id']??null;$h['created_at']=now();$cols=array_keys($h);db()->prepare('INSERT INTO contacts('.implode(',',$cols).') VALUES(:'.implode(',:',$cols).')')->execute($h);$id=(int)db()->lastInsertId();}
+        else {$set=implode(',',array_map(fn($k)=>"$k=:$k",array_keys($h)));db()->prepare("UPDATE contacts SET $set WHERE id=:id")->execute($h+['id'=>$id]);}
+        return ['data'=>contact_find($id),'message'=>'Contact saved.'];
+    } finally {
+        db_value('SELECT RELEASE_LOCK(?)', [$lock]);
+    }
+}
+function contact_bulk(array $in): array
+{
+    $rows = $in['rows'] ?? [];
+    if (!is_array($rows) || !array_is_list($rows) || !$rows || count($rows) > 1000) {
+        throw new ApiError('Upload between 1 and 1000 contacts.', 422);
+    }
+
+    $lock = contact_identity_lock();
+    $pdo = db();
+    $errors = [];
+    $imported = [];
+    try {
+        $pdo->beginTransaction();
+        foreach ($rows as $index => $row) {
+            $rowNumber = $index + 2;
+            $pdo->exec('SAVEPOINT contact_import_row');
+            try {
+                if (!is_array($row)) throw new ApiError('Invalid row.', 422);
+                foreach (['category' => 'client_categories', 'source' => 'lead_sources', 'state' => 'states'] as $key => $table) {
+                    $name = trim((string) ($row[$key] ?? ''));
+                    if ($name === '') continue;
+                    $id = db_value("SELECT id FROM $table WHERE LOWER(name)=LOWER(?)", [$name]);
+                    if (!$id && $key === 'category') {
+                        if (mb_strlen($name) > 60) throw new ApiError('Category must be 60 characters or fewer.', 422);
+                        $id = master_save(entity('client_categories'), null, ['name' => $name])['data']['id'];
+                    }
+                    if (!$id) throw new ApiError("Unknown $key: $name", 422);
+                    $row[$key.'_id'] = (int) $id;
+                }
+                contact_save(null, $row);
+                $imported[] = $rowNumber;
+            } catch (ApiError $error) {
+                $pdo->exec('ROLLBACK TO SAVEPOINT contact_import_row');
+                $reasons = $error->fields;
+                if (isset($reasons['category_id']) && empty($row['category_id'])) $reasons['category_id'] = 'Category is missing.';
+                $errors['Row '.$rowNumber] = $reasons ? implode(' ', array_unique(array_values($reasons))) : $error->getMessage();
+            }
+            $pdo->exec('RELEASE SAVEPOINT contact_import_row');
+        }
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    } finally {
+        db_value('SELECT RELEASE_LOCK(?)', [$lock]);
+    }
+
+    $added = count($imported);
+    $skipped = count($errors);
+    $message = "$added imported, $skipped skipped.";
+    return ['message' => $message, 'added' => $added, 'imported_rows' => $imported, 'errors' => (object) $errors];
+}
+
+function leads_route(string $method,array $parts): void {
+    $id=isset($parts[0])?(int)$parts[0]:null;$sub=$parts[1]??null;
+    if($id===null){if($method==='GET'){json_out(lead_list());return;}if($method==='POST'){json_out(lead_save(null,lead_form_input(request_body())),201);return;}}
+    elseif($sub==='customer'&&$method==='POST'){json_out(lead_customer($id));return;}
+    elseif($sub==='followups'&&$method==='POST'){json_out(crm_followup_save(request_body()+['lead_id'=>$id]),201);return;}
+    elseif($sub===null){if($method==='GET'){json_out(['data'=>lead_find($id)]);return;}if($method==='PUT'){json_out(lead_save($id,lead_form_input(request_body())));return;}if($method==='DELETE'){json_out(lead_delete($id));return;}}
+    throw new ApiError('Not found.',404);
+}
+function lead_list(): array {
+    $w=[];$p=[];$view=$_GET['view']??'all';
+    $scheduled="l.status='Open' AND l.further_followup_required=1";
+    $views=['today'=>"$scheduled AND DATE(l.next_followup_at)=CURRENT_DATE()",'upcoming'=>"$scheduled AND DATE(l.next_followup_at)>CURRENT_DATE()",'overdue'=>"$scheduled AND DATE(l.next_followup_at)<CURRENT_DATE()",'missing'=>"$scheduled AND l.next_followup_at IS NULL",'success'=>"l.status='Success'",'fail'=>"l.status='Fail'"];
+    $views=['all'=>'1=1','added-today'=>'l.created_at>=CURRENT_DATE() AND l.created_at<CURRENT_DATE()+INTERVAL 1 DAY','updated-today'=>'l.updated_at>=CURRENT_DATE() AND l.updated_at<CURRENT_DATE()+INTERVAL 1 DAY']+$views;
+    foreach(['status'=>LEAD_STATUSES,'temperature'=>CRM_TEMPERATURES]as$k=>$values)if(in_array($_GET[$k]??'',$values,true)){$w[]="l.$k=:$k";$p[$k]=$_GET[$k];}
+    foreach(['contact_id','source_id']as$k)if(!empty($_GET[$k])){$w[]="l.$k=:$k";$p[$k]=(int)$_GET[$k];}
+    foreach(['enquiry_from'=>'>=','enquiry_to'=>'<=']as$key=>$op)if(($_GET[$key]??'')!==''){if(!valid_date($_GET[$key]))throw new ApiError('Choose valid Enquiry Date filters.',422);$w[]="l.enquiry_date $op :$key";$p[$key]=$_GET[$key];}
+    if(!empty($p['enquiry_from'])&&!empty($p['enquiry_to'])&&$p['enquiry_from']>$p['enquiry_to'])throw new ApiError('From date must be on or before To date.',422);
+    crm_where_search($w,$p,['l.lead_no','l.display_name','l.display_phone','l.project_name','l.requirement']);
+    $counts=crm_view_counts('crm_lead_current l',$views,$w,$p);
+    if(isset($views[$view]))$w[]=$views[$view];
+    $sort=$view==='updated-today'?'l.updated_at DESC,l.id DESC':'l.enquiry_date DESC,l.id DESC';
+    $groupFields=['source'=>"COALESCE(NULLIF(l.source_name,''),'No Source')",'enquiry_date'=>'l.enquiry_date','priority'=>"COALESCE(NULLIF(l.temperature,''),'No Priority')"];
+    $group=$_GET['group_by']??'';$groupField=$groupFields[$group]??null;$where=$w?' WHERE '.implode(' AND ',$w):'';
+    $groupCounts=$groupField?db_all('SELECT '.$groupField.' AS group_label,COUNT(*) AS total FROM crm_lead_current l'.$where.' GROUP BY '.$groupField.' ORDER BY '.$groupField,$p):[];
+    if($groupField)$sort=$groupField.($group==='enquiry_date'?' DESC':' ASC').','.$sort;
+    $result=crm_page(LEAD_SELECT.$where.' ORDER BY '.$sort,$p);$result['group_counts']=$groupCounts;$result['view_counts']=$counts;$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+}
+function lead_find(int $id): array {
+    $l=db_one(LEAD_SELECT.' WHERE l.id=:id',['id'=>$id]);if(!$l)throw new ApiError('Lead not found.',404);
+    $l=crm_visible_lead($l);$l['id']=(int)$l['id'];$l['contact_id']=(int)$l['contact_id'];$l['customer_id']=(int)$l['contact_id'];
+    $l['followups']=crm_history(null,$id);$l['orders']=db_all('SELECT id,order_no,order_date,status FROM orders WHERE lead_id=:id AND '.order_visibility_sql('orders').' ORDER BY id DESC',['id'=>$id]);return $l;
+}
+function lead_form_input(array $in): array {
+ if(empty($in['source_id'])||!db_value('SELECT COUNT(*) FROM lead_sources WHERE id=? AND is_active=1',[(int)$in['source_id']]))throw new ApiError('Select a Lead Source.',422);
+ return $in;
+}
+function lead_save(?int $id,array $in): array {
+    if ($id) require_admin();
+    elseif (app_role() === 'Store') require_create_view('leads-add');
+    else require_roles(['Admin','Sales']);
+    $old=$id?lead_find($id):null;$h=['contact_id'=>(int)($in['contact_id']??0),'enquiry_date'=>trim((string)($in['enquiry_date']??$in['lead_date']??'')),'project_name'=>crm_text($in['project_name']??'',150),'requirement'=>crm_text($in['requirement']??'',10000)];
+    if(!db_value('SELECT COUNT(*) FROM contacts WHERE id=:id AND is_active=1',['id'=>$h['contact_id']])&&(!$old||$old['contact_id']!==$h['contact_id']))throw new ApiError('Choose an active Contact.',422);
+    $h['source_id']=(int)($in['source_id']??($old['source_id']??db_value('SELECT source_id FROM contacts WHERE id=?',[$h['contact_id']])))?:null;
+    if($h['source_id']&&!db_value('SELECT COUNT(*) FROM lead_sources WHERE id=?',[$h['source_id']]))throw new ApiError('Choose a valid Lead Source.',422);
+    if(!$h['requirement'])throw new ApiError('Enter the requirement.',422);
+    if(!valid_date($h['enquiry_date'])||$h['enquiry_date']>date('Y-m-d'))throw new ApiError('Enter a valid enquiry date.',422);
+    if($old&&$old['contact_id']!==$h['contact_id'])throw new ApiError('The Contact of an existing Lead cannot be changed.',409);
+    $temp=$in['initial_temperature']??'Warm';if(!in_array($temp,CRM_TEMPERATURES,true))throw new ApiError('Choose Hot, Warm or Cold.',422);
+    $pdo=db();$own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();
+    try{$h['updated_at']=now();
+        if(!$id){$h['lead_no']=next_doc_no('leads','LD','lead_no');$h['created_by']=current_user()['id']??null;$h['created_at']=now();$cols=array_keys($h);$pdo->prepare('INSERT INTO leads('.implode(',',$cols).') VALUES(:'.implode(',:',$cols).')')->execute($h);$id=(int)$pdo->lastInsertId();
+            crm_insert_followup(['lead_id'=>$id,'entry_type'=>'Lead Created','activity_at'=>now(),'lead_status'=>'Open','lead_temperature'=>$temp,'further_followup_required'=>1]);
+        }else{$set=implode(',',array_map(fn($k)=>"$k=:$k",array_keys($h)));$pdo->prepare("UPDATE leads SET $set WHERE id=:id")->execute($h+['id'=>$id]);}
+        if($own)$pdo->commit();
+    }catch(Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}return ['data'=>lead_find($id),'message'=>'Lead saved.'];
+}
+function lead_delete(int $id): array {
+    require_admin();
+    lead_find($id);if(db_value("SELECT COUNT(*) FROM followups WHERE (lead_id=:l AND entry_type<>'Lead Created') OR generated_lead_id=:g",['l'=>$id,'g'=>$id])||db_value('SELECT COUNT(*) FROM orders WHERE lead_id=:l',['l'=>$id]))throw new ApiError('This Lead has history or Orders. Close it through a follow-up.',409);
+    $pdo=db();$pdo->beginTransaction();try{$pdo->prepare('DELETE FROM followups WHERE lead_id=:l')->execute(['l'=>$id]);$pdo->prepare('DELETE FROM leads WHERE id=:l')->execute(['l'=>$id]);$pdo->commit();}catch(Throwable$e){$pdo->rollBack();throw$e;}return ['message'=>'Lead deleted.'];
+}
+function lead_customer(int $id): array {$l=lead_find($id);$c=contact_find($l['contact_id']);return ['data'=>['lead'=>$l,'customer'=>['id'=>$c['id'],'name'=>$c['name'],'address'=>$c['address']]]];}
+function crm_insert_followup(array $f): int {
+    $f+=['enquiry_id'=>null,'enquiry_decision'=>null,'request_key'=>null,'contact_id'=>null,'lead_id'=>null,'entry_type'=>'Follow-up','method'=>null,'outcome'=>null,'remarks'=>null,'lead_status'=>null,'lead_temperature'=>null,'further_followup_required'=>0,'next_followup_at'=>null,'generated_lead_id'=>null,'recorded_by'=>current_user()['id']??null,'created_at'=>now()];
+    $keys=['enquiry_id','enquiry_decision','request_key','contact_id','lead_id','entry_type','activity_at','method','outcome','remarks','lead_status','lead_temperature','further_followup_required','next_followup_at','generated_lead_id','recorded_by','created_at'];$f=array_intersect_key($f,array_flip($keys));
+    db()->prepare('INSERT INTO followups('.implode(',',$keys).') VALUES(:'.implode(',:',$keys).')')->execute($f);return(int)db()->lastInsertId();
+}
+function crm_datetime($v): ?string {$v=trim(str_replace('T',' ',(string)($v??'')));if($v==='')return null;if(strlen($v)===16)$v.=':00';$d=DateTime::createFromFormat('!Y-m-d H:i:s',$v);return $d&&$d->format('Y-m-d H:i:s')===$v?$v:null;}
+function crm_followup_save(array $in): array {
+    require_roles(['Admin','Sales']);
+    // The simplified form sends a decision; legacy clients retain their existing contract.
+    if(array_key_exists('followup_status',$in)){
+        $decision=$in['followup_status'];
+        if(!in_array($decision,['Lead Received','Follow Up Again','No Further Follow-up'],true))throw new ApiError('Choose a valid follow-up status.',422);
+        if($decision==='Lead Received'&&!empty($in['lead_id']))throw new ApiError('Receive a new Lead from a Contact follow-up.',422);
+        if(!empty($in['lead_id'])&&trim((string)($in['remarks']??''))==='')throw new ApiError('Enter the follow-up remarks.',422);
+        $in['entry_type']='Follow-up';$in['activity_at']=now();$in['outcome']=null;
+        $in['requirement_received']=$decision==='Lead Received';
+        $in['further_followup_required']=$decision!=='No Further Follow-up';
+    }
+    $cid=(int)($in['contact_id']??0);$lid=(int)($in['lead_id']??0);if((bool)$cid===(bool)$lid)throw new ApiError('Link either a Contact or a Lead.',422);
+    $pdo=db();$pdo->beginTransaction();
+    try{
+        $target=$lid?'leads':'contacts';$id=$lid?:$cid;if(!db_one("SELECT id FROM $target WHERE id=:id FOR UPDATE",['id'=>$id]))throw new ApiError('Record not found.',404);
+        $key=crm_text($in['request_key']??'',64);
+        if($key){$prior=db_one('SELECT id,contact_id,lead_id,generated_lead_id FROM followups WHERE request_key=:k',['k'=>$key]);if($prior){if((int)$prior['contact_id']!==$cid||(int)$prior['lead_id']!==$lid)throw new ApiError('This request key was already used.',409);$pdo->commit();return ['data'=>['id'=>(int)$prior['id'],'generated_lead_id'=>$prior['generated_lead_id']],'message'=>'History already saved.'];}}
+        $lead=$lid?lead_find($lid):null;
+        if($lead&&$lead['status']!=='Open'&&app_role()!=='Admin')throw new ApiError('This Lead is closed.',409);
+        $type=$in['entry_type']??'Follow-up';if(!in_array($type,['Follow-up','Status Update'],true))throw new ApiError('Invalid entry type.',422);
+        $at=crm_datetime($in['activity_at']??'');if(!$at||$at>now())throw new ApiError('Enter an activity date/time up to now.',422);
+        $latest=db_value("SELECT MAX(activity_at) FROM followups WHERE ".($lid?'lead_id':'contact_id')."=:id",['id'=>$id]);if($latest&&$at<$latest)throw new ApiError('Use a date/time on or after the latest history entry.',422);
+        $outcome=$in['outcome']??null;$method=$in['method']??null;
+        if($type==='Follow-up'&&(($outcome!==null&&!in_array($outcome,CRM_OUTCOMES,true))||!in_array($method,['Call','WhatsApp','Email','Meeting','Other'],true)))throw new ApiError('Choose a valid follow-up method and outcome, if supplied.',422);
+        if($type==='Status Update'&&!$lid)require_admin();
+        $status=$lead?($in['lead_status']??$lead['status']):null;$temp=$lead?($in['lead_temperature']??$lead['temperature']):null;
+        if($lead&&(!in_array($status,LEAD_STATUSES,true)||!in_array($temp,CRM_TEMPERATURES,true)))throw new ApiError('Choose a valid Lead status and temperature.',422);
+        $required=filter_var($in['further_followup_required']??false,FILTER_VALIDATE_BOOLEAN);if($lead&&$status!=='Open')$required=false;
+        $next=$required?crm_datetime($in['next_followup_at']??''):null;if($required&&(!$next||$next<$at))throw new ApiError('Enter the next follow-up date/time on or after this activity.',422);
+        $generated=null;
+        if(!empty($in['requirement_received'])){
+            if($lid||$type!=='Follow-up')throw new ApiError('Create a requirement from a Contact follow-up.',422);
+            $generated=lead_save(null,['contact_id'=>$cid,'enquiry_date'=>substr($at,0,10),'project_name'=>$in['project_name']??'','requirement'=>$in['requirement']??'','initial_temperature'=>$in['lead_temperature']??'Warm'])['data']['id'];
+        }
+        $fid=crm_insert_followup(['request_key'=>$key,'contact_id'=>$cid?:null,'lead_id'=>$lid?:null,'entry_type'=>$type,'activity_at'=>$at,'method'=>$type==='Follow-up'?$method:null,'outcome'=>$type==='Follow-up'?$outcome:null,'remarks'=>crm_text($in['remarks']??'',10000),'lead_status'=>$status,'lead_temperature'=>$temp,'further_followup_required'=>$required?1:0,'next_followup_at'=>$next,'generated_lead_id'=>$generated]);
+        $pdo->commit();
+    }catch(Throwable$e){if($pdo->inTransaction())$pdo->rollBack();throw$e;}
+    return ['data'=>['id'=>$fid,'generated_lead_id'=>$generated],'message'=>$generated?'Follow-up saved and Lead created.':'History saved.'];
+}
+function crm_history(?int $cid,?int $lid): array {
+    $where=$lid?'f.lead_id=:id':'(f.contact_id=:id1 OR l.contact_id=:id2)';$p=$lid?['id'=>$lid]:['id1'=>$cid,'id2'=>$cid];
+    return db_all("SELECT f.*,l.lead_no,gen.lead_no AS generated_lead_no,u.name AS recorded_by_name FROM followups f LEFT JOIN leads l ON l.id=f.lead_id LEFT JOIN leads gen ON gen.id=f.generated_lead_id LEFT JOIN users u ON u.id=f.recorded_by WHERE $where ORDER BY f.activity_at DESC,f.id DESC",$p);
+}
+function crm_followups_route(string $method,array $parts): void {if($method==='POST'&&!$parts){json_out(crm_followup_save(request_body()),201);return;}if($method==='GET'&&!$parts){json_out(followup_logs());return;}throw new ApiError('Not found.',404);}
+function followup_logs(): array {
+    $w=[];$p=[];
+    foreach(['recorded_by','lead_id','contact_id']as$k)if(!empty($_GET[$k])){$w[]=$k==='contact_id'?'c.id=:contact_id':"f.$k=:$k";$p[$k]=(int)$_GET[$k];}
+    foreach(['entry_type','outcome']as$k)if(!empty($_GET[$k])){$w[]="f.$k=:$k";$p[$k]=$_GET[$k];}
+    if(valid_date($_GET['from']??'')){$w[]='f.activity_at>=:from';$p['from']=$_GET['from'].' 00:00:00';}
+    if(valid_date($_GET['to']??'')){$w[]='f.activity_at<=:to';$p['to']=$_GET['to'].' 23:59:59';}
+    crm_where_search($w,$p,['c.name','c.mobile','e.name','e.mobile','l.lead_no','l.requirement','f.remarks']);
+    $from=' FROM followups f LEFT JOIN leads l ON l.id=f.lead_id LEFT JOIN contacts c ON c.id=COALESCE(f.contact_id,l.contact_id) LEFT JOIN enquiries e ON e.id=f.enquiry_id LEFT JOIN users u ON u.id=f.recorded_by';
+    $where=$w?' WHERE '.implode(' AND ',$w):'';
+    $result=crm_page('SELECT f.*,COALESCE(c.name,e.name) AS contact_name,l.lead_no,u.name AS recorded_by_name'.$from.$where.' ORDER BY f.activity_at DESC,f.id DESC',$p);
+    // Counts cover all matching pages and actual follow-up attempts, not system/status events.
+    $countWhere=$where.($w?' AND ':' WHERE ')."f.entry_type='Follow-up'";
+    $people=db_all("SELECT f.recorded_by,COALESCE(u.name,'Unassigned') AS name,COUNT(*) AS count".$from.$countWhere.' GROUP BY f.recorded_by,u.name ORDER BY count DESC,name,f.recorded_by',$p);
+    foreach($people as &$person){$person['recorded_by']=$person['recorded_by']===null?null:(int)$person['recorded_by'];$person['count']=(int)$person['count'];}unset($person);
+    $result['person_counts']=$people;$result['followup_total']=array_sum(array_column($people,'count'));
+    return $result;
+}
+function followups_due(): array {
+    $w=["l.status='Open'","l.further_followup_required=1"];$p=[];$tab=$_GET['tab']??'today';
+    $conditions=['today'=>'DATE(l.next_followup_at)=CURRENT_DATE()','overdue'=>'DATE(l.next_followup_at)<CURRENT_DATE()','upcoming'=>'DATE(l.next_followup_at)>CURRENT_DATE()','missing'=>'l.next_followup_at IS NULL','all'=>'1=1'];
+    if(in_array($_GET['temperature']??'',CRM_TEMPERATURES,true)){$w[]='l.temperature=:temp';$p['temp']=$_GET['temperature'];}
+    crm_where_search($w,$p,['l.lead_no','l.display_name','l.requirement']);
+    $counts=crm_view_counts('crm_lead_current l',$conditions,$w,$p);if(isset($conditions[$tab]))$w[]=$conditions[$tab];
+    $result=crm_page(LEAD_SELECT.' WHERE '.implode(' AND ',$w).' ORDER BY l.next_followup_at IS NULL,l.next_followup_at,l.id',$p);$result['view_counts']=$counts;$result['data']=array_map('crm_visible_lead',$result['data']);return $result;
+}
+
+// Shared CRM does not expose another salesperson's linked Order details.
+function crm_visible_contact(array $c): array {
+    if(app_role()==='Sales')$c['order_count']=(int)db_value("SELECT COUNT(*) FROM orders o WHERE o.customer_id=:c AND o.status<>'Cancelled' AND ".order_visibility_sql(),['c'=>$c['id']]);
+    return $c;
+}
+function crm_visible_lead(array $l): array {
+    if(app_role()==='Sales'){
+        $order=db_one('SELECT o.id,o.order_no FROM orders o WHERE o.lead_id=:l AND '.order_visibility_sql().' ORDER BY o.id LIMIT 1',['l'=>$l['id']]);
+        $l['order_id']=$order?(int)$order['id']:null;$l['order_no']=$order['order_no']??null;
+    }return $l;
+}
