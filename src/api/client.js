@@ -148,7 +148,7 @@ export const docsApi = {
   remove: (type, id) => request('DELETE', `docs/${type}/${id}`),
   issuePrefill: (orderItemId, exceptId) => request('GET', 'docs/issue-prefill', { params: { order_item_id: orderItemId, except_id: exceptId } }),
   opening: () => request('GET', 'opening-stock'),
-  saveOpening: (lines) => request('PUT', 'opening-stock', { body: { lines } }),
+  saveOpening: (lines, openingId) => request('PUT', 'opening-stock', { body: { lines, opening_id: openingId } }),
   addOpening: (lines) => request('POST', 'opening-stock', { body: { lines } }),
 };
 

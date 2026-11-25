@@ -22,7 +22,7 @@ export const DAMAGE_REASONS = ['Broken', 'Defective', 'Lost', 'Other'];
 
 // Lines of material + specification + quantity, used by Opening Stock, Material In, Material Issue and Damage.
 //   infoColumns: [{ label, render: (line) => node }]  read-only columns before Quantity
-export default function StockLines({ title = 'Materials', lines, onChange, errors = {}, readOnly, infoColumns = [], showDate, showReason, orderItemId, emptyHint, allowedMaterialIds, receipt=false, users=[], defaultInventoryType='Normal' }) {
+export default function StockLines({ title = 'Materials', lines, onChange, errors = {}, readOnly, infoColumns = [], showDate, showReason, orderItemId, emptyHint, allowedMaterialIds, receipt=false, users=[], defaultInventoryType='Normal', renderRowActions, singleLine = false }) {
   const cat = useCatalog();
   const [adding,setAdding]=useState(null),[photo,setPhoto]=useState(null),[photoBusy,setPhotoBusy]=useState(false),[photoError,setPhotoError]=useState('');
   const savePhoto=async()=>{setPhotoBusy(true);setPhotoError('');try{await materialPhotoApi(photo.id,photo.path);await cat.refresh();setPhoto(null);}catch(e){setPhotoError(e.message);}finally{setPhotoBusy(false);}};
@@ -61,7 +61,7 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
               <th className={`${th} w-16`}>Unit</th>
               {showReason && <th className={`${th} w-32`}>Reason</th>}
               <th className={`${th} w-[16%]`}>Remarks</th>
-              {!readOnly && <th className={`${th} w-24 border-r-0 text-center`}>Action</th>}
+              {(renderRowActions || (!readOnly && !singleLine)) && <th className={`${th} w-24 border-r-0 text-center`}>Action</th>}
             </tr>
           </thead>
           <tbody>
@@ -110,7 +110,9 @@ export default function StockLines({ title = 'Materials', lines, onChange, error
                       <AutoTextarea aria-label={`Remarks, line ${idx + 1}`} value={l.remarks || ''} onChange={(v) => setLine(idx, { remarks: v })} className={inputCls()} />
                     )}
                   </td>
-                  {!readOnly && (
+                  {renderRowActions ? (
+                    <td className={`${td} border-r-0 px-1 py-2.5 text-center`}>{renderRowActions(l)}</td>
+                  ) : !readOnly && !singleLine && (
                     <td className={`${td} border-r-0 px-1 py-2.5 text-center`}>
                       <div className="inline-flex gap-0.5">
                         <button type="button" onClick={() => addAfter(idx)} title="Add line below" aria-label={`Add line below line ${idx + 1}`} className="rounded-md p-1.5 text-brand-600 hover:bg-brand-50"><Plus size={16} /></button>
