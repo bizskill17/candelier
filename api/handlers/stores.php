@@ -396,6 +396,17 @@ function opening_save(array $in,bool $append=false): array
     $existing = opening_list();
     if($append){$new=$in['lines']??[];if(!is_array($new)||!$new)throw new ApiError('Add a new opening stock row.',422);foreach($new as$row)if(!empty($row['id']))throw new ApiError('Only Admin can change saved opening stock.',403);$in['lines']=array_merge($existing,$new);}
     $existingIds = array_column($existing, 'id');
+    $targetId = null;
+    if (!$append && array_key_exists('opening_id', $in)) {
+        $targetId = (int) $in['opening_id'];
+        if (!in_array($targetId, $existingIds, true)) throw new ApiError('This opening stock entry no longer exists.', 404);
+        $changes = $in['lines'] ?? null;
+        if (!is_array($changes) || count($changes) > 1) throw new ApiError('Select one opening stock entry.', 422);
+        if ($changes && (!is_array($changes[0] ?? null) || empty($changes[0]['material_id']))) throw new ApiError('Select a material.', 422, ['lines.0.material_id' => 'Select a material.']);
+        if ($changes) $changes[0]['id'] = $targetId;
+        $otherRows = array_values(array_filter($existing, fn ($row) => $row['id'] !== $targetId));
+        $in['lines'] = array_merge($changes, $otherRows);
+    }
     $errors = [];
     $lines = [];
     foreach (is_array($in['lines'] ?? null) ? $in['lines'] : [] as $n => $row) {
@@ -441,7 +452,7 @@ function opening_save(array $in,bool $append=false): array
 
         $keep = [];
         foreach ($lines as $l) {
-            if($append&&$l['id']){$keep[]=$l['id'];continue;}
+            if ($l['id'] && ($append || ($targetId !== null && $l['id'] !== $targetId))){$keep[]=$l['id'];continue;}
             if ($l['id']) {
                 $pdo->prepare('UPDATE opening_stock SET entry_date = :d, variant_id = :v, quantity = :q, remarks = :r, updated_at = :u WHERE id = :id')
                     ->execute(['d' => $l['entry_date'], 'v' => $l['variant_id'], 'q' => $l['quantity'], 'r' => $l['remarks'], 'u' => now(), 'id' => $l['id']]);
@@ -464,6 +475,7 @@ function opening_save(array $in,bool $append=false): array
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+    if ($targetId !== null && !$changes) return ['data' => opening_list(), 'message' => 'Opening stock entry deleted.'];
     return ['data' => opening_list(), 'message' => 'Opening stock saved (' . count($lines) . ' ' . (count($lines) === 1 ? 'line' : 'lines') . ').'];
 }
 

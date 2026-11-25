@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, Plus, RefreshCw, Upload } from 'lucide-react';
+import { Download, Pencil, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { docsApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
@@ -11,13 +11,15 @@ import { thCls, tdCls } from '../../components/table';
 import { openingStockCsvHeader, parseOpeningStockCsv } from '../../lib/openingStockCsv';
 
 
-// Opening stock: what is on hand when you start. One list, saved together.
+// Opening stock recorded before normal inventory movements.
 export default function OpeningStock() {
   const { canEdit, canCreateStock } = useAuth();
   const toast = useToast();
   const cat = useCatalog();
   const [savedRows,setSavedRows]=useState(null);
   const [lines, setLines] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -26,34 +28,41 @@ export default function OpeningStock() {
   const [reading, setReading] = useState(false);
   const inputRef = useRef(null);
 
-  const formLines = () => toStockLines(canEdit ? savedRows : [], { entry_date: today() });
+  const formLines = () => toStockLines([], { entry_date: today() });
   const load = () => {
     setLoadError('');
     docsApi.opening().then((r) => setSavedRows(r.data)).catch((e) => setLoadError(e.message));
   };
 
-  function openForm() {
+  function openForm(row) {
     setErrors({});
     setFormError('');
-    setLines(formLines());
+    setEditId(row?.id ?? null);
+    setLines(row ? toStockLines([row]) : formLines());
   }
 
   function closeForm() {
     setErrors({});
     setFormError('');
     setLines(null);
+    setEditId(null);
   }
   useEffect(load, []);
 
-  const save = async () => {
+  const save = async (deleteId = null) => {
     setSaving(true); setFormError('');
     try {
-      const r = await (canEdit?docsApi.saveOpening:docsApi.addOpening)(lines.map(({ id, entry_date, material_id, values, quantity, remarks }) => ({ id, entry_date, material_id, values, quantity, remarks })));
+      const payload = deleteId === null
+        ? lines.map(({ entry_date, material_id, values, quantity, remarks }) => ({ entry_date, material_id, values, quantity, remarks }))
+        : [];
+      const id = deleteId ?? editId;
+      const r = id === null ? await docsApi.addOpening(payload) : await docsApi.saveOpening(payload, id);
       toast(r.message);
       setSavedRows(r.data);
       closeForm();
+      setDeleting(null);
       cat.refresh();
-    } catch (e) { setErrors(e.fields || {}); setFormError(e.message); } finally { setSaving(false); }
+    } catch (e) { setErrors(e.fields || {}); setFormError(e.fields?.lines || e.message); } finally { setSaving(false); }
   };
 
   function downloadTemplate() {
@@ -83,7 +92,7 @@ export default function OpeningStock() {
 
   const materialsByCode = new Map(cat.materials.filter(material => material.is_active && material.material_code)
     .map(material => [material.material_code.toLowerCase(), material]));
-  const existingRows = lines ? (canEdit ? lines : [...savedRows, ...lines]) : savedRows || [];
+  const existingRows = [...(savedRows || []), ...(lines || [])];
   const existingIds = new Set(existingRows.map(row => String(row.material_id)));
   const fileIds = new Set();
   const importRows = (preview || []).map(row => {
@@ -118,9 +127,9 @@ export default function OpeningStock() {
       {canCreateStock && (
         <div className="flex flex-wrap justify-end gap-2">
           <button type="button" onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm"><Download size={16} /> CSV Template</button>
-          <button type="button" disabled={!cat.loaded || saving || reading} onClick={() => inputRef.current.click()}
+          <button type="button" disabled={!cat.loaded || saving || reading || editId !== null} onClick={() => inputRef.current.click()}
             className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-brand-700 disabled:opacity-50"><Upload size={16} /> Bulk Upload</button>
-          {!lines && <button type="button" onClick={openForm} className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add Opening Stock</button>}
+          {!lines && <button type="button" onClick={() => openForm()} className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add Opening Stock</button>}
           <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={readUpload} />
         </div>
       )}
@@ -141,15 +150,29 @@ export default function OpeningStock() {
           </div>
         </Modal>
       )}
-      {formError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
-      {(!lines || !canEdit) && (savedRows.length > 0
-        ? <StockLines title="Saved Opening Stock" lines={toStockLines(savedRows)} readOnly showDate />
+      {deleting && (
+        <Modal open title="Delete Opening Stock" onClose={() => { if (!saving) { setDeleting(null); setFormError(''); } }} footer={<>
+          <button type="button" disabled={saving} onClick={() => { setDeleting(null); setFormError(''); }} className="rounded-lg border px-3 py-2">Cancel</button>
+          <button type="button" disabled={saving} onClick={() => save(deleting.id)} className="btn-dismiss px-3 py-2">{saving ? 'Deleting…' : 'Delete'}</button>
+        </>}>
+          <p>Delete the opening stock entry for <strong>{deleting.material_name}</strong>?</p>
+          {formError && <p role="alert" className="mt-2 text-red-700">{formError}</p>}
+        </Modal>
+      )}
+      {formError && !deleting && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
+      {!lines && (savedRows.length > 0
+        ? <StockLines title="Saved Opening Stock" lines={toStockLines(savedRows)} readOnly showDate renderRowActions={canEdit ? row => (
+            <div className="inline-flex gap-1">
+              <button type="button" title="Edit opening stock" aria-label={`Edit opening stock for ${row.material_name}`} onClick={() => openForm(row)} className="rounded-md p-1.5 text-brand-600 hover:bg-brand-50"><Pencil size={16} /></button>
+              <button type="button" title="Delete opening stock" aria-label={`Delete opening stock for ${row.material_name}`} onClick={() => { setFormError(''); setDeleting(row); }} className="rounded-md p-1.5 text-red-600 hover:bg-red-50"><Trash2 size={16} /></button>
+            </div>
+          ) : undefined} />
         : !lines && <p className="rounded-xl border bg-white p-6 text-center text-sm text-gray-600">No opening stock has been saved.</p>)}
-      {lines && <StockLines title="Add Opening Stock" lines={lines} onChange={(ls) => { setLines(ls); setErrors({}); }} errors={errors} showDate />}
+      {lines && <StockLines title={editId === null ? "Add Opening Stock" : "Edit Opening Stock"} singleLine={editId !== null} lines={lines} onChange={(ls) => { setLines(ls); setErrors({}); }} errors={errors} showDate />}
       {lines && canCreateStock && (
         <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
           <button onClick={closeForm} disabled={saving || reading} className="btn-dismiss px-3 py-2 disabled:opacity-60">Cancel</button>
-          <button onClick={save} disabled={saving} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Opening Stock'}</button>
+          <button onClick={() => save()} disabled={saving || reading} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Opening Stock'}</button>
         </div>
       )}
     </div>
