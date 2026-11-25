@@ -15,6 +15,7 @@ const DRAWING_MAX_BYTES = 25 * 1024 * 1024;
 function item_fields_route(string $method): void
 {
     if ($method === 'GET') { json_out(item_fields_list()); return; }
+    if ($method === 'POST') { require_admin(); json_out(item_field_add(request_body()), 201); return; }
     if ($method === 'PUT') { json_out(item_fields_save(request_body())); return; }
     throw new ApiError('Not found.', 404);
 }
@@ -24,6 +25,28 @@ function item_fields(bool $activeOnly = false): array
     $rows = db_all('SELECT f.id, f.name, f.sort_order, f.is_active, (SELECT COUNT(*) FROM order_item_values v WHERE v.field_id = f.id) AS used
                       FROM item_fields f' . ($activeOnly ? ' WHERE f.is_active = 1' : '') . ' ORDER BY f.sort_order, f.id');
     return array_map(fn ($r) => ['id' => (int) $r['id'], 'name' => $r['name'], 'sort_order' => (int) $r['sort_order'], 'is_active' => (bool) $r['is_active'], 'used' => (int) $r['used']], $rows);
+}
+
+function item_field_add(array $input): array
+{
+    $name = is_string($input['name'] ?? null) ? preg_replace('/\s+/', ' ', trim($input['name'])) : '';
+    if ($name === '' || mb_strlen($name) > 50) {
+        throw new ApiError('Enter a field name up to 50 characters.', 422, ['name' => 'Enter a field name up to 50 characters.']);
+    }
+    $lock = 'order_item_fields_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!db_value('SELECT GET_LOCK(?, 10)', [$lock])) throw new ApiError('Fields are busy. Please try again.', 503);
+    try {
+        if (db_value('SELECT id FROM item_fields WHERE name=? LIMIT 1', [$name])) {
+            throw new ApiError('That field already exists.', 422, ['name' => 'That field already exists.']);
+        }
+        $position = 1 + (int) db_value('SELECT COALESCE(MAX(sort_order), 0) FROM item_fields');
+        db()->prepare('INSERT INTO item_fields (name, sort_order) VALUES (?, ?)')->execute([$name, $position]);
+        return ['data' => [
+            'id' => (int) db()->lastInsertId(), 'name' => $name, 'sort_order' => $position, 'is_active' => true, 'used' => 0,
+        ]];
+    } finally {
+        db_value('SELECT RELEASE_LOCK(?)', [$lock]);
+    }
 }
 
 function distinct_values(string $sql, array $params = []): array

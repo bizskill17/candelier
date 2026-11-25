@@ -85,6 +85,7 @@ export const materialsApi = {
 // Order item fields (your own list) and photo uploads
 export const itemsApi = {
   fields: () => request('GET', 'item-fields'),
+  addField: (name) => request('POST', 'item-fields', { body: { name } }),
   saveFields: (fields) => request('PUT', 'item-fields', { body: { fields } }),
   upload: async (file, kind) => {
     const fd = new FormData();
