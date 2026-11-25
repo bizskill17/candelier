@@ -13,8 +13,15 @@ $c=contact_save(null,$contactRequired+['name'=>'CRM integration contact','mobile
 reject(fn()=>contact_save(null,$contactRequired+['name'=>'Duplicate','mobile'=>'+98 7650-1234']),'Duplicate normalised mobile rejected');
 reject(fn()=>contact_save(null,$contactRequired+['name'=>'Duplicate','mobile'=>'9876501243','email'=>'CRM-TEST@example.test']),'Duplicate email rejected');
 $count=(int)db_value('SELECT COUNT(*) FROM contacts');
-reject(fn()=>contact_bulk(['rows'=>[$contactRequired+['name'=>'Rollback contact','mobile'=>'9876501235'],['name'=>'Bad category','mobile'=>'9876501236','category'=>'Does not exist']]]),'Contact bulk upload rolls back all rows');
-check((int)db_value('SELECT COUNT(*) FROM contacts')===$count,'Bulk failure leaves no partial contacts');
+$import = contact_bulk(['rows'=>[
+    ['name'=>'Imported Contact', 'mobile'=>'9876501235', 'category'=>'Imported category', 'city'=>'Imported City'],
+    ['name'=>'CRM integration contact', 'mobile'=>'9876501236', 'category'=>'Rolled back category', 'city'=>'Skipped City'],
+    ['name'=>'Missing category contact', 'mobile'=>'9876501237', 'city'=>'Guwahati'],
+]]);
+check($import['added'] === 1 && $import['imported_rows'] === [2], 'Bulk import reports successful row independently');
+check(str_contains($import['errors']->{'Row 3'}, 'name already exists') && $import['errors']->{'Row 4'} === 'Category is missing.', 'Bulk import reports row-specific rejection reasons');
+check((int)db_value('SELECT COUNT(*) FROM contacts') === $count + 1 && db_value("SELECT city FROM contacts WHERE name='Imported Contact'") === 'Imported City', 'Bulk import saves valid contact and new city');
+check(db_value("SELECT id FROM client_categories WHERE name='Imported category'") && !db_value("SELECT id FROM client_categories WHERE name='Rolled back category'"), 'Only successful rows create new categories');
 $l=lead_save(null,['contact_id'=>$cid,'enquiry_date'=>date('Y-m-d'),'requirement'=>'Cold requirement','initial_temperature'=>'Cold'])['data'];$lid=$l['id'];
 check((int)contact_find($cid)['followup_count']===0,'Lead creation leaves Contact Never Followed Up');
 $_GET=['view'=>'never'];check(in_array($cid,array_map('intval',array_column(contact_list()['data'],'id')),true),'Never Followed Up view includes contacts with only system events');
