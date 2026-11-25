@@ -5,7 +5,7 @@ import { Search, RefreshCw, Printer, History } from 'lucide-react';
 import { inventoryApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
-import { useCatalog } from '../../lib/catalog';
+import { materialLabel, useCatalog } from '../../lib/catalog';
 import SearchSelect from '../../components/SearchSelect';
 import DateInput from '../../components/DateInput';
 import Modal from '../../components/Modal';
@@ -53,10 +53,10 @@ export default function InventoryPage() {
     <div className="mx-auto max-w-[90rem] space-y-4">
       <div className="print:hidden flex flex-wrap gap-2">
         <SearchSelect id="filter-category" className="w-full sm:w-52" options={[{ value: '', label: 'All categories' }, ...cat.categories.map(c => ({ value: c.id, label: c.name }))]} value={categoryId} onChange={v => { setCategoryId(v); setMaterialId(''); }} placeholder="All categories" clearable />
-        <SearchSelect id="filter-material" className="w-full sm:w-52" options={[{ value: '', label: 'All materials' }, ...cat.materials.filter(m => !categoryId || String(m.category_id) === String(categoryId)).map((m) => ({ value: m.id, label: m.name }))]} value={materialId} onChange={setMaterialId} placeholder="All materials" clearable />
+        <SearchSelect id="filter-material" className="w-full sm:w-52" options={[{ value: '', label: 'All materials' }, ...cat.materials.filter(m => !categoryId || String(m.category_id) === String(categoryId)).map((m) => ({ value: m.id, label: materialLabel(m.name, m.material_code) }))]} value={materialId} onChange={setMaterialId} placeholder="All materials" clearable />
         <label className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
           <Search size={16} className="text-gray-400" />
-          <input id="search-inventory" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search materials…" className="w-full bg-transparent text-sm focus:outline-none" />
+          <input id="search-inventory" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or material code…" className="w-full bg-transparent text-sm focus:outline-none" />
         </label>
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"><Printer size={15} /> Print / PDF</button>
       </div>
@@ -92,7 +92,7 @@ export default function InventoryPage() {
                   {g.rows.map((r) => (
                     <tr key={r.id} className={loading ? 'opacity-60' : ''}>
                       <td className={td}>{categoryName(r.material_id)}</td>
-                      <td className={`${td} pl-5`}>{r.material_name}</td>
+                      <td className={`${td} pl-5`}>{materialLabel(r.material_name, r.material_code)}</td>
                       <td className={td}>{r.unit}</td>
                       <td className={num}>{fmtQty(r.opening)}</td>
                       <td className={num}>{fmtQty(r.purchased)}</td>
@@ -139,7 +139,7 @@ function VariantDetail({ variant, canEdit, onClose, onChanged }) {
   const tabs = [['history', 'History'], ['bookings', `Blocks${d ? ` (${d.bookings.length})` : ''}`], ...(canEdit ? [['adjust', 'Count Correction']] : [])];
 
   return (
-    <Modal open wide="xl" title={variant.material_name} onClose={onClose} footer={<button onClick={onClose} className="btn-dismiss px-3 py-2">Close</button>}>
+    <Modal open wide="xl" title={materialLabel(variant.material_name, variant.material_code)} onClose={onClose} footer={<button onClick={onClose} className="btn-dismiss px-3 py-2">Close</button>}>
       {!d ? <div className="h-32 animate-pulse rounded bg-gray-100" /> : (
         <>
           <div className="mb-4 grid grid-cols-3 gap-3 text-center">

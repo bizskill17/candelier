@@ -25,9 +25,9 @@ function inventory_rows(?int $materialId = null, string $q = ''): array
     $where = ['1 = 1'];
     $params = [];
     if ($materialId) { $where[] = 'v.material_id = :m'; $params['m'] = $materialId; }
-    if ($q !== '') { $where[] = '(v.spec_text LIKE :q1 OR m.name LIKE :q2)'; $params += ['q1' => "%$q%", 'q2' => "%$q%"]; }
+    if ($q !== '') { $where[] = '(v.spec_text LIKE :q1 OR m.name LIKE :q2 OR m.material_code LIKE :q3)'; $params += ['q1' => "%$q%", 'q2' => "%$q%", 'q3' => "%$q%"]; }
     $rows = db_all(
-        "SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.unit, m.sort_order,
+        "SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.material_code, m.unit, m.sort_order,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'opening' THEN s.quantity END), 0) AS opening,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' THEN s.quantity END), 0) AS purchased,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' AND r.receipt_type = 'Sample' THEN s.quantity END), 0) AS samples,
@@ -40,7 +40,7 @@ function inventory_rows(?int $materialId = null, string $q = ''): array
            LEFT JOIN stock_moves s ON s.variant_id = v.id
            LEFT JOIN material_receipts r ON s.ref_type = 'receipt' AND r.id = s.ref_id
           WHERE " . implode(' AND ', $where) . '
-          GROUP BY v.id, v.material_id, v.spec_text, v.reorder_level, m.name, m.unit, m.sort_order
+          GROUP BY v.id, v.material_id, v.spec_text, v.reorder_level, m.name, m.material_code, m.unit, m.sort_order
           ORDER BY m.sort_order, m.name, v.spec_text',
         $params
     );
