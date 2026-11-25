@@ -167,26 +167,59 @@ function contact_save(?int $id,array $in): array {
         db_value('SELECT RELEASE_LOCK(?)', [$lock]);
     }
 }
-function contact_bulk(array $in): array {
-    $rows=$in['rows']??[];if(!is_array($rows)||!$rows||count($rows)>1000)throw new ApiError('Upload between 1 and 1000 contacts.',422);
+function contact_bulk(array $in): array
+{
+    $rows = $in['rows'] ?? [];
+    if (!is_array($rows) || !array_is_list($rows) || !$rows || count($rows) > 1000) {
+        throw new ApiError('Upload between 1 and 1000 contacts.', 422);
+    }
+
     $lock = contact_identity_lock();
-    $pdo=db();$errors=[];$added=0;
-    try{$pdo->beginTransaction();foreach($rows as$i=>$row){try{
-        if(!is_array($row))throw new ApiError('Invalid row.',422);
-        foreach(['category'=>'client_categories','source'=>'lead_sources','state'=>'states']as$k=>$table){if(trim((string)($row[$k]??''))!==''){$found=db_value("SELECT id FROM $table WHERE name=:n",['n'=>trim($row[$k])]);if(!$found)throw new ApiError("Unknown $k: ".$row[$k],422);$row[$k.'_id']=(int)$found;}}
-        contact_save(null,$row);$added++;
-    } catch (ApiError $e) {
-        $reasons = $e->fields;
-        if (isset($reasons['category_id']) && empty($row['category_id'])) {
-            $reasons['category_id'] = 'Category is missing.';
+    $pdo = db();
+    $errors = [];
+    $imported = [];
+    try {
+        $pdo->beginTransaction();
+        foreach ($rows as $index => $row) {
+            $rowNumber = $index + 2;
+            $pdo->exec('SAVEPOINT contact_import_row');
+            try {
+                if (!is_array($row)) throw new ApiError('Invalid row.', 422);
+                foreach (['category' => 'client_categories', 'source' => 'lead_sources', 'state' => 'states'] as $key => $table) {
+                    $name = trim((string) ($row[$key] ?? ''));
+                    if ($name === '') continue;
+                    $id = db_value("SELECT id FROM $table WHERE LOWER(name)=LOWER(?)", [$name]);
+                    if (!$id && $key === 'category') {
+                        if (mb_strlen($name) > 60) throw new ApiError('Category must be 60 characters or fewer.', 422);
+                        $id = master_save(entity('client_categories'), null, ['name' => $name])['data']['id'];
+                    }
+                    if (!$id) throw new ApiError("Unknown $key: $name", 422);
+                    $row[$key.'_id'] = (int) $id;
+                }
+                contact_save(null, $row);
+                $imported[] = $rowNumber;
+            } catch (ApiError $error) {
+                $pdo->exec('ROLLBACK TO SAVEPOINT contact_import_row');
+                $reasons = $error->fields;
+                if (isset($reasons['category_id']) && empty($row['category_id'])) $reasons['category_id'] = 'Category is missing.';
+                $errors['Row '.$rowNumber] = $reasons ? implode(' ', array_unique(array_values($reasons))) : $error->getMessage();
+            }
+            $pdo->exec('RELEASE SAVEPOINT contact_import_row');
         }
-        $errors['Row '.($i+2)] = $reasons ? implode(' ', array_unique(array_values($reasons))) : $e->getMessage();
-    }}
-    if($errors)throw new ApiError('No contacts imported. Fix the indicated rows.',422,$errors);$pdo->commit();}
-    catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
-    finally { db_value('SELECT RELEASE_LOCK(?)', [$lock]); }
-    return ['message'=>"$added contacts imported.",'added'=>$added];
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    } finally {
+        db_value('SELECT RELEASE_LOCK(?)', [$lock]);
+    }
+
+    $added = count($imported);
+    $skipped = count($errors);
+    $message = "$added imported, $skipped skipped.";
+    return ['message' => $message, 'added' => $added, 'imported_rows' => $imported, 'errors' => (object) $errors];
 }
+
 function leads_route(string $method,array $parts): void {
     $id=isset($parts[0])?(int)$parts[0]:null;$sub=$parts[1]??null;
     if($id===null){if($method==='GET'){json_out(lead_list());return;}if($method==='POST'){json_out(lead_save(null,lead_form_input(request_body())),201);return;}}

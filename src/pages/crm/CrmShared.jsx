@@ -21,9 +21,9 @@ export function indiaNow() {
 export const fmtAt = (v) => v ? `${v.slice(0,10).split('-').reverse().join('/')} ${v.slice(11,19)}` : '—';
 export function Field({label, children, required, className}) { return <div className={className}><label className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>{children}</div>; }
 export function Choice({label, value, onChange, values, disabled, error}) {return <SearchSelect aria-label={label} value={value} onChange={onChange} options={values.map(v=>typeof v==='string'?{value:v,label:v}:v)} disabled={disabled} error={error} />;}
-export function useCrmLookups() {
+export function useCrmLookups(revision = 0) {
  const [data,setData]=useState({contacts:[],categories:[],sources:[],states:[],users:[]});
- useEffect(()=>{let live=true;Promise.allSettled([api.lookup('contacts'),api.lookup('client_categories'),api.lookup('lead_sources'),api.lookup('states'),ordersApi.users()]).then(results=>{if(live)setData(Object.fromEntries(['contacts','categories','sources','states','users'].map((key,i)=>[key,results[i].status==='fulfilled'?results[i].value.data:[]])));}).catch(()=>{});return()=>{live=false;};},[]);
+ useEffect(()=>{let live=true;Promise.allSettled([api.lookup('contacts'),api.lookup('client_categories'),api.lookup('lead_sources'),api.lookup('states'),ordersApi.users()]).then(results=>{if(live)setData(Object.fromEntries(['contacts','categories','sources','states','users'].map((key,i)=>[key,results[i].status==='fulfilled'?results[i].value.data:[]])));}).catch(()=>{});return()=>{live=false;};},[revision]);
  return data;
 }
 export function ContactForm({contact={}, onClose, onSaved}) {
