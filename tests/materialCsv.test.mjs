@@ -7,4 +7,12 @@ assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material N
 assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,Prism,Pcs,Extra'), /Row 2/);
 assert.throws(() => parseMaterialCsv('Category,Name,Unit\nMAT-001,Crystal,Prism,Pcs'), /template/);
 assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit'), /between/);
+const { parseOpeningStockCsv } = await import('../src/lib/openingStockCsv.js');
+const openingHeader = 'Date,Material Code,Quantity,Remarks\n';
+const openingRows = parseOpeningStockCsv(openingHeader + '25/11/2026,M-1,12.125,"Counted, checked"\n31/02/2026,M-2,0,', '2026-11-25');
+assert.equal(openingRows[0].entryDate, '2026-11-25');
+assert.equal(openingRows[0].remarks, 'Counted, checked');
+assert.deepEqual(openingRows[0].errors, []);
+assert.equal(openingRows[1].errors.length, 2);
+assert.match(parseOpeningStockCsv(openingHeader + '2026-11-26,M-1,2,', '2026-11-25')[0].errors[0], /future/);
 console.log('CSV parsing checks passed.');

@@ -1,5 +1,5 @@
 // CSV import accepts quoted commas, line breaks, escaped quotes and UTF-8 BOM.
-export function parseMaterialCsv(text) {
+export function readCsvRows(text) {
   const rows = []; let row = [], cell = '', quoted = false, closed = false;
   text = text.replace(/^\uFEFF/, '');
   for (let i = 0; i < text.length; i++) {
@@ -20,6 +20,11 @@ export function parseMaterialCsv(text) {
   }
   if (quoted) throw new Error('The CSV has an unclosed quotation mark.');
   row.push(cell.trim()); if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+
+export function parseMaterialCsv(text) {
+  const rows = readCsvRows(text);
   const header = rows.shift();
   if (!header || header.length !== 4 || header.map((x) => x.toLowerCase()).join('|') !== 'material code|material category|material name|unit') throw new Error('Use the template columns: Material Code, Material Category, Material Name, Unit.');
   if (!rows.length || rows.length > 500) throw new Error('Upload between 1 and 500 material rows.');

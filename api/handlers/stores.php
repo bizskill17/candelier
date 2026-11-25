@@ -418,7 +418,7 @@ function opening_save(array $in,bool $append=false): array
         $seen = [];$duplicates=[];
         foreach ($lines as &$l) {
             $l['variant_id'] = variant_resolve($l['material_id'], $l['values']);
-            if ($d['type']!=='material-in' && isset($duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that row instead.']);
+            if (isset($duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')])) throw new ApiError('Please fix the highlighted rows.', 422, ["lines.{$l['n']}.values" => 'This material is already listed. Change the quantity on that row instead.']);
             $duplicates[$l['variant_id'].':'.($l['inventory_type']??'Normal')]=true;
             if(!isset($seen[$l['variant_id']])||($l['inventory_type']??'Normal')==='Normal')$seen[$l['variant_id']] = $l['n'];
         }
