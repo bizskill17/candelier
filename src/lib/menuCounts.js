@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { menu } from '../config/menu';
 import { api, enquiriesApi, contactsApi, whatsappApi, crmApi, ordersApi, drawingApi, productionApi, historyApi, itemsApi, materialsApi, docsApi, inventoryApi, samplesApi } from '../api/client';
 
 // Numbers shown beside left-menu items: how many records each list holds right now.
@@ -38,30 +39,57 @@ const counters = {
   transporters: master('transporters'),
   'sample-inventory': () => samplesApi.list({ page: 1 }).then(size),
   'sample-issues': () => samplesApi.history({ page: 1 }).then(size),
-  inventory: () => inventoryApi.list({ page: 1, per_page: 1 }).then(size),
+  inventory: () => inventoryApi.list({ only: 'instock' }).then(r => r.summary?.in_stock ?? size(r)),
   users: master('users'),
 };
 
 const REFRESH_MS = 2 * 60 * 1000;
 
-/** keys: the menu item keys this user can see. Refreshes on every screen change, after every save, and every 2 minutes. */
+const menuItems = menu.flatMap(group => group.items);
+
 export function useMenuCounts(keys) {
   const { pathname } = useLocation();
   const [counts, setCounts] = useState({});
-  const wanted = keys.filter((k) => counters[k]).join(',');
+  const refresh = useRef(null);
+  const wanted = keys.filter(key => counters[key]).join(',');
+  const activeKey = menuItems.find(item => item.path === pathname)?.key;
+
   useEffect(() => {
+    const visible = new Set(wanted.split(',').filter(Boolean));
+    const latest = new Map();
+    const pending = new Set();
     let alive = true;
-    const run = () => wanted.split(',').filter(Boolean).forEach((k) => {
-      counters[k]().then((n) => { if (alive) setCounts((c) => (c[k] === n ? c : { ...c, [k]: n })); }).catch(() => {});
-    });
-    const due = Date.now() - (window.__menuCountsAt || 0) > 30000;
-    const runAll = () => { window.__menuCountsAt = Date.now(); run(); };
-    let t = due ? setTimeout(runAll, 400) : null; // after the screen's own data has loaded; at most every 30 s on navigation
-    const iv = setInterval(runAll, REFRESH_MS);
-    // Any save, change or delete anywhere in the app refreshes the numbers at once.
-    const onChange = () => { clearTimeout(t); t = setTimeout(runAll, 250); };
-    window.addEventListener('candelier:data-changed', onChange);
-    return () => { alive = false; clearTimeout(t); clearInterval(iv); window.removeEventListener('candelier:data-changed', onChange); };
-  }, [wanted, pathname]);
+
+    const run = (key, skipPending = false) => {
+      if (!visible.has(key) || (skipPending && pending.has(key))) return;
+      const request = Symbol();
+      latest.set(key, request);
+      pending.add(key);
+      counters[key]().then(count => {
+        if (alive && latest.get(key) === request) {
+          setCounts(current => current[key] === count ? current : { ...current, [key]: count });
+        }
+      }).catch(() => {}).finally(() => {
+        if (latest.get(key) === request) pending.delete(key);
+      });
+    };
+
+    const refreshAll = () => visible.forEach(key => run(key));
+    refresh.current = key => run(key, true);
+    refreshAll();
+    const interval = setInterval(refreshAll, REFRESH_MS);
+    window.addEventListener('candelier:data-changed', refreshAll);
+    return () => {
+      alive = false;
+      refresh.current = null;
+      clearInterval(interval);
+      window.removeEventListener('candelier:data-changed', refreshAll);
+    };
+  }, [wanted]);
+
+  useEffect(() => {
+    refresh.current?.(activeKey);
+  }, [activeKey, wanted]);
+
   return counts;
 }
