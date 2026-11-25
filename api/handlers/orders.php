@@ -172,9 +172,12 @@ function order_validate(?array $existing, array $in): array
     elseif (!valid_date($dd)) $errors['delivery_date'] = 'Enter a valid date.';
     elseif (!isset($errors['order_date']) && $dd < $h['order_date']) $errors['delivery_date'] = 'Target delivery date cannot be before the order date.';
     else $h['delivery_date'] = $dd;
-    $ob = (int) ($in['order_by_id'] ?? 0);
-    if ($ob && !db_value('SELECT COUNT(*) FROM users WHERE id = :id', ['id' => $ob])) $errors['order_by_id'] = 'Choose a valid user.';
-    $h['order_by_id'] = $ob ?: null;
+    $ob = (int) (array_key_exists('order_by_id', $in)
+        ? $in['order_by_id']
+        : ($existing['order_by_id'] ?? current_user()['id'] ?? 0));
+    if (!$ob) $errors['order_by_id'] = 'Select who placed the order.';
+    elseif (!db_value('SELECT COUNT(*) FROM users WHERE id = :id', ['id' => $ob])) $errors['order_by_id'] = 'Choose a valid user.';
+    $h['order_by_id'] = $ob;
     $addr = trim((string) ($in['shipping_address'] ?? ''));
     if (mb_strlen($addr) > 255) $errors['shipping_address'] = 'Keep this under 255 characters.';
     $h['shipping_address'] = $addr === '' ? null : $addr;

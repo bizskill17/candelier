@@ -92,7 +92,13 @@ export default function OrderForm({ id, leadId }) {
 
   const save = async (e) => {
     e?.preventDefault();
-    if (!header.delivery_date) { setErrors((prev) => ({ ...prev, delivery_date: 'Enter the target delivery date.' })); return; }
+    const requiredErrors = {};
+    if (!header.order_by_id) requiredErrors.order_by_id = 'Select who placed the order.';
+    if (!header.delivery_date) requiredErrors.delivery_date = 'Enter the target delivery date.';
+    if (Object.keys(requiredErrors).length) {
+      setErrors((prev) => ({ ...prev, ...requiredErrors }));
+      return;
+    }
     setSaving(true);
     setFormError('');
     const body = { ...header, items: items.map(itemBody), lead_id: !isEdit && fromLead ? fromLead.id : undefined };
@@ -170,8 +176,8 @@ export default function OrderForm({ id, leadId }) {
             <Field label="Order Date" required htmlFor="o-date" error={errors.order_date}>
               <DateInput id="o-date" value={header.order_date} onChange={(v) => setH('order_date', v)} error={errors.order_date} disabled={locked} />
             </Field>
-            <Field label="Order By" htmlFor="o-by" error={errors.order_by_id}>
-              <SearchSelect id="o-by" options={userOpts} value={header.order_by_id} onChange={(v) => setH('order_by_id', v)} disabled={locked || !users || user?.role!=='Admin'} placeholder="Select user" clearable />
+            <Field label="Order By" required htmlFor="o-by" error={errors.order_by_id}>
+              <SearchSelect id="o-by" error={errors.order_by_id} options={userOpts} value={header.order_by_id} onChange={(v) => setH('order_by_id', v)} disabled={locked || !users || user?.role!=='Admin'} placeholder="Select user" />
             </Field>
             <Field label="Customer" required htmlFor="o-customer" error={errors.customer_id} className="sm:col-span-2">
               <div className="flex gap-1.5">
@@ -185,7 +191,7 @@ export default function OrderForm({ id, leadId }) {
             <Field label="Target Delivery Date" required htmlFor="o-delivery" error={errors.delivery_date}>
               <DateInput id="o-delivery" min={header.order_date} value={header.delivery_date} onChange={(v) => setH('delivery_date', v)} error={errors.delivery_date} disabled={locked} />
             </Field>
-            <Field label="Shipping Address" htmlFor="o-address" error={errors.shipping_address} className="sm:col-span-2 lg:col-span-4">
+            <Field label="Shipping Address" htmlFor="o-address" error={errors.shipping_address}>
               <textarea id="o-address" rows={1} disabled={locked} value={header.shipping_address} onChange={(e) => setH('shipping_address', e.target.value)} className={inputCls(errors.shipping_address)} placeholder="Filled from the customer" />
             </Field>
           </div>
