@@ -99,7 +99,7 @@ export const menu = [
   {
     heading: 'Sample',
     items: [
-      { key: 'sample-material-in', permissionKey: 'material-in', label: 'Material In', path: '/material-in/new/sample', icon: PackagePlus },
+      { key: 'sample-material-in', permissionKey: 'material-in', label: 'Sample Material In', path: '/material-in/new/sample', icon: PackagePlus },
       {key:'sample-inventory',label:'Sample Inventory',path:'/sample-inventory',icon:Warehouse,description:'Separate sample stock and issues against orders.'},
       {key:'sample-issues',label:'Sample Issue History',path:'/sample-issues',icon:PackageMinus},
     ],
