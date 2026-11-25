@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Copy, Printer, Plus, Trash2, Lock, Unlock, PackageMinus, RefreshCw } from 'lucide-react';
 import { boqApi, materialsApi, imageUrl } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
+import { canOpenView } from '../../auth/permissions';
 import { useToast } from '../../components/Toast';
 import { materialLabel, useCatalog } from '../../lib/catalog';
 import SearchSelect from '../../components/SearchSelect';
@@ -178,7 +179,7 @@ function BoqEditor({ itemId }) {
   const goBack = () => navigate(returnToIssue ? `/material-issue/new/item/${itemId}` : '/pending-boq');
   const toast = useToast();
   const cat = useCatalog();
-  const { canEdit, canCreateSales, canCreateStock } = useAuth();
+  const { user, canEdit, canCreateSales, canCreateStock } = useAuth();
   const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
   const [stats, setStats] = useState({});
@@ -263,6 +264,10 @@ function BoqEditor({ itemId }) {
       const r = await boqApi.save(itemId, send.map((x) => ({ material_id: x.material_id, category_id: x.category_id, values: {}, qty_required: x.qty })), status);
       toast(r.message);
       await cat.refresh();
+      if (canOpenView('/pending-boq', user)) {
+        navigate('/pending-boq', { replace: true });
+        return;
+      }
       setData(r.data);
       const rs = buildRows(r.data.lines, r.data.extra);
       setRows(rs);
