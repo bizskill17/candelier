@@ -175,7 +175,13 @@ function contact_bulk(array $in): array {
         if(!is_array($row))throw new ApiError('Invalid row.',422);
         foreach(['category'=>'client_categories','source'=>'lead_sources','state'=>'states']as$k=>$table){if(trim((string)($row[$k]??''))!==''){$found=db_value("SELECT id FROM $table WHERE name=:n",['n'=>trim($row[$k])]);if(!$found)throw new ApiError("Unknown $k: ".$row[$k],422);$row[$k.'_id']=(int)$found;}}
         contact_save(null,$row);$added++;
-    }catch(ApiError $e){$errors['Row '.($i+2)]=$e->getMessage();}}
+    } catch (ApiError $e) {
+        $reasons = $e->fields;
+        if (isset($reasons['category_id']) && empty($row['category_id'])) {
+            $reasons['category_id'] = 'Category is missing.';
+        }
+        $errors['Row '.($i+2)] = $reasons ? implode(' ', array_unique(array_values($reasons))) : $e->getMessage();
+    }}
     if($errors)throw new ApiError('No contacts imported. Fix the indicated rows.',422,$errors);$pdo->commit();}
     catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     finally { db_value('SELECT RELEASE_LOCK(?)', [$lock]); }
