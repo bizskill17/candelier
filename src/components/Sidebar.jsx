@@ -4,7 +4,7 @@ import { ChevronDown, KeyRound, LogOut, X } from 'lucide-react';
 import { canOpenView } from '../auth/permissions';
 import { menu } from '../config/menu';
 import { useAuth } from '../auth/AuthContext';
-import { useMenuCounts, WORK } from '../lib/menuCounts';
+import { useMenuCounts } from '../lib/menuCounts';
 
 const sectionColors = {
   Enquiries: ['#eff6ff', '#1e40af'],
@@ -82,11 +82,6 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChange
           {groups.map((group, gi) => {
             const colors = sectionColors[group.heading] || ['#f8fafc', '#334155'];
             const isClosed = Boolean(group.heading && openGroup !== group.heading && !narrow);
-            const countedItems = group.items.filter(item => counts[item.key] !== undefined);
-            const workItems = countedItems.filter(item => WORK.has(item.key));
-            // Issue includes saved issues and damage, even after all pending items are issued.
-            const sectionItems = group.heading === 'Issue' || workItems.length === 0 ? countedItems : workItems;
-            const sectionCount = sectionItems.reduce((total, item) => total + counts[item.key], 0);
             return (
               <div key={group.heading || gi} className="mb-2 rounded-xl border border-black/5 p-1" style={{backgroundColor: colors[0]}}>
                 {group.heading && !narrow && (
@@ -97,11 +92,6 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChange
                     className="flex w-full items-center gap-1.5 px-2 py-2 text-xs font-bold uppercase tracking-wide hover:opacity-80"
                   >
                     <span className="min-w-0 flex-1 text-left">{group.heading}</span>
-                    {sectionItems.length > 0 && (
-                      <span className="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] leading-none tabular-nums">
-                        {fmt(sectionCount)}
-                      </span>
-                    )}
                     <ChevronDown size={14} className={`shrink-0 transition-transform ${isClosed ? '-rotate-90' : ''}`} />
                   </button>
                 )}
@@ -132,7 +122,6 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, onChange
                               <>
                                 <span className="relative shrink-0">
                                   <Icon size={18} />
-                                  {narrow && counts[item.key] > 0 && <span aria-hidden="true" className="absolute -right-2.5 -top-2 rounded-full bg-red-500 px-1 text-[9px] font-bold leading-[14px] text-white tabular-nums">{fmt(counts[item.key])}</span>}
                                 </span>
                                 {!narrow && <span className="min-w-0 flex-1 whitespace-normal break-words">{item.label}</span>}
                                 {!narrow && counts[item.key] !== undefined && (
