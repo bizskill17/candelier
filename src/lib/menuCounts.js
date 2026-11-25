@@ -56,32 +56,60 @@ export function useMenuCounts(keys) {
 
   useEffect(() => {
     const visible = new Set(wanted.split(',').filter(Boolean));
-    const latest = new Map();
-    const pending = new Set();
-    let alive = true;
+    const queue = new Set();
+    let active = true;
+    let running = false;
+    let timer = null;
+    let priorityKey;
+    let retryAfter = 0;
 
-    const run = (key, skipPending = false) => {
-      if (!visible.has(key) || (skipPending && pending.has(key))) return;
-      const request = Symbol();
-      latest.set(key, request);
-      pending.add(key);
-      counters[key]().then(count => {
-        if (alive && latest.get(key) === request) {
+    function schedule(delay = 150) {
+      if (!active || running || timer !== null || !queue.size) return;
+      timer = setTimeout(runNext, Math.max(delay, retryAfter - Date.now()));
+    }
+
+    // Keep foreground page loads responsive on shared hosting.
+    async function runNext() {
+      timer = null;
+      const key = queue.has(priorityKey) ? priorityKey : queue.values().next().value;
+      if (!active || !key) return;
+      queue.delete(key);
+      running = true;
+      try {
+        const count = await counters[key]();
+        if (active && !queue.has(key)) {
           setCounts(current => current[key] === count ? current : { ...current, [key]: count });
         }
-      }).catch(() => {}).finally(() => {
-        if (latest.get(key) === request) pending.delete(key);
-      });
-    };
+      } catch (error) {
+        if (error.status === 0 || error.status === 429 || error.status >= 500) {
+          queue.add(key);
+          priorityKey = undefined;
+          retryAfter = Date.now() + 5000;
+        }
+      } finally {
+        running = false;
+        schedule();
+      }
+    }
 
-    const refreshAll = () => visible.forEach(key => run(key));
-    refresh.current = key => run(key, true);
+    function refreshAll() {
+      visible.forEach(key => queue.add(key));
+      schedule(350);
+    }
+
+    refresh.current = key => {
+      if (!visible.has(key)) return;
+      priorityKey = key;
+      queue.add(key);
+      schedule();
+    };
     refreshAll();
     const interval = setInterval(refreshAll, REFRESH_MS);
     window.addEventListener('candelier:data-changed', refreshAll);
     return () => {
-      alive = false;
+      active = false;
       refresh.current = null;
+      clearTimeout(timer);
       clearInterval(interval);
       window.removeEventListener('candelier:data-changed', refreshAll);
     };
