@@ -92,7 +92,15 @@ export default function EnquiriesPage(){
  {selected&&!qualify&&<Modal open wide="xl" title={`Enquiry · ${selected.name}`} onClose={()=>setSelected(null)} footer={<><button onClick={()=>setSelected(null)} className="btn-dismiss px-4 py-2">Close</button>{canCreateSales&&!selected.contact_id&&!selected.lead_id&&<button onClick={()=>setQualify(true)} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Record Follow-up</button>}{selected.contact_id&&<Link to={selected.lead_id?`/leads/all`:`/contacts/${selected.contact_id}`} className="rounded-lg bg-brand-600 px-4 py-2 text-white">Open {selected.lead_id?'Leads':'Contact'}</Link>}</>}>
  <div className="mb-5 grid gap-3 sm:grid-cols-2">{[['Name',selected.name],['Mobile',selected.mobile],['Email',selected.email],['City',selected.city],['Source',selected.source_name],['Enquiry ID',selected.external_id],['Received',fmtAt(selected.enquiry_at)],['Status',selected.inbox_status],...details.map(([k,l])=>[l,selected.source_data?.[k]])].map(([label,value])=><div key={label}><p className="text-xs text-gray-500">{label}</p><p className="whitespace-pre-wrap font-medium">{value||'—'}</p></div>)}</div>
  {!selected.contact_id&&selected.matches?.length>0&&<p className="mb-3 rounded-lg bg-amber-50 p-3">Existing contact match: {selected.matches.map(m=>m.name).join(', ')}. Qualification will use an existing Contact.</p>}{selected.repeat_enquiries?.length>0&&<p className="mb-4 text-amber-800">{selected.repeat_enquiries.length} other enquiries have the same mobile or email.</p>}<h2 className="mb-2 font-semibold">Follow-up History</h2><HistoryTable rows={selected.history}/></Modal>}
- {selected&&qualify&&<EnquiryFollowup enquiry={selected} onClose={()=>setQualify(false)} onSaved={()=>{setSelected(null);setQualify(false);load();}}/>}
+ {selected&&qualify&&<EnquiryFollowup enquiry={selected} onClose={()=>setQualify(false)} onSaved={()=>{
+   setSelected(null);
+   setQualify(false);
+   if (view === 'pending' && page === 1) load();
+   else {
+     setView('pending');
+     setPage(1);
+   }
+ }}/>}
  </div>;
 }
 function EnquiryFollowup({enquiry:e,onClose,onSaved}){
