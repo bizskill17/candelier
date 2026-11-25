@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, RefreshCw, Upload } from 'lucide-react';
+import { Download, Plus, RefreshCw, Upload } from 'lucide-react';
 import { docsApi } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { useToast } from '../../components/Toast';
@@ -16,7 +16,7 @@ export default function OpeningStock() {
   const { canEdit, canCreateStock } = useAuth();
   const toast = useToast();
   const cat = useCatalog();
-  const [savedRows,setSavedRows]=useState([]);
+  const [savedRows,setSavedRows]=useState(null);
   const [lines, setLines] = useState(null);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
@@ -26,8 +26,23 @@ export default function OpeningStock() {
   const [reading, setReading] = useState(false);
   const inputRef = useRef(null);
 
-  const fill = (rows) => {setSavedRows(rows.length?toStockLines(rows):[]);setLines(toStockLines((canEdit?rows:[]).map((r) => ({ id: r.id, entry_date: r.entry_date, material_id: r.material_id, values: r.values, quantity: r.quantity, remarks: r.remarks || '' })), { entry_date: today() }));};
-  const load = () => { setLoadError(''); docsApi.opening().then((r) => fill(r.data)).catch((e) => setLoadError(e.message)); };
+  const formLines = () => toStockLines(canEdit ? savedRows : [], { entry_date: today() });
+  const load = () => {
+    setLoadError('');
+    docsApi.opening().then((r) => setSavedRows(r.data)).catch((e) => setLoadError(e.message));
+  };
+
+  function openForm() {
+    setErrors({});
+    setFormError('');
+    setLines(formLines());
+  }
+
+  function closeForm() {
+    setErrors({});
+    setFormError('');
+    setLines(null);
+  }
   useEffect(load, []);
 
   const save = async () => {
@@ -35,8 +50,8 @@ export default function OpeningStock() {
     try {
       const r = await (canEdit?docsApi.saveOpening:docsApi.addOpening)(lines.map(({ id, entry_date, material_id, values, quantity, remarks }) => ({ id, entry_date, material_id, values, quantity, remarks })));
       toast(r.message);
-      setErrors({});
-      fill(r.data);
+      setSavedRows(r.data);
+      closeForm();
       cat.refresh();
     } catch (e) { setErrors(e.fields || {}); setFormError(e.message); } finally { setSaving(false); }
   };
@@ -68,7 +83,8 @@ export default function OpeningStock() {
 
   const materialsByCode = new Map(cat.materials.filter(material => material.is_active && material.material_code)
     .map(material => [material.material_code.toLowerCase(), material]));
-  const existingIds = new Set([...(canEdit ? [] : savedRows), ...(lines || [])].map(row => String(row.material_id)));
+  const existingRows = lines ? (canEdit ? lines : [...savedRows, ...lines]) : savedRows || [];
+  const existingIds = new Set(existingRows.map(row => String(row.material_id)));
   const fileIds = new Set();
   const importRows = (preview || []).map(row => {
     const material = materialsByCode.get(row.code.toLowerCase());
@@ -89,14 +105,14 @@ export default function OpeningStock() {
     const rows = importRows.map(row => ({
       entry_date: row.entryDate, material_id: row.material.id, quantity: row.quantity, remarks: row.remarks,
     }));
-    setLines(current => [...current.filter(row => row.id || row.material_id || row.quantity || row.remarks?.trim()), ...toStockLines(rows)]);
+    setLines(current => [...(current || formLines()).filter(row => row.id || row.material_id || row.quantity || row.remarks?.trim()), ...toStockLines(rows)]);
     setErrors({});
     setFormError('');
     setPreview(null);
   }
 
   if (loadError) return <div className="mx-auto max-w-5xl rounded-xl border border-gray-200 bg-white p-10 text-center"><p className="text-red-600">{loadError}</p><button onClick={load} className="mt-2 inline-flex items-center gap-1 text-sm text-brand-600 hover:underline"><RefreshCw size={14} /> Try again</button></div>;
-  if (!lines) return <div className="mx-auto max-w-6xl h-40 animate-pulse rounded-xl bg-gray-100" />;
+  if (!savedRows) return <div className="mx-auto max-w-6xl h-40 animate-pulse rounded-xl bg-gray-100" />;
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-24">
       {canCreateStock && (
@@ -104,6 +120,7 @@ export default function OpeningStock() {
           <button type="button" onClick={downloadTemplate} className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm"><Download size={16} /> CSV Template</button>
           <button type="button" disabled={!cat.loaded || saving || reading} onClick={() => inputRef.current.click()}
             className="inline-flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-brand-700 disabled:opacity-50"><Upload size={16} /> Bulk Upload</button>
+          {!lines && <button type="button" onClick={openForm} className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"><Plus size={16} /> Add Opening Stock</button>}
           <input ref={inputRef} type="file" accept=".csv,text/csv" hidden onChange={readUpload} />
         </div>
       )}
@@ -125,11 +142,13 @@ export default function OpeningStock() {
         </Modal>
       )}
       {formError && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div>}
-      {!canEdit&&savedRows.length>0&&<StockLines title="Saved Opening Stock" lines={savedRows} readOnly showDate/>}
-      <StockLines title={canEdit?"Opening Stock":"Add Opening Stock"} lines={lines} onChange={(ls) => { setLines(ls); setErrors({}); }} errors={errors} readOnly={!canCreateStock} showDate />
-      {canCreateStock && (
+      {(!lines || !canEdit) && (savedRows.length > 0
+        ? <StockLines title="Saved Opening Stock" lines={toStockLines(savedRows)} readOnly showDate />
+        : !lines && <p className="rounded-xl border bg-white p-6 text-center text-sm text-gray-600">No opening stock has been saved.</p>)}
+      {lines && <StockLines title="Add Opening Stock" lines={lines} onChange={(ls) => { setLines(ls); setErrors({}); }} errors={errors} showDate />}
+      {lines && canCreateStock && (
         <div className="sticky bottom-0 -mx-4 flex items-center justify-end gap-2 border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
-          <button onClick={load} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Undo changes</button>
+          <button onClick={closeForm} disabled={saving || reading} className="btn-dismiss px-3 py-2 disabled:opacity-60">Cancel</button>
           <button onClick={save} disabled={saving} className="rounded-lg bg-brand-600 px-5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60">{saving ? 'Saving…' : 'Save Opening Stock'}</button>
         </div>
       )}
