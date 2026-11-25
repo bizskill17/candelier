@@ -93,9 +93,14 @@ export const menu = [
       { key: 'material_categories', label: 'Material Categories', path: '/material-categories', icon: Boxes, description: 'Categories used to organise materials.' },
       { key: 'materials', label: 'Materials', path: '/materials', icon: Boxes, description: 'Materials and their categories.' },
       { key: 'opening-stock', label: 'Opening Stock', path: '/opening-stock', icon: PackageOpen, description: 'Stock on hand when you start using the system.' },
+      { key: 'inventory', label: 'Inventory', path: '/inventory', icon: Warehouse, description: 'Stock per material.' },
+    ],
+  },
+  {
+    heading: 'Sample',
+    items: [
       {key:'sample-inventory',label:'Sample Inventory',path:'/sample-inventory',icon:Warehouse,description:'Separate sample stock and issues against orders.'},
       {key:'sample-issues',label:'Sample Issue History',path:'/sample-issues',icon:PackageMinus},
-      { key: 'inventory', label: 'Inventory', path: '/inventory', icon: Warehouse, description: 'Stock per material.' },
     ],
   },
   {
