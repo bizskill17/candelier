@@ -157,7 +157,14 @@ function material_bulk_rows(array $in): array
     if ($errors) throw new ApiError('No materials imported. Correct the listed rows.', 422, $errors);
     $pdo = db();
     try {
-        foreach ($clean as $data) material_save(null, $data, true);
+        foreach ($clean as $index => $data) {
+            $photo = $data['photo_path'] ?? '';
+            if (preg_match('#^https?://drive\\.google\\.com/#i', $photo)) {
+                try { $data['photo_path'] = material_copy_drive_photo($photo); }
+                catch (Throwable $e) { throw new ApiError('No materials imported. Photo download failed.', 422, ['Row ' . ($index + 2) => $e->getMessage()]); }
+            }
+            material_save(null, $data, true);
+        }
 
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
@@ -222,4 +229,50 @@ function variant_catalog(): array
     }
     unset($v);
     return ['data' => ['materials' => $materials, 'variants' => $variants, 'categories' => db_all('SELECT id, name, is_active FROM material_categories ORDER BY name')]];
+}
+
+function material_copy_drive_photo(string $url): string
+{
+    if (!function_exists('curl_init')) throw new ApiError('Server image download support is unavailable.',422);
+    $id = '';
+    if (preg_match('#/file/d/([a-zA-Z0-9_-]+)#', $url, $match)) $id = $match[1];
+    else { parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $query); $id = (string) ($query['id'] ?? ''); }
+    if (!preg_match('/^[a-zA-Z0-9_-]+$/', $id)) throw new ApiError('Invalid Drive photo link.',422);
+    $next = 'https://drive.google.com/thumbnail?id=' . rawurlencode($id) . '&sz=w1600';
+    $bytes = '';
+    for ($attempt = 0; $attempt < 5; $attempt++) {
+        $host = strtolower((string) parse_url($next, PHP_URL_HOST));
+        if (parse_url($next, PHP_URL_SCHEME) !== 'https' || !($host === 'drive.google.com' || str_ends_with($host, '.googleusercontent.com'))) throw new ApiError('Unsupported photo redirect.',422);
+        $ip = gethostbyname($host);
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) throw new ApiError('Photo host could not be resolved safely.',422);
+        $bytes = ''; $location = '';
+        $ch = curl_init($next);
+        curl_setopt_array($ch, [
+            CURLOPT_FOLLOWLOCATION => false, CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 25,
+            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_RESOLVE => [$host . ':443:' . $ip],
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_HEADERFUNCTION => function ($ch, $line) use (&$location) {
+                if (stripos($line, 'Location:') === 0) $location = trim(substr($line, 9));
+                return strlen($line);
+            },
+            CURLOPT_WRITEFUNCTION => function ($ch, $chunk) use (&$bytes) {
+                if (strlen($bytes) + strlen($chunk) > 5 * 1024 * 1024) return 0;
+                $bytes .= $chunk; return strlen($chunk);
+            },
+        ]);
+        $ok = curl_exec($ch); $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE); curl_close($ch);
+        if ($ok === false) throw new ApiError('Photo download failed or exceeded 5 MB.',422);
+        if ($status >= 300 && $status < 400 && $location !== '') { $next = $location; continue; }
+        if ($status !== 200) throw new ApiError('Drive photo is inaccessible. Allow anyone with the link to view it.',422);
+        $info = @getimagesizefromstring($bytes);
+        $ext = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'][$info['mime'] ?? ''] ?? null;
+        if (!$ext) throw new ApiError('The Drive link did not return a supported image.',422);
+        $relative = 'uploads/materials/' . bin2hex(random_bytes(16)) . '.' . $ext;
+        $folder = upload_root() . '/uploads/materials';
+        if (!is_dir($folder) && !mkdir($folder,0755,true) && !is_dir($folder)) throw new ApiError('Photo folder is not writable.',422);
+        if (file_put_contents(upload_root() . '/' . $relative,$bytes,LOCK_EX) === false) throw new ApiError('Could not save the photo.',422);
+        return $relative;
+    }
+    throw new ApiError('Drive returned too many photo redirects.',422);
 }
