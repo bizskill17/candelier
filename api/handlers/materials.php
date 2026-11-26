@@ -113,6 +113,21 @@ function material_save(?int $id, array $in, bool $allowMissingPhoto = false): ar
 
 function material_bulk(array $in): array
 {
+    require_roles(['Admin', 'Store']);
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $result = material_bulk_rows($in);
+        $pdo->commit();
+        return $result;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
+function material_bulk_rows(array $in): array
+{
     $rows = $in['rows'] ?? [];
     if (!is_array($rows) || !$rows || count($rows) > 500) throw new ApiError('Upload between 1 and 500 material rows.', 422);
     $errors = []; $clean = []; $seen = []; $codes = [];
@@ -121,6 +136,13 @@ function material_bulk(array $in): array
         $category = trim((string) ($row['category'] ?? ''));
         $cid = db_value('SELECT id FROM material_categories WHERE LOWER(name) = LOWER(:n) AND is_active = 1', ['n' => $category]);
         try {
+            if ($category === '' || mb_strlen($category) > 100) throw new ApiError('Enter a category name up to 100 characters.', 422);
+            if (!$cid) {
+                $existing = db_value('SELECT id FROM material_categories WHERE LOWER(name)=LOWER(?)', [$category]);
+                if ($existing) throw new ApiError('This category is inactive. Activate it before importing.', 422);
+                db()->prepare('INSERT INTO material_categories(code,name,is_active,created_at,updated_at) VALUES(?,?,1,?,?)')->execute(['MC-' . bin2hex(random_bytes(8)), $category, now(), now()]);
+                $cid = (int) db()->lastInsertId();
+            }
             $data = material_validate(null, ['category_id' => $cid, 'name' => $row['name'] ?? '', 'color' => $row['color'] ?? '', 'photo_path' => $row['photo_path'] ?? '', 'unit' => $row['unit'] ?? '', 'material_code' => $row['material_code'] ?? ''], true);
             $key = mb_strtolower($data['name']);
             if (isset($seen[$key])) $errors['Row ' . ($i + 2)] = 'Duplicate material in upload.';
@@ -132,10 +154,10 @@ function material_bulk(array $in): array
         }
     }
     if ($errors) throw new ApiError('No materials imported. Correct the listed rows.', 422, $errors);
-    $pdo = db(); $pdo->beginTransaction();
+    $pdo = db();
     try {
         foreach ($clean as $data) material_save(null, $data, true);
-        $pdo->commit();
+
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
