@@ -1,0 +1,48 @@
+name: Build WordPress Plugin
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+
+      - name: Publish WordPress plugin branch
+        run: |
+          git fetch origin wordpress-plugin-dist
+          git checkout -B wordpress-plugin-dist origin/wordpress-plugin-dist
+          rm -rf app/assets
+          mkdir -p app/assets
+          cp dist/index.html app/index.html
+          cp -a dist/assets/. app/assets/
+          cp api/index.php api/index.php
+          cp api/lib/migrate.php api/lib/migrate.php
+          cp api/handlers/materials.php api/handlers/materials.php
+          cp database/schema.sql database/schema.sql
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app api/index.php api/lib/migrate.php api/handlers/materials.php database/schema.sql
+          if git diff --cached --quiet; then
+            echo "Plugin branch is already current."
+          else
+            git commit -m "Build WordPress plugin from ${GITHUB_SHA::7}"
+            git push origin HEAD:wordpress-plugin-dist
+          fi
