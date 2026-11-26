@@ -131,7 +131,7 @@ function doc_lines(array $d, int $id): array
 {
     $extra = $d['type'] === 'damage' ? ', x.reason' : ($d['type']==='material-in'?', x.inventory_type,x.project_name,x.order_by_id':'');
     $lines = db_all(
-        "SELECT x.id, x.variant_id, x.quantity, x.remarks$extra, v.material_id, v.spec_text, m.name AS material_name, m.material_code, m.unit
+        "SELECT x.id, x.variant_id, x.quantity, x.remarks$extra, v.material_id, v.spec_text, m.name AS material_name, m.color, m.material_code, m.unit
            FROM {$d['items']} x JOIN material_variants v ON v.id = x.variant_id JOIN materials m ON m.id = v.material_id
           WHERE x.{$d['fk']} = :id ORDER BY x.line_no",
         ['id' => $id]
@@ -377,7 +377,7 @@ function opening_route(string $method): void
 
 function opening_list(): array
 {
-    $rows = db_all('SELECT o.id, o.entry_date, o.variant_id, o.quantity, o.remarks, v.material_id, v.spec_text, m.name AS material_name, m.unit
+    $rows = db_all('SELECT o.id, o.entry_date, o.variant_id, o.quantity, o.remarks, v.material_id, v.spec_text, m.name AS material_name, m.color, m.unit
                       FROM opening_stock o JOIN material_variants v ON v.id = o.variant_id JOIN materials m ON m.id = v.material_id
                      ORDER BY m.sort_order, m.name, v.spec_text');
     $vals = variant_values(array_column($rows, 'variant_id'));
@@ -484,5 +484,5 @@ function receipt_item_list(): array {
  if(!empty($_GET['party_id'])){$w[]='h.supplier_id=:supplier';$p['supplier']=(int)$_GET['party_id'];}
  if(in_array($_GET['receipt_type']??'',['Sample','Purchase'],true)){$w[]='x.inventory_type=:pool';$p['pool']=$_GET['receipt_type']==='Sample'?'Sample':'Normal';}
  foreach(['from'=>'>=','to'=>'<=']as$key=>$op)if(valid_date($_GET[$key]??'')){$w[]="h.receipt_date $op :$key";$p[$key]=$_GET[$key];}
- return crm_page('SELECT h.id,h.receipt_no,h.receipt_date,h.challan_no,h.notes,h.supplier_id,s.name AS supplier_name,x.id AS receipt_item_id,x.line_no,x.quantity,x.remarks,x.inventory_type,x.project_name,x.order_by_id,u.name AS order_by_name,m.name AS material_name,m.material_code,m.photo_path,m.unit,c.name AS category_name FROM material_receipts h JOIN material_receipt_items x ON x.receipt_id=h.id JOIN suppliers s ON s.id=h.supplier_id JOIN material_variants v ON v.id=x.variant_id JOIN materials m ON m.id=v.material_id LEFT JOIN material_categories c ON c.id=m.category_id LEFT JOIN users u ON u.id=x.order_by_id'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY h.receipt_date DESC,h.id DESC,x.line_no',$p);
+ return crm_page('SELECT h.id,h.receipt_no,h.receipt_date,h.challan_no,h.notes,h.supplier_id,s.name AS supplier_name,x.id AS receipt_item_id,x.line_no,x.quantity,x.remarks,x.inventory_type,x.project_name,x.order_by_id,u.name AS order_by_name,m.name AS material_name, m.color,m.material_code,m.photo_path,m.unit,c.name AS category_name FROM material_receipts h JOIN material_receipt_items x ON x.receipt_id=h.id JOIN suppliers s ON s.id=h.supplier_id JOIN material_variants v ON v.id=x.variant_id JOIN materials m ON m.id=v.material_id LEFT JOIN material_categories c ON c.id=m.category_id LEFT JOIN users u ON u.id=x.order_by_id'.($w?' WHERE '.implode(' AND ',$w):'').' ORDER BY h.receipt_date DESC,h.id DESC,x.line_no',$p);
 }

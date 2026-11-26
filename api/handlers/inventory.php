@@ -27,7 +27,7 @@ function inventory_rows(?int $materialId = null, string $q = ''): array
     if ($materialId) { $where[] = 'v.material_id = :m'; $params['m'] = $materialId; }
     if ($q !== '') { $where[] = '(v.spec_text LIKE :q1 OR m.name LIKE :q2 OR m.material_code LIKE :q3)'; $params += ['q1' => "%$q%", 'q2' => "%$q%", 'q3' => "%$q%"]; }
     $rows = db_all(
-        "SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.material_code, m.unit, m.sort_order,
+        "SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.color, m.material_code, m.unit, m.sort_order,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'opening' THEN s.quantity END), 0) AS opening,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' THEN s.quantity END), 0) AS purchased,
                 COALESCE(SUM(CASE WHEN s.ref_type = 'receipt' AND r.receipt_type = 'Sample' THEN s.quantity END), 0) AS samples,
@@ -40,7 +40,7 @@ function inventory_rows(?int $materialId = null, string $q = ''): array
            LEFT JOIN stock_moves s ON s.variant_id = v.id
            LEFT JOIN material_receipts r ON s.ref_type = 'receipt' AND r.id = s.ref_id
           WHERE " . implode(' AND ', $where) . '
-          GROUP BY v.id, v.material_id, v.spec_text, v.reorder_level, m.name, m.material_code, m.unit, m.sort_order
+          GROUP BY v.id, v.material_id, v.spec_text, v.reorder_level, m.name, m.color, m.material_code, m.unit, m.sort_order
           ORDER BY m.sort_order, m.name, v.spec_text',
         $params
     );
@@ -81,7 +81,7 @@ function inventory_list(): array
 function inventory_detail(int $vid): array
 {
     require_roles(['Admin','Store']);
-    $v = db_one('SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.unit FROM material_variants v JOIN materials m ON m.id = v.material_id WHERE v.id = :id', ['id' => $vid]);
+    $v = db_one('SELECT v.id, v.material_id, v.spec_text, v.reorder_level, m.name AS material_name, m.color, m.unit FROM material_variants v JOIN materials m ON m.id = v.material_id WHERE v.id = :id', ['id' => $vid]);
     if (!$v) throw new ApiError('Material not found.', 404);
     $moves = db_all('SELECT * FROM stock_moves WHERE variant_id = :v ORDER BY move_date, id', ['v' => $vid]);
     $bal = 0.0;

@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS materials (
   is_active   TINYINT(1)   NOT NULL DEFAULT 1,
   created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_material_name (name),
+  KEY idx_material_name (name),
   KEY idx_material_category (category_id),
   CONSTRAINT fk_material_category FOREIGN KEY (category_id) REFERENCES material_categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
