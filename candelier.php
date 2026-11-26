@@ -463,3 +463,47 @@ add_action('admin_notices', function () {
     }
     echo '<div class="notice notice-error"><p>Candelier could not write its connection settings. Open <a href="' . esc_url(admin_url('admin.php?page=candelier')) . '">Candelier</a> for details.</p></div>';
 });
+
+/** Explicit operational reset; never runs during activation or deployment. */
+add_action('admin_menu', function () {
+    add_submenu_page('candelier', 'Reset operational data', 'Reset operational data', 'manage_options', 'candelier-reset-operations', 'candelier_reset_operations_page');
+});
+function candelier_reset_operations_page(): void
+{
+    if (!current_user_can('manage_options')) wp_die('Access denied.');
+    $pdo = new PDO(candelier_db_dsn(), DB_USER, DB_PASSWORD, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+    $targets = ['sample_moves','sample_issues','sample_legacy_review','stock_moves','bookings','boq_lines','dispatches','material_issue_items','material_issues','damage_items','damages','stock_adjustments','material_receipt_items','material_receipts','opening_stock','order_item_values','order_items','orders'];
+    $tables = $pdo->query('SHOW FULL TABLES WHERE Table_type="BASE TABLE"')->fetchAll(PDO::FETCH_COLUMN);
+    $targets = array_values(array_intersect($targets,$tables));
+    echo '<div class="wrap"><h1>Reset operational data</h1><p>Keeps Instagram, Contacts, WhatsApp, Leads, Administration and all master data, including Materials and photos. Clears Orders, BOQ, receipts, issues, production, dispatch, opening stock and samples.</p>';
+    if (isset($_POST['candelier_reset_operations'])) {
+        check_admin_referer('candelier_reset_operations');
+        if (($_POST['confirmation'] ?? '') !== 'RESET OPERATIONS') wp_die('Type RESET OPERATIONS to confirm.');
+        $suffix = gmdate('ymdHis') . bin2hex(random_bytes(2));
+        $backups = [];
+        try {
+            foreach ($targets as $table) {
+                $backup = 'reset_' . $suffix . '_' . $table;
+                $pdo->exec("CREATE TABLE `$backup` LIKE `$table`");
+                $backups[$table] = $backup;
+            }
+            $pdo->beginTransaction();
+            foreach ($backups as $table=>$backup) $pdo->exec("INSERT INTO `$backup` SELECT * FROM `$table`");
+            foreach ($targets as $table) $pdo->exec("DELETE FROM `$table`");
+            foreach ($targets as $table) if ((int)$pdo->query("SELECT COUNT(*) FROM `$table`")->fetchColumn()) throw new RuntimeException('Reset verification failed.');
+            $pdo->commit();
+            update_option('candelier_last_operational_reset', ['time'=>current_time('mysql'),'backups'=>$backups], false);
+            echo '<div class="notice notice-success"><p>Operational data cleared and zero counts verified. Master data and CRM retained. Recovery copies retained in database.</p></div>';
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            echo '<div class="notice notice-error"><p>Reset stopped; changes rolled back: ' . esc_html($e->getMessage()) . '</p></div>';
+        }
+    }
+    echo '<table class="widefat"><thead><tr><th>Operational table</th><th>Records</th></tr></thead><tbody>';
+    foreach ($targets as $table) echo '<tr><td>' . esc_html($table) . '</td><td>' . (int)$pdo->query("SELECT COUNT(*) FROM `$table`")->fetchColumn() . '</td></tr>';
+    echo '</tbody></table><form method="post">';
+    wp_nonce_field('candelier_reset_operations');
+    echo '<p>Deletes the listed operational records. Recovery copies are retained in the database. Type RESET OPERATIONS to confirm.</p><input name="confirmation" autocomplete="off"><input type="hidden" name="candelier_reset_operations" value="1">';
+    submit_button('Back up and clear operational data', 'delete');
+    echo '</form></div>';
+}
