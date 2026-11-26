@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Candelier Management System
  * Description:       Orders, BOQ, stores, production, dispatch, CRM, enquiries and WhatsApp campaigns. Opens at yoursite.com/candelier on its own full-screen page, independent of the theme.
- * Version:           1.1.5
+ * Version:           1.1.6
  * Requires at least: 6.0
  * Requires PHP:      8.1
  * Author:            Bizskill
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const CANDELIER_VERSION = '1.1.5';
+const CANDELIER_VERSION = '1.1.6';
 const CANDELIER_SLUG    = 'candelier';   // the app opens at /candelier
 define('CANDELIER_FILE', __FILE__);
 define('CANDELIER_DIR', plugin_dir_path(__FILE__));
@@ -364,7 +364,8 @@ function candelier_render_app(string $basename): void
     $file = CANDELIER_DIR . 'app/index.html';
     $html = is_file($file) ? file_get_contents($file) : '<p>Candelier app files are missing. Upload the plugin again.</p>';
     $assets = plugins_url('app/assets/', CANDELIER_FILE);
-    $html = str_replace(['"./assets/', "'./assets/"], ['"' . $assets, "'" . $assets], $html);
+    // Vite can emit relative or root-relative asset links; both belong to this plugin.
+    $html = str_replace(['"./assets/', "'./assets/", '"/assets/', "'/assets/"], ['"' . $assets, "'" . $assets, '"' . $assets, "'" . $assets], $html);
     $cfg = candelier_config();
     $runtime = [
         'apiBase'   => wp_make_link_relative($cfg['api_url']),
