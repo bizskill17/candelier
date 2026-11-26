@@ -128,7 +128,7 @@ function DocList({ type }) {
                             {d.lines.map((l, i) => (
                               <tr key={l.id}>
                                 <td className="w-8 border border-blue-200 px-3 py-1.5 text-gray-500">{i + 1}</td>
-                                <td className="border border-blue-200 px-3 py-1.5"><b className="text-gray-900">{materialLabel(l.material_name, l.material_code)}</b>{l.spec_text && <span className="text-gray-700"> · {l.spec_text}</span>}</td>
+                                <td className="border border-blue-200 px-3 py-1.5"><b className="text-gray-900">{materialLabel(l.material_name, l.material_code, l.color)}</b>{l.spec_text && <span className="text-gray-700"> · {l.spec_text}</span>}</td>
                                 <td className="w-32 border border-blue-200 px-3 py-1.5 text-right tabular-nums">{fmtQty(l.quantity)} <span className="text-gray-500">{l.unit}</span></td>
                                 {type === 'damage' && <td className="w-28 border border-blue-200 px-3 py-1.5">{l.reason}</td>}
                                 <td className="border border-blue-200 px-3 py-1.5 text-gray-500">{l.remarks}</td>

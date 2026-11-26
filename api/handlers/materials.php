@@ -73,8 +73,9 @@ function material_validate(?int $id, array $in, bool $allowMissingPhoto = false)
     elseif (!$photo && !$allowMissingPhoto) $errors['photo_path'] = 'A material photo is required. Upload or take a photo.';
     $name = trim((string) ($in['name'] ?? ''));
     if ($name === '' || mb_strlen($name) > 100) $errors['name'] = 'Enter a material name (up to 100 characters).';
-    elseif (db_value('SELECT COUNT(*) FROM materials WHERE LOWER(name) = LOWER(:n) AND id <> :id', ['n' => $name, 'id' => $id ?? 0])) $errors['name'] = 'A material with this name already exists.';
+    
     $color = trim((string) ($in['color'] ?? ''));
+    if (db_value("SELECT COUNT(*) FROM materials WHERE LOWER(TRIM(name))=LOWER(:n) AND LOWER(TRIM(COALESCE(color,'')))=LOWER(:c) AND id<>:id", ['n'=>$name,'c'=>$color,'id'=>$id??0])) $errors['name'] = 'This material and color combination already exists.';
     if (mb_strlen($color) > 100) $errors['color'] = 'Color can be up to 100 characters.';
     $unit = trim((string) ($in['unit'] ?? ''));
     if (!in_array($unit, UNITS, true)) $errors['unit'] = 'Choose a valid unit.';
@@ -83,7 +84,7 @@ function material_validate(?int $id, array $in, bool $allowMissingPhoto = false)
     $same = $id && (int) db_value('SELECT category_id FROM materials WHERE id = :i', ['i' => $id]) === $cid;
     if (!$category || (!$category['is_active'] && !$same)) $errors['category_id'] = 'Choose an active material category.';
     if ($errors) throw new ApiError('Please fix the highlighted fields.', 422, $errors);
-    return ['name' => $name, 'color' => $color ?: null, 'unit' => $unit, 'category_id' => $cid, 'material_code' => $code, 'photo_path' => $photo];
+    return ['name' => $name, 'color' => $color, 'unit' => $unit, 'category_id' => $cid, 'material_code' => $code, 'photo_path' => $photo];
 }
 
 function material_save(?int $id, array $in, bool $allowMissingPhoto = false): array
@@ -144,7 +145,7 @@ function material_bulk_rows(array $in): array
                 $cid = (int) db()->lastInsertId();
             }
             $data = material_validate(null, ['category_id' => $cid, 'name' => $row['name'] ?? '', 'color' => $row['color'] ?? '', 'photo_path' => $row['photo_path'] ?? '', 'unit' => $row['unit'] ?? '', 'material_code' => $row['material_code'] ?? ''], true);
-            $key = mb_strtolower($data['name']);
+            $key = mb_strtolower(trim($data['name'])) . '|' . mb_strtolower(trim($data['color'] ?? ''));
             if (isset($seen[$key])) $errors['Row ' . ($i + 2)] = 'Duplicate material in upload.';
             $codeKey = mb_strtolower($data['material_code']);
             if (isset($codes[$codeKey])) $errors['Row ' . ($i + 2)] = 'Duplicate material code in upload.';

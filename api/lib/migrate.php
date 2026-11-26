@@ -204,3 +204,19 @@ function migrate_user_views(): void
         db_value('SELECT RELEASE_LOCK(?)', [$lock]);
     }
 }
+
+function migrate_material_identity(): void
+{
+    $version = '20261126_material_identity';
+    if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?', [$version])) return;
+    $lock = 'material_identity_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')),0,20);
+    if (!db_value('SELECT GET_LOCK(?,30)',[$lock])) throw new ApiError('Material update in progress.',503);
+    try {
+        if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version=?', [$version])) return;
+        if (db_value("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='materials' AND INDEX_NAME='uq_material_name'")) db()->exec('ALTER TABLE materials DROP INDEX uq_material_name');
+        db()->exec("UPDATE materials SET color='' WHERE color IS NULL");
+        db()->exec("ALTER TABLE materials MODIFY color VARCHAR(100) NOT NULL DEFAULT ''");
+        db()->exec('ALTER TABLE materials ADD UNIQUE KEY uq_material_color(name,color)');
+        db()->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(?,?)')->execute([$version,now()]);
+    } finally { db_value('SELECT RELEASE_LOCK(?)',[$lock]); }
+}
