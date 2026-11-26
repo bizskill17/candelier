@@ -242,7 +242,7 @@ function material_copy_drive_photo(string $url): string
     $bytes = '';
     for ($attempt = 0; $attempt < 5; $attempt++) {
         $host = strtolower((string) parse_url($next, PHP_URL_HOST));
-        if (parse_url($next, PHP_URL_SCHEME) !== 'https' || !($host === 'drive.google.com' || $host === 'drive.usercontent.google.com' || $host === 'googleusercontent.com' || str_ends_with($host, '.googleusercontent.com') || preg_match('/^lh[0-9]+\\.google\\.com$/D', $host))) throw new ApiError('Unsupported photo redirect.',422);
+        if (parse_url($next, PHP_URL_SCHEME) !== 'https' || !($host === 'drive.google.com' || $host === 'drive.usercontent.google.com' || str_ends_with($host, '.usercontent.google.com') || $host === 'googleusercontent.com' || str_ends_with($host, '.googleusercontent.com') || preg_match('/^lh[0-9]+\\.google\\.com$/D', $host))) throw new ApiError('Unsupported photo redirect.',422);
         $ip = gethostbyname($host);
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) throw new ApiError('Photo host could not be resolved safely.',422);
         $bytes = ''; $location = '';
