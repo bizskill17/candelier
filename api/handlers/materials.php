@@ -72,6 +72,8 @@ function material_validate(?int $id, array $in, bool $allowMissingPhoto = false)
     $name = trim((string) ($in['name'] ?? ''));
     if ($name === '' || mb_strlen($name) > 100) $errors['name'] = 'Enter a material name (up to 100 characters).';
     elseif (db_value('SELECT COUNT(*) FROM materials WHERE LOWER(name) = LOWER(:n) AND id <> :id', ['n' => $name, 'id' => $id ?? 0])) $errors['name'] = 'A material with this name already exists.';
+    $color = trim((string) ($in['color'] ?? ''));
+    if (mb_strlen($color) > 100) $errors['color'] = 'Color can be up to 100 characters.';
     $unit = trim((string) ($in['unit'] ?? ''));
     if (!in_array($unit, UNITS, true)) $errors['unit'] = 'Choose a valid unit.';
     $cid = (int) ($in['category_id'] ?? 0);
@@ -79,7 +81,7 @@ function material_validate(?int $id, array $in, bool $allowMissingPhoto = false)
     $same = $id && (int) db_value('SELECT category_id FROM materials WHERE id = :i', ['i' => $id]) === $cid;
     if (!$category || (!$category['is_active'] && !$same)) $errors['category_id'] = 'Choose an active material category.';
     if ($errors) throw new ApiError('Please fix the highlighted fields.', 422, $errors);
-    return ['name' => $name, 'unit' => $unit, 'category_id' => $cid, 'material_code' => $code, 'photo_path' => $photo];
+    return ['name' => $name, 'color' => $color ?: null, 'unit' => $unit, 'category_id' => $cid, 'material_code' => $code, 'photo_path' => $photo];
 }
 
 function material_save(?int $id, array $in, bool $allowMissingPhoto = false): array
@@ -92,10 +94,10 @@ function material_save(?int $id, array $in, bool $allowMissingPhoto = false): ar
     if ($own) $pdo->beginTransaction();
     try {
         if ($id) {
-            $pdo->prepare('UPDATE materials SET name = :name, unit = :unit, category_id = :category_id, material_code = :material_code, photo_path = :photo_path, updated_at = :t WHERE id = :id')->execute($data + ['t' => now(), 'id' => $id]);
+            $pdo->prepare('UPDATE materials SET name = :name, color = :color, unit = :unit, category_id = :category_id, material_code = :material_code, photo_path = :photo_path, updated_at = :t WHERE id = :id')->execute($data + ['t' => now(), 'id' => $id]);
         } else {
             $sort = (int) db_value('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM materials');
-            $pdo->prepare('INSERT INTO materials (name, unit, category_id, material_code, photo_path, sort_order, is_active, created_at, updated_at) VALUES (:name, :unit, :category_id, :material_code, :photo_path, :s, 1, :t, :t2)')->execute($data + ['s' => $sort, 't' => now(), 't2' => now()]);
+            $pdo->prepare('INSERT INTO materials (name, color, unit, category_id, material_code, photo_path, sort_order, is_active, created_at, updated_at) VALUES (:name, :color, :unit, :category_id, :material_code, :photo_path, :s, 1, :t, :t2)')->execute($data + ['s' => $sort, 't' => now(), 't2' => now()]);
             $id = (int) $pdo->lastInsertId();
         }
         variant_resolve($id, []);
@@ -117,7 +119,7 @@ function material_bulk(array $in): array
         $category = trim((string) ($row['category'] ?? ''));
         $cid = db_value('SELECT id FROM material_categories WHERE LOWER(name) = LOWER(:n) AND is_active = 1', ['n' => $category]);
         try {
-            $data = material_validate(null, ['category_id' => $cid, 'name' => $row['name'] ?? '', 'unit' => $row['unit'] ?? '', 'material_code' => $row['material_code'] ?? ''], true);
+            $data = material_validate(null, ['category_id' => $cid, 'name' => $row['name'] ?? '', 'color' => $row['color'] ?? '', 'unit' => $row['unit'] ?? '', 'material_code' => $row['material_code'] ?? ''], true);
             $key = mb_strtolower($data['name']);
             if (isset($seen[$key])) $errors['Row ' . ($i + 2)] = 'Duplicate material in upload.';
             $codeKey = mb_strtolower($data['material_code']);
@@ -182,7 +184,7 @@ function variants_route(string $method, array $parts): void
 function variant_catalog(): array
 {
     $materials = array_map(fn ($m) => [
-        'id' => (int) $m['id'], 'name' => $m['name'], 'unit' => $m['unit'], 'sort_order' => (int) $m['sort_order'],
+        'id' => (int) $m['id'], 'name' => $m['name'], 'color' => $m['color'], 'unit' => $m['unit'], 'sort_order' => (int) $m['sort_order'],
         'category_id' => (int) $m['category_id'], 'material_code' => $m['material_code'], 'photo_path' => $m['photo_path'],
         'is_active' => (bool) $m['is_active'], 'fields' => material_fields((int) $m['id']),
     ], db_all('SELECT * FROM materials ORDER BY sort_order, name'));

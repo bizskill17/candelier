@@ -148,6 +148,22 @@ function migrate_material_media(): void
     } finally {db_value('SELECT RELEASE_LOCK(:k)',['k'=>$lock]);}
 }
 
+// Optional colour is stored on the material itself so it can be listed and bulk imported.
+function migrate_material_color(): void
+{
+    $pdo = db(); $version = '20261126_material_color';
+    if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version=:v', ['v'=>$version])) return;
+    $lock = 'material_color_' . substr(hash('sha256', (string) db_value('SELECT DATABASE()')), 0, 20);
+    if (!(int) db_value('SELECT GET_LOCK(:k,30)', ['k'=>$lock])) throw new ApiError('Material update in progress. Please retry.', 503);
+    try {
+        if (db_value('SELECT COUNT(*) FROM app_migrations WHERE version=:v', ['v'=>$version])) return;
+        if (!db_value("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='materials' AND COLUMN_NAME='color'")) {
+            $pdo->exec('ALTER TABLE materials ADD COLUMN color VARCHAR(100) NULL AFTER name');
+        }
+        $pdo->prepare('INSERT INTO app_migrations(version,applied_at) VALUES(:v,:t)')->execute(['v'=>$version,'t'=>now()]);
+    } finally { db_value('SELECT RELEASE_LOCK(:k)', ['k'=>$lock]); }
+}
+
 function migrate_roles_assignment(): void
 {
     $pdo=db();$version='20261025_roles_order_assignment';

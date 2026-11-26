@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { parseMaterialCsv } from '../src/lib/materialCsv.js';
-assert.deepEqual(parseMaterialCsv('\uFEFFMaterial Code,Material Category,Material Name,Unit\r\nMAT-001,Crystal,"Prism, Clear",Pcs\r\n'), [{ material_code: 'MAT-001', category: 'Crystal', name: 'Prism, Clear', unit: 'Pcs' }]);
-assert.equal(parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,"Prism ""K9""",Pcs')[0].name, 'Prism "K9"');
-assert.equal(parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,"Prism\nClear",Pcs')[0].name, 'Prism\nClear');
-assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,"Unclosed,Pcs'), /unclosed/);
-assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit\nMAT-001,Crystal,Prism,Pcs,Extra'), /Row 2/);
+assert.deepEqual(parseMaterialCsv('\uFEFFMaterial Code,Material Category,Material Name,Color,Unit\r\nMAT-001,Crystal,"Prism, Clear",Clear,Pcs\r\n'), [{ material_code: 'MAT-001', category: 'Crystal', name: 'Prism, Clear', color: 'Clear', unit: 'Pcs' }]);
+assert.equal(parseMaterialCsv('Material Code,Material Category,Material Name,Color,Unit\nMAT-001,Crystal,"Prism ""K9""",Golden,Pcs')[0].name, 'Prism "K9"');
+assert.equal(parseMaterialCsv('Material Code,Material Category,Material Name,Color,Unit\nMAT-001,Crystal,"Prism\nClear",Amber,Pcs')[0].name, 'Prism\nClear');
+assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Color,Unit\nMAT-001,Crystal,"Unclosed,Clear,Pcs'), /unclosed/);
+assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Color,Unit\nMAT-001,Crystal,Prism,Clear,Pcs,Extra'), /Row 2/);
 assert.throws(() => parseMaterialCsv('Category,Name,Unit\nMAT-001,Crystal,Prism,Pcs'), /template/);
-assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Unit'), /between/);
+assert.throws(() => parseMaterialCsv('Material Code,Material Category,Material Name,Color,Unit'), /between/);
 const { parseOpeningStockCsv } = await import('../src/lib/openingStockCsv.js');
 const openingHeader = 'Date,Material Code,Quantity,Remarks\n';
 const openingRows = parseOpeningStockCsv(openingHeader + '25/11/2026,M-1,12.125,"Counted, checked"\n31/02/2026,M-2,0,', '2026-11-25');

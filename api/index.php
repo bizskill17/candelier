@@ -49,6 +49,7 @@ try {
     migrate_client_categories();
     migrate_crm();
     migrate_material_media();
+    migrate_material_color();
     migrate_roles_assignment();
     migrate_user_views();
     migrate_whatsapp();
