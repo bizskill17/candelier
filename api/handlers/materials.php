@@ -242,7 +242,7 @@ function material_copy_drive_photo(string $url): string
     $bytes = '';
     for ($attempt = 0; $attempt < 5; $attempt++) {
         $host = strtolower((string) parse_url($next, PHP_URL_HOST));
-        if (parse_url($next, PHP_URL_SCHEME) !== 'https' || !($host === 'drive.google.com' || str_ends_with($host, '.googleusercontent.com'))) throw new ApiError('Unsupported photo redirect.',422);
+        if (parse_url($next, PHP_URL_SCHEME) !== 'https' || !($host === 'drive.google.com' || $host === 'drive.usercontent.google.com' || $host === 'googleusercontent.com' || str_ends_with($host, '.googleusercontent.com') || preg_match('/^lh[0-9]+\\.google\\.com$/D', $host))) throw new ApiError('Unsupported photo redirect.',422);
         $ip = gethostbyname($host);
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) throw new ApiError('Photo host could not be resolved safely.',422);
         $bytes = ''; $location = '';
@@ -263,7 +263,17 @@ function material_copy_drive_photo(string $url): string
         ]);
         $ok = curl_exec($ch); $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE); curl_close($ch);
         if ($ok === false) throw new ApiError('Photo download failed or exceeded 5 MB.',422);
-        if ($status >= 300 && $status < 400 && $location !== '') { $next = $location; continue; }
+        if ($status >= 300 && $status < 400 && $location !== '') {
+            if (str_starts_with($location, '//')) $location = 'https:' . $location;
+            elseif (str_starts_with($location, '/')) $location = 'https://' . $host . $location;
+            elseif (!parse_url($location, PHP_URL_SCHEME)) {
+                $path = (string) parse_url($next, PHP_URL_PATH);
+                $location = 'https://' . $host . substr($path, 0, strrpos($path, '/') + 1) . $location;
+            }
+            if (strtolower((string) parse_url($location, PHP_URL_HOST)) === 'accounts.google.com') throw new ApiError('Drive photo requires sign-in. Set General access to Anyone with the link.',422);
+            if (parse_url($location, PHP_URL_USER) || parse_url($location, PHP_URL_PASS) || (parse_url($location, PHP_URL_PORT) && parse_url($location, PHP_URL_PORT) !== 443)) throw new ApiError('Unsupported photo redirect.',422);
+            $next = $location; continue;
+        }
         if ($status !== 200) throw new ApiError('Drive photo is inaccessible. Allow anyone with the link to view it.',422);
         $info = @getimagesizefromstring($bytes);
         $ext = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'][$info['mime'] ?? ''] ?? null;
