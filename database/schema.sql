@@ -173,6 +173,7 @@ CREATE TABLE IF NOT EXISTS materials (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   category_id INT UNSIGNED NOT NULL,
   name        VARCHAR(100) NOT NULL,
+  color       VARCHAR(100) NULL,
   unit        VARCHAR(20)  NOT NULL,
   sort_order  INT          NOT NULL DEFAULT 0 COMMENT 'Row order on the BOQ',
   is_active   TINYINT(1)   NOT NULL DEFAULT 1,

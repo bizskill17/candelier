@@ -1,7 +1,7 @@
 === Candelier Management System ===
 Requires at least: 6.0
 Requires PHP: 8.1
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 
 Orders, BOQ, stores, production, dispatch, CRM, enquiries and WhatsApp campaigns for chandelier makers.
 
