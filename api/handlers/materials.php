@@ -278,8 +278,8 @@ function material_copy_drive_photo(string $url): string
         $info = @getimagesizefromstring($bytes);
         $ext = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'][$info['mime'] ?? ''] ?? null;
         if (!$ext) throw new ApiError('The Drive link did not return a supported image.',422);
-        $relative = 'uploads/materials/' . bin2hex(random_bytes(16)) . '.' . $ext;
-        $folder = upload_root() . '/uploads/materials';
+        $relative = UPLOAD_DIR . '/' . date('Y/m') . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
+        $folder = dirname(upload_root() . '/' . $relative);
         if (!is_dir($folder) && !mkdir($folder,0755,true) && !is_dir($folder)) throw new ApiError('Photo folder is not writable.',422);
         if (file_put_contents(upload_root() . '/' . $relative,$bytes,LOCK_EX) === false) throw new ApiError('Could not save the photo.',422);
         return $relative;
