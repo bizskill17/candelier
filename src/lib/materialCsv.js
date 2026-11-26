@@ -26,7 +26,7 @@ export function readCsvRows(text) {
 export function parseMaterialCsv(text) {
   const rows = readCsvRows(text);
   const header = rows.shift();
-  if (!header || header.length !== 5 || header.map((x) => x.toLowerCase()).join('|') !== 'material code|material category|material name|color|unit') throw new Error('Use the template columns: Material Code, Material Category, Material Name, Color, Unit.');
+  if (!header || header.map((x) => x.toLowerCase()).join('|') !== 'name|code|colour|category|photo|unit') throw new Error('Use the template columns: Name, Code, Colour, Category, Photo, Unit.');
   if (!rows.length || rows.length > 500) throw new Error('Upload between 1 and 500 material rows.');
-  return rows.map((r, i) => { if (r.length !== 5) throw new Error(`Row ${i + 2}: expected 5 columns.`); return { material_code: r[0], category: r[1], name: r[2], color: r[3], unit: r[4] }; });
+  return rows.map((r, i) => { if (r.length !== 6) throw new Error(`Row ${i + 2}: expected 6 columns.`); return { name: r[0], material_code: r[1], color: r[2], category: r[3], photo_path: r[4], unit: r[5] }; });
 }

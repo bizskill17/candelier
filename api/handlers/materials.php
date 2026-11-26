@@ -66,8 +66,10 @@ function material_validate(?int $id, array $in, bool $allowMissingPhoto = false)
     $code = trim((string) ($in['material_code'] ?? ''));
     if ($code === '' || mb_strlen($code) > 50 || preg_match('/[\x00-\x1F\x7F]/', $code)) $errors['material_code'] = 'Enter a material code (up to 50 characters).';
     elseif (db_value('SELECT COUNT(*) FROM materials WHERE material_code=:c AND id<>:id', ['c'=>$code,'id'=>$id??0])) $errors['material_code'] = 'This material code already exists.';
-    $photo = clean_image_path($in['photo_path'] ?? '');
-    if ($photo === false || ($photo && !is_file(upload_root() . '/' . $photo))) $errors['photo_path'] = 'Upload a valid material photo.';
+    $rawPhoto = trim((string) ($in['photo_path'] ?? ''));
+    $remotePhoto = filter_var($rawPhoto, FILTER_VALIDATE_URL) && in_array(strtolower(parse_url($rawPhoto, PHP_URL_SCHEME) ?: ''), ['http', 'https'], true) && !parse_url($rawPhoto, PHP_URL_USER) && mb_strlen($rawPhoto) <= 255;
+    $photo = $remotePhoto ? $rawPhoto : clean_image_path($rawPhoto);
+    if ($photo === false || (!$remotePhoto && $photo && !is_file(upload_root() . '/' . $photo))) $errors['photo_path'] = 'Upload a valid material photo or enter a public image URL (up to 255 characters).';
     elseif (!$photo && !$allowMissingPhoto) $errors['photo_path'] = 'A material photo is required. Upload or take a photo.';
     $name = trim((string) ($in['name'] ?? ''));
     if ($name === '' || mb_strlen($name) > 100) $errors['name'] = 'Enter a material name (up to 100 characters).';
@@ -119,7 +121,7 @@ function material_bulk(array $in): array
         $category = trim((string) ($row['category'] ?? ''));
         $cid = db_value('SELECT id FROM material_categories WHERE LOWER(name) = LOWER(:n) AND is_active = 1', ['n' => $category]);
         try {
-            $data = material_validate(null, ['category_id' => $cid, 'name' => $row['name'] ?? '', 'color' => $row['color'] ?? '', 'unit' => $row['unit'] ?? '', 'material_code' => $row['material_code'] ?? ''], true);
+            $data = material_validate(null, ['category_id' => $cid, 'name' => $row['name'] ?? '', 'color' => $row['color'] ?? '', 'photo_path' => $row['photo_path'] ?? '', 'unit' => $row['unit'] ?? '', 'material_code' => $row['material_code'] ?? ''], true);
             $key = mb_strtolower($data['name']);
             if (isset($seen[$key])) $errors['Row ' . ($i + 2)] = 'Duplicate material in upload.';
             $codeKey = mb_strtolower($data['material_code']);

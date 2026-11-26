@@ -31,7 +31,7 @@ export default function MaterialsPage() {
   const refresh = () => { load(); cat.refresh(); };
   const toggle = async (m) => { try { const r = await materialsApi.setStatus(m.id, !m.is_active); toast(r.message); refresh(); } catch (e) { toast(e.message, 'error'); } };
   const template = () => {
-    const blob = new Blob(['\uFEFFMaterial Code,Material Category,Material Name,Color,Unit\r\n'], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\uFEFFName,Code,Colour,Category,Photo,Unit\r\n'], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'materials-template.csv'; a.click(); URL.revokeObjectURL(url);
   };
   const readUpload = async (e) => {
