@@ -380,9 +380,9 @@ function DocForm({ type, id, presetItem, sampleReceipt = false }) {
               </Field>
             </>
           )}
-          <Field label="Notes" htmlFor="d-notes" error={errors.notes} className={type === 'damage' ? 'sm:col-span-2' : 'sm:col-span-2 lg:col-span-4'}>
+          {type !== 'material-in' && <Field label="Notes" htmlFor="d-notes" error={errors.notes} className={type === 'damage' ? 'sm:col-span-2' : 'sm:col-span-2 lg:col-span-4'}>
             <textarea id="d-notes" rows={1} value={header.notes} onChange={(e) => setH('notes', e.target.value)} disabled={readOnly} className={inputCls(errors.notes)} />
-          </Field>
+          </Field>}
         </div>
         {prefill?.item && <p className="mt-3 text-sm text-gray-600">{prefill.item.customer_name} · <b className="text-gray-900">{prefill.item.item_title}</b></p>}
       </section>
